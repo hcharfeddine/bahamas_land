@@ -16,11 +16,12 @@ import { useLetters, generateLetter } from "@/lib/inbox";
 
 import m3kkyImg from "@/assets/postoffice/po_m3kky_sprite.png";
 import nattounImg from "@/assets/postoffice/po_nattoun_sprite.png";
-import postOfficeImg from "@/assets/postoffice/po_postoffice_building.png";
+import postOfficeImg from "@/assets/postoffice/bd_postoffice.png";
 import palaceImg from "@/assets/postoffice/po_palace_building.png";
 import studioImg from "@/assets/postoffice/po_studio_building.png";
 import deadLetterImg from "@/assets/postoffice/po_deadletter_bin.png";
 import mapImg from "@/assets/postoffice/po_map_ground.png";
+
 
 /* ------------------------------------------------------------------ */
 /*  Controls                                                          */
@@ -219,6 +220,25 @@ function FacadeBillboard({
           />
         </mesh>
       </Billboard>
+    </group>
+  );
+}
+function PostOfficeBuilding({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Image building */}
+      <FacadeBillboard
+        url={postOfficeImg}
+        width={9}
+        height={9}
+        position={[0, 4.5, 0]} // center it properly
+      />
+
+      {/* Ground shadow */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
+        <circleGeometry args={[3.2, 32]} />
+        <meshBasicMaterial color="#000" transparent opacity={0.25} />
+      </mesh>
     </group>
   );
 }
