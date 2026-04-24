@@ -2,64 +2,64 @@ import { useState, useRef } from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useMuseum, useUsername } from "@/lib/store";
+import { useUsername } from "@/lib/store";
+import { useSharedMuseum } from "@/lib/sharedMuseum";
 import { motion, AnimatePresence } from "framer-motion";
-import { Building2, Upload, Heart } from "lucide-react";
+import { Building2, Upload, Heart, Clock } from "lucide-react";
 import { audio } from "@/lib/audio";
 
 const LABELS = ["Ancient Artifact", "Certified Mid", "Top Tier OG", "Lost Relic", "Cursed", "Sacred"];
 
 export default function Museum() {
   const [username] = useUsername();
-  const [items, setItems] = useMuseum();
+  const { items, submit, respect, isShared } = useSharedMuseum();
   const [caption, setCaption] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [respectsGiven, setRespectsGiven] = useState<Record<string, boolean>>({});
+  const [submitMsg, setSubmitMsg] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     if (file.size > 1024 * 1024) {
       alert("President Nattoun says: File too big. Max 1MB. We are not paying for this storage.");
       return;
     }
-
     const reader = new FileReader();
-    reader.onload = (event) => {
-      setImage(event.target?.result as string);
-    };
+    reader.onload = (event) => setImage(event.target?.result as string);
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!caption.trim() && !image) return;
-
-    const newItem = {
-      id: Math.random().toString(36).substr(2, 9),
+    setSubmitting(true);
+    const result = await submit({
       username: username || "ANONYMOUS CITIZEN",
       caption: caption.trim(),
       image,
       label: LABELS[Math.floor(Math.random() * LABELS.length)],
-      respect: 0,
-      timestamp: Date.now()
-    };
-
-    setItems([newItem, ...items]);
+    });
+    setSubmitting(false);
+    if (!result.ok) {
+      setSubmitMsg("Submission rejected by the state. Try again.");
+    } else if (result.pending) {
+      setSubmitMsg("Submitted. Awaiting presidential approval.");
+    } else {
+      setSubmitMsg(null);
+    }
     setCaption("");
     setImage(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
     audio.playGlitch();
+    window.setTimeout(() => setSubmitMsg(null), 6000);
   };
 
   const handleRespect = (id: string) => {
     if (respectsGiven[id]) return;
-    
-    setItems(items.map(item => 
-      item.id === id ? { ...item, respect: item.respect + 1 } : item
-    ));
+    respect(id);
     setRespectsGiven({ ...respectsGiven, [id]: true });
     audio.playBlip();
   };
@@ -67,19 +67,20 @@ export default function Museum() {
   return (
     <Layout>
       <div className="w-full space-y-8">
-        <motion.div 
-          initial={{ y: -50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="text-center space-y-4"
-        >
+        <motion.div initial={{ y: -50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-center space-y-4">
           <Building2 className="w-16 h-16 mx-auto text-primary neon-text" />
           <h1 className="text-4xl md:text-5xl font-bold text-primary font-mono uppercase tracking-widest neon-text">
             MUSEUM OF THE OGs
           </h1>
           <p className="text-secondary font-mono">Ancient Artifacts of Questionable Value</p>
+          {isShared && (
+            <p className="text-secondary/60 font-mono text-xs uppercase tracking-widest">
+              Shared museum · Submissions reviewed by the President
+            </p>
+          )}
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.2 }}
@@ -96,13 +97,7 @@ export default function Museum() {
                 <Upload className="w-4 h-4 mr-2" />
                 {image ? "Image Selected" : "Upload Relic"}
               </Button>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
-                accept="image/*" 
-                className="hidden" 
-              />
+              <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
               <Input
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
@@ -111,20 +106,26 @@ export default function Museum() {
                 className="bg-black border-primary text-primary font-mono"
               />
             </div>
-            <Button 
-              type="submit" 
-              disabled={!caption.trim() && !image}
+            <Button
+              type="submit"
+              disabled={submitting || (!caption.trim() && !image)}
               className="w-full bg-primary text-black font-bold uppercase tracking-wider hover:bg-primary/80"
             >
-              Donate to the Republic
+              {submitting ? "Submitting..." : "Donate to the Republic"}
             </Button>
+            {submitMsg && (
+              <div className="text-secondary font-mono text-xs uppercase text-center flex items-center justify-center gap-2">
+                <Clock className="w-3 h-3" />
+                {submitMsg}
+              </div>
+            )}
           </form>
         </motion.div>
 
         <div className="relative min-h-[500px] w-full pt-12 pb-24 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <AnimatePresence>
             {items.map((item, i) => {
-              const rotation = (Math.random() * 12) - 6; // -6 to +6 degrees
+              const rotation = (Math.random() * 12) - 6;
               return (
                 <motion.div
                   key={item.id}
@@ -137,7 +138,7 @@ export default function Museum() {
                   <div className="absolute -top-3 -right-3 bg-secondary text-black font-bold text-xs uppercase px-2 py-1 rotate-[15deg] border border-black shadow-lg">
                     {item.label}
                   </div>
-                  
+
                   {item.image ? (
                     <div className="w-full aspect-square border border-primary/50 overflow-hidden bg-black flex items-center justify-center">
                       <img src={item.image} alt={item.caption} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />

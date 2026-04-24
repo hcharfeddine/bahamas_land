@@ -9,7 +9,7 @@ import { Layout } from "@/components/Layout";
 import nattounImg from "@assets/Nattoun_1777028672745.png";
 import bgImg from "@assets/background_1777028829781.webp";
 
-type BuildingShape = "court" | "museum" | "library" | "bank" | "palace";
+type BuildingShape = "court" | "museum" | "library" | "bank" | "palace" | "arcade";
 
 interface Location {
   id: string;
@@ -27,6 +27,7 @@ const LOCATIONS: Location[] = [
   { id: "palace", path: "/palace", label: "PALACE", sublabel: "President", shape: "palace", color: "hsl(320 100% 60%)", delay: 0.25 },
   { id: "museum", path: "/museum", label: "MUSEUM", sublabel: "of OGs", shape: "museum", color: "hsl(280 100% 65%)", delay: 0.35 },
   { id: "library", path: "/library", label: "LIBRARY", sublabel: "Forbidden", shape: "library", color: "hsl(140 100% 55%)", delay: 0.45 },
+  { id: "arcade", path: "/arcade", label: "ARCADE", sublabel: "State-Licensed", shape: "arcade", color: "hsl(0 100% 60%)", delay: 0.55 },
 ];
 
 function Building({ shape, color }: { shape: BuildingShape; color: string }) {
@@ -114,6 +115,28 @@ function Building({ shape, color }: { shape: BuildingShape; color: string }) {
           <circle cx="60" cy="28" r="6" stroke={color} fill={color} opacity="0.6" />
         </svg>
       );
+    case "arcade":
+      return (
+        <svg viewBox="0 0 120 140" className="w-full h-full" style={{ filter: glow }}>
+          {/* marquee */}
+          <rect x="5" y="20" width="110" height="22" {...common} />
+          <polygon points="5,20 60,5 115,20" {...common} />
+          {/* marquee bulbs */}
+          {[15, 30, 45, 60, 75, 90, 105].map((cx) => (
+            <circle key={cx} cx={cx} cy="14" r="2.5" stroke={color} fill={color} opacity="0.7" />
+          ))}
+          {/* facade */}
+          <rect x="10" y="42" width="100" height="80" {...common} />
+          {/* big window/screen */}
+          <rect x="20" y="55" width="80" height="35" stroke={color} fill={color} opacity="0.35" />
+          {/* doors */}
+          <rect x="40" y="95" width="15" height="27" stroke={color} fill={color} opacity="0.5" />
+          <rect x="65" y="95" width="15" height="27" stroke={color} fill={color} opacity="0.5" />
+          {/* base */}
+          <rect x="0" y="122" width="120" height="14" {...common} />
+          <rect x="-5" y="136" width="130" height="4" {...common} />
+        </svg>
+      );
     case "palace":
       return (
         <svg viewBox="0 0 160 180" className="w-full h-full" style={{ filter: glow }}>
@@ -159,6 +182,7 @@ const buildingHeights: Record<BuildingShape, string> = {
   palace: "h-44 md:h-64",
   museum: "h-32 md:h-44",
   library: "h-36 md:h-52",
+  arcade: "h-32 md:h-44",
 };
 
 export default function World() {

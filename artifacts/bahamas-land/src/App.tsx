@@ -13,6 +13,12 @@ import Bank from "@/pages/Bank";
 import Palace from "@/pages/Palace";
 import Secret from "@/pages/Secret";
 import Passport from "@/pages/Passport";
+import Arcade from "@/pages/Arcade";
+import Wheel from "@/pages/Wheel";
+import TicTacToe from "@/pages/TicTacToe";
+import Stocks from "@/pages/Stocks";
+import Inbox from "@/pages/Inbox";
+import AdminBahamas from "@/pages/AdminBahamas";
 
 import { CustomCursor } from "@/components/CustomCursor";
 import { CRTOverlay } from "@/components/CRTOverlay";
@@ -32,6 +38,13 @@ function Router() {
       <Route path="/palace" component={Palace} />
       <Route path="/secret" component={Secret} />
       <Route path="/passport" component={Passport} />
+      <Route path="/arcade" component={Arcade} />
+      <Route path="/wheel" component={Wheel} />
+      <Route path="/tictactoe" component={TicTacToe} />
+      <Route path="/stocks" component={Stocks} />
+      <Route path="/inbox" component={Inbox} />
+      <Route path="/adminbahamas" component={AdminBahamas} />
+      <Route path="/AdminBahamas" component={AdminBahamas} />
       <Route component={NotFound} />
     </Switch>
   );
