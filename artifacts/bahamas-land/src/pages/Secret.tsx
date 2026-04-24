@@ -3,6 +3,7 @@ import { Layout } from "@/components/Layout";
 import { useSecretVisitors } from "@/lib/store";
 import { motion } from "framer-motion";
 import nattounImg from "@assets/Nattoun_1777028672745.png";
+import { unlock } from "@/lib/achievements";
 
 const LORE = [
   "The original capital of Bahamas Land was just a Discord voice channel.",
@@ -18,6 +19,7 @@ export default function Secret() {
 
   useEffect(() => {
     setVisitors(v => v + 1);
+    unlock("spy");
   }, [setVisitors]);
 
   return (

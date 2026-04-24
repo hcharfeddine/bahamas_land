@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { useCoins } from "@/lib/store";
@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Coins, TrendingDown, RefreshCcw } from "lucide-react";
 import { audio } from "@/lib/audio";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { unlock } from "@/lib/achievements";
 
 const INVESTMENTS = [
   "MID Token (definitely going up)",

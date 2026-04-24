@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Book, ExternalLink, X } from "lucide-react";
 import { audio } from "@/lib/audio";
 import nattounImg from "@assets/Nattoun_1777028672745.png";
+import { useLocalStorage } from "@/lib/store";
+import { unlock } from "@/lib/achievements";
 
 type LibraryLink = {
   id: number;
@@ -23,11 +25,20 @@ const LINKS: LibraryLink[] = [
 
 export default function Library() {
   const [trollLink, setTrollLink] = useState<string | null>(null);
+  const [opened, setOpened] = useLocalStorage<number[]>("ogs_library_opened", []);
 
-  const handleTikTokClick = (e: React.MouseEvent, url: string) => {
+  const markOpened = (id: number) => {
+    if (opened.includes(id)) return;
+    const next = [...opened, id];
+    setOpened(next);
+    if (next.length >= LINKS.length) unlock("scholar");
+  };
+
+  const handleTikTokClick = (e: React.MouseEvent, url: string, id: number) => {
     e.preventDefault();
     audio.playGlitch();
     setTrollLink(url);
+    markOpened(id);
   };
 
   return (
@@ -83,7 +94,7 @@ export default function Library() {
                 <motion.button
                   key={link.id}
                   type="button"
-                  onClick={(e) => handleTikTokClick(e, link.url)}
+                  onClick={(e) => handleTikTokClick(e, link.url, link.id)}
                   {...commonProps}
                 >
                   {inner}
@@ -97,6 +108,7 @@ export default function Library() {
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => markOpened(link.id)}
                 {...commonProps}
               >
                 {inner}

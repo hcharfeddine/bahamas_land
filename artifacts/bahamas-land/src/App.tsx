@@ -19,10 +19,16 @@ import TicTacToe from "@/pages/TicTacToe";
 import Stocks from "@/pages/Stocks";
 import Inbox from "@/pages/Inbox";
 import AdminBahamas from "@/pages/AdminBahamas";
+import Vault from "@/pages/Vault";
+import Banned from "@/pages/Banned";
+import Exile from "@/pages/Exile";
+import Citizenship from "@/pages/Citizenship";
+import News from "@/pages/News";
 
 import { CustomCursor } from "@/components/CustomCursor";
 import { CRTOverlay } from "@/components/CRTOverlay";
 import { OGCheat } from "@/components/OGCheat";
+import { EasterEggs } from "@/components/EasterEggs";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +51,11 @@ function Router() {
       <Route path="/inbox" component={Inbox} />
       <Route path="/adminbahamas" component={AdminBahamas} />
       <Route path="/AdminBahamas" component={AdminBahamas} />
+      <Route path="/vault" component={Vault} />
+      <Route path="/banned" component={Banned} />
+      <Route path="/exile" component={Exile} />
+      <Route path="/citizenship" component={Citizenship} />
+      <Route path="/news" component={News} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -58,6 +69,7 @@ function App() {
           <CustomCursor />
           <CRTOverlay />
           <OGCheat />
+          <EasterEggs />
           <Router />
         </WouterRouter>
         <Toaster />

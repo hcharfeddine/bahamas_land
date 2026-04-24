@@ -235,6 +235,7 @@ export default function World() {
       setUsername(nameInput.trim());
       setCoins(1000);
       setShowIntro(false);
+      import("@/lib/achievements").then(({ unlock }) => unlock("citizen"));
     }
   };
 
@@ -247,6 +248,7 @@ export default function World() {
       if (e.key === konamiCode[konamiIndex] || e.key.toLowerCase() === konamiCode[konamiIndex]) {
         konamiIndex++;
         if (konamiIndex === konamiCode.length) {
+          import("@/lib/achievements").then(({ unlock }) => unlock("konami"));
           setLocation('/secret');
           konamiIndex = 0;
         }

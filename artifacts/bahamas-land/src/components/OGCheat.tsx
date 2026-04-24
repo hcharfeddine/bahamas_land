@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import nattounImg from "@assets/Nattoun_1777028672745.png";
+import { unlock } from "@/lib/achievements";
 
 type Dog = { id: number; x: number; delay: number; rot: number; size: number };
 
@@ -24,6 +25,7 @@ export function OGCheat() {
     };
 
     const trigger = () => {
+      unlock("og");
       const newDogs: Dog[] = Array.from({ length: 14 }, (_, i) => ({
         id: Date.now() + i,
         x: Math.random() * 100,

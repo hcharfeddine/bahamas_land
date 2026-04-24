@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { useSharedMuseum } from "@/lib/sharedMuseum";
 import { motion, AnimatePresence } from "framer-motion";
 import { Building2, Upload, Heart, Clock } from "lucide-react";
 import { audio } from "@/lib/audio";
+import { unlock } from "@/lib/achievements";
 
 const LABELS = ["Ancient Artifact", "Certified Mid", "Top Tier OG", "Lost Relic", "Cursed", "Sacred"];
 
@@ -63,6 +64,24 @@ export default function Museum() {
     setRespectsGiven({ ...respectsGiven, [id]: true });
     audio.playBlip();
   };
+
+  // RESPECT typed cheat: temporarily multiply visible counts x10
+  const [respectMultiplier, setRespectMultiplier] = useState(1);
+  useEffect(() => {
+    const onRespect = () => {
+      setRespectMultiplier(10);
+      window.setTimeout(() => setRespectMultiplier(1), 5000);
+    };
+    window.addEventListener("museum-respect", onRespect);
+    return () => window.removeEventListener("museum-respect", onRespect);
+  }, []);
+
+  // Curator achievement: any approved museum item by this user
+  useEffect(() => {
+    if (!username) return;
+    const mine = items.find((it) => it.username === username);
+    if (mine) unlock("curator");
+  }, [items, username]);
 
   return (
     <Layout>
@@ -165,7 +184,7 @@ export default function Museum() {
                       <Heart className={`w-4 h-4 mr-2 ${respectsGiven[item.id] ? 'fill-primary' : ''}`} />
                       Respect
                     </Button>
-                    <span className="text-primary font-mono font-bold text-lg">{item.respect}</span>
+                    <span className="text-primary font-mono font-bold text-lg">{item.respect * respectMultiplier}</span>
                   </div>
                 </motion.div>
               );
