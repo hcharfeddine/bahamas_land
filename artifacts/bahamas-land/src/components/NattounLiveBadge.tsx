@@ -18,10 +18,29 @@ function useNattounLive() {
 
 export function NattounLiveBadge() {
   const status = useNattounLive();
-  const { live, trolling } = status;
+  const { live, trolling, crashed } = status;
   const [location] = useLocation();
 
   if (location === "/stream") return null;
+
+  if (crashed) {
+    return (
+      <Link
+        href="/stream"
+        title="T8ATHELT. The President quit for today."
+        className="inline-flex items-center gap-2 bg-yellow-500/20 border-2 border-yellow-400 text-yellow-300 px-3 py-1 font-mono text-xs uppercase font-bold tracking-wider hover:bg-yellow-500/40 transition-colors clickable"
+        style={{ boxShadow: "0 0 10px rgba(250, 204, 21, 0.6)" }}
+      >
+        <motion.span
+          animate={{ opacity: [1, 0.2, 1] }}
+          transition={{ repeat: Infinity, duration: 0.6 }}
+          className="w-2 h-2 bg-yellow-400 rounded-full"
+        />
+        <Tv className="w-3 h-3" />
+        T8ATHELT
+      </Link>
+    );
+  }
 
   if (!live) {
     return (

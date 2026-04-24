@@ -89,6 +89,15 @@ const OFFLINE_QUOTES = [
   "Offline. Officially. Unofficially he is reading your DMs.",
 ];
 
+const CRASHED_QUOTES = [
+  "T8ATHELT. I do not feel like streaming today. Goodbye.",
+  "T8ATHELT. The vibes left the building. Stream postponed.",
+  "T8ATHELT. The mic broke. The dog ate it. Cope.",
+  "T8ATHELT. I quit for today. Try tomorrow. Or do not.",
+  "T8ATHELT. Internet is mid. Bahamas Land WiFi is on strike.",
+  "T8ATHELT. Loyalty audit interrupted the stream. Sorry not sorry.",
+];
+
 type ChatMsg = ServerChatMsg;
 
 // ============================================================================
@@ -126,7 +135,9 @@ export default function Stream() {
     ? status.trolling
       ? TROLL_QUOTES
       : LIVE_QUOTES
-    : OFFLINE_QUOTES;
+    : status.crashed
+      ? CRASHED_QUOTES
+      : OFFLINE_QUOTES;
 
   const fakeViewers = useMemo(() => {
     if (!status.live) return 0;
@@ -176,7 +187,11 @@ export default function Stream() {
     } else if (result.error === "slow_mode") {
       setChatError("Slow down, citizen. Mods are watching.");
     } else if (result.error === "stream_offline") {
-      setChatError("Stream is offline. Try again when Nattoun returns.");
+      setChatError(
+        status.crashed
+          ? "T8ATHELT. The President quit. Chat closed for today."
+          : "Stream is offline. Try again when Nattoun returns.",
+      );
     } else if (result.error === "empty") {
       setChatError("Type something first, citizen.");
     } else if (result.error === "bad_json" || result.error === "network") {
@@ -244,7 +259,7 @@ export default function Stream() {
               />
 
               {/* LIVE badge */}
-              <div className="absolute top-3 left-3 flex items-center gap-2">
+              <div className="absolute top-3 left-3 flex items-center gap-2 z-30">
                 {status.live ? (
                   <motion.div
                     animate={{ opacity: [1, 0.6, 1] }}
@@ -254,6 +269,10 @@ export default function Stream() {
                     <span className="w-2 h-2 rounded-full bg-white" />
                     LIVE
                   </motion.div>
+                ) : status.crashed ? (
+                  <div className="bg-yellow-500 text-black px-2 py-1 text-xs font-black uppercase tracking-widest border border-yellow-300">
+                    T8ATHELT
+                  </div>
                 ) : (
                   <div className="bg-black/80 text-white/60 px-2 py-1 text-xs font-black uppercase tracking-widest border border-white/30">
                     OFFLINE
@@ -284,6 +303,7 @@ export default function Stream() {
                     repeat: Infinity,
                     ease: "easeInOut",
                   }}
+                  style={status.crashed ? { filter: "grayscale(1) blur(2px)", opacity: 0.4 } : undefined}
                 >
                   <img
                     src={nattounImg}
@@ -300,6 +320,46 @@ export default function Stream() {
                   )}
                 </motion.div>
               </div>
+
+              {/* T8ATHELT crash overlay */}
+              {status.crashed && (
+                <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                  {/* TV-static / glitch background */}
+                  <div
+                    className="absolute inset-0 opacity-60 mix-blend-screen"
+                    style={{
+                      backgroundImage:
+                        "repeating-linear-gradient(0deg, rgba(255,255,255,0.06) 0 2px, transparent 2px 5px), repeating-linear-gradient(90deg, rgba(255,0,128,0.05) 0 3px, transparent 3px 7px)",
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-black/55" />
+                  <motion.div
+                    initial={{ scale: 0.85, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 14 }}
+                    className="relative text-center px-6 py-5 border-4 border-yellow-400 bg-black/85"
+                    style={{
+                      boxShadow:
+                        "0 0 40px rgba(250, 204, 21, 0.8), inset 0 0 24px rgba(250, 204, 21, 0.35)",
+                    }}
+                  >
+                    <motion.div
+                      animate={{ x: [0, -2, 2, -1, 1, 0] }}
+                      transition={{ duration: 0.4, repeat: Infinity, repeatDelay: 1.2 }}
+                      className="text-yellow-400 font-black uppercase tracking-[0.5em] text-4xl md:text-6xl"
+                      style={{ textShadow: "0 0 18px rgba(250, 204, 21, 0.9)" }}
+                    >
+                      T8ATHELT
+                    </motion.div>
+                    <div className="mt-2 text-white/80 font-mono text-[11px] uppercase tracking-widest">
+                      President Nattoun does not feel like streaming today
+                    </div>
+                    <div className="mt-1 text-yellow-300/70 font-mono text-[10px] uppercase tracking-widest">
+                      Try again tomorrow. Or do not. He notices either way.
+                    </div>
+                  </motion.div>
+                </div>
+              )}
 
               {/* Speech caption */}
               <div className="absolute bottom-3 left-3 right-3 z-20">
@@ -389,14 +449,16 @@ export default function Stream() {
                   className="w-12 h-12 rounded-full object-cover border border-primary"
                 />
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-primary font-black uppercase text-base md:text-lg tracking-wider truncate">
+                  <h2 className={`font-black uppercase text-base md:text-lg tracking-wider truncate ${status.crashed ? "text-yellow-400" : "text-primary"}`}>
                     {status.live && status.current
                       ? status.current.kind === "official"
                         ? `${status.current.label} — DAILY 18:30`
                         : `${status.current.label} — UNSCHEDULED — DEAL WITH IT`
-                      : status.next
-                        ? `LIVE IS CLOSED — NEXT SLOT IN ${formatCountdown(status.next.minutesUntil)}${status.next.isToday ? "" : " (TOMORROW)"}`
-                        : "LIVE IS CLOSED"}
+                      : status.crashed
+                        ? "T8ATHELT — PRESIDENT QUIT FOR TODAY"
+                        : status.next
+                          ? `LIVE IS CLOSED — NEXT SLOT IN ${formatCountdown(status.next.minutesUntil)}${status.next.isToday ? "" : " (TOMORROW)"}`
+                          : "LIVE IS CLOSED"}
                   </h2>
                   <p className="text-secondary font-mono text-xs uppercase mt-1">
                     President Nattoun • Bahamas Land Government Channel
@@ -421,7 +483,7 @@ export default function Stream() {
                     connected ? "bg-green-400" : "bg-white/30"
                   }`}
                 />
-                {viewers.real} online · {status.live ? "LIVE" : "READ ONLY"}
+                {viewers.real} online · {status.live ? "LIVE" : status.crashed ? "T8ATHELT" : "READ ONLY"}
               </div>
             </div>
             <div
