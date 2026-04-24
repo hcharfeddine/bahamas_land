@@ -217,7 +217,7 @@ export default function Stream() {
             President Nattoun LIVE
           </h1>
           <p className="text-secondary font-mono text-xs uppercase tracking-widest">
-            Scheduled daily at 17:30 — otherwise I open when I want.
+            Scheduled daily at 18:00 — otherwise I open when I want.
           </p>
         </div>
 
