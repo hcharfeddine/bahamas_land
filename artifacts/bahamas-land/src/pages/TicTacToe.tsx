@@ -67,7 +67,7 @@ export default function TicTacToe() {
   useEffect(() => {
     if (gameOver) {
       if (result.winner === "X") {
-        // Nattoun "cheats": flips one of your X to O after a delay
+        // Nattoun "cheats": flips one of your X to O after a delay so he wins.
         const xs = board.map((c, i) => (c === "X" ? i : -1)).filter((i) => i >= 0);
         const flip = xs[Math.floor(Math.random() * xs.length)];
         window.setTimeout(() => {
@@ -85,8 +85,30 @@ export default function TicTacToe() {
         setTaunt("Nattoun wins. Naturally.");
         setScore((s) => ({ ...s, dog: s.dog + 1 }));
       } else {
-        setTaunt("Draw. Nattoun does not accept draws. He will return.");
-        setScore((s) => ({ ...s, draws: s.draws + 1 }));
+        // Draw is unacceptable. Nattoun flips one of your X into an O so
+        // he completes a winning line. Tape will be reviewed. He wins.
+        const xs = board.map((c, i) => (c === "X" ? i : -1)).filter((i) => i >= 0);
+        // Find an X that, when flipped to O, completes a 3-in-a-row for O.
+        let flip = xs[0];
+        for (const idx of xs) {
+          const trial = [...board];
+          trial[idx] = "O";
+          if (checkWinner(trial).winner === "O") {
+            flip = idx;
+            break;
+          }
+        }
+        window.setTimeout(() => {
+          setCheated(flip);
+          setTaunt("Draw? IMPOSSIBLE. Recounting... Nattoun wins.");
+          window.setTimeout(() => {
+            const newBoard = [...board];
+            newBoard[flip] = "O";
+            setBoard(newBoard);
+            setScore((s) => ({ ...s, dog: s.dog + 1 }));
+            setCheated(null);
+          }, 1500);
+        }, 600);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

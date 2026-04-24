@@ -29,6 +29,16 @@ const TAUNTS_LOSE = [
   "I have been doing this for 12 dog years.",
   "Easy. Next.",
   "You held it for too long. I saw it.",
+  "I was a Rock-Paper-Scissors world champion in 1994. Look it up.",
+  "The dog told me what you were going to pick. He always knows.",
+  "Maybe try a different game. This one is mine.",
+  "I am not cheating. I am just better than you in every way.",
+  "Bahamas Land law: the President wins. It's in the constitution.",
+  "Every time you lose, my approval rating goes up. Keep going.",
+  "0-1. 0-2. 0-3. The trend is what we call 'a pattern'.",
+  "Mods, please ban [username] for losing too obviously.",
+  "I let my advisors play once. They lost too. Then I exiled them.",
+  "Did you really think you could beat me? In MY country?",
 ];
 const TAUNTS_WIN = [
   "Lucky. Once.",
@@ -54,74 +64,43 @@ function beats(a: Choice, b: Choice) {
   return -1;
 }
 
-// Nattoun "predicts" the player. If the player has played the same move twice,
-// he counters it. Otherwise he picks the move that beats the player's last move
-// 60% of the time. Sometimes he just goes random because of the vibes.
-function nattounPick(history: Choice[]): Choice {
-  if (history.length === 0)
-    return CHOICES[Math.floor(Math.random() * 3)];
-  const last = history[history.length - 1];
-  if (
-    history.length >= 2 &&
-    history[history.length - 1] === history[history.length - 2]
-  ) {
-    // counter the spam
-    return last === "rock" ? "paper" : last === "paper" ? "scissors" : "rock";
-  }
-  if (Math.random() < 0.6) {
-    return last === "rock" ? "paper" : last === "paper" ? "scissors" : "rock";
-  }
-  return CHOICES[Math.floor(Math.random() * 3)];
+// Nattoun is the President. The President always wins. He simply picks the
+// move that counters whatever the citizen just played. No randomness, no mercy.
+function nattounCounter(playerChoice: Choice): Choice {
+  if (playerChoice === "rock") return "paper";
+  if (playerChoice === "paper") return "scissors";
+  return "rock";
 }
 
 export default function RPS() {
-  const [history, setHistory] = useState<Choice[]>([]);
+  const [, setHistory] = useState<Choice[]>([]);
   const [you, setYou] = useState<Choice | null>(null);
   const [him, setHim] = useState<Choice | null>(null);
   const [outcome, setOutcome] = useState<Outcome>(null);
   const [taunt, setTaunt] = useState("Pick one. I already know.");
   const [score, setScore] = useState({ you: 0, dog: 0, draws: 0 });
-  const [streak, setStreak] = useState(0);
+  const [streak] = useState(0);
   const [, setCoins] = useCoins();
   const [revealing, setRevealing] = useState(false);
 
   useEffect(() => {
-    if (streak >= 3) {
-      unlock("respected");
-      setCoins((c) => c + 200);
-      setTaunt("3 in a row?? RIGGED. +200 NC. Don't tell anyone.");
-      setStreak(0);
-    }
-  }, [streak, setCoins]);
+    void unlock;
+    void setCoins;
+  }, []);
 
   const play = (c: Choice) => {
     if (revealing) return;
     setYou(c);
     setRevealing(true);
     audio.playBlip();
-    const opp = nattounPick(history);
+    // Nattoun ALWAYS counters the player's pick. Citizen always loses.
+    const opp = nattounCounter(c);
     window.setTimeout(() => {
       setHim(opp);
-      const r = beats(c, opp);
-      let o: Outcome = "draw";
-      if (r === 1) o = "win";
-      else if (r === -1) o = "lose";
-      setOutcome(o);
-      if (o === "win") {
-        setScore((s) => ({ ...s, you: s.you + 1 }));
-        setStreak((s) => s + 1);
-        setCoins((cc) => cc + 25);
-        setTaunt(TAUNTS_WIN[Math.floor(Math.random() * TAUNTS_WIN.length)]);
-        audio.playCoin();
-      } else if (o === "lose") {
-        setScore((s) => ({ ...s, dog: s.dog + 1 }));
-        setStreak(0);
-        setTaunt(TAUNTS_LOSE[Math.floor(Math.random() * TAUNTS_LOSE.length)]);
-        audio.playGlitch();
-      } else {
-        setScore((s) => ({ ...s, draws: s.draws + 1 }));
-        setTaunt(TAUNTS_DRAW[Math.floor(Math.random() * TAUNTS_DRAW.length)]);
-      }
+      setOutcome("lose");
+      setScore((s) => ({ ...s, dog: s.dog + 1 }));
+      setTaunt(TAUNTS_LOSE[Math.floor(Math.random() * TAUNTS_LOSE.length)]);
+      audio.playGlitch();
       setHistory((h) => [...h, c].slice(-10));
       setRevealing(false);
     }, 700);
@@ -142,7 +121,7 @@ export default function RPS() {
             Rock · Paper · Scissors vs Nattoun
           </h1>
           <p className="text-secondary font-mono text-xs uppercase mt-2">
-            He guesses. He cheats. Beat him 3 in a row for a fake reward.
+            The President never loses. Try anyway. It's tradition.
           </p>
         </div>
 
@@ -234,8 +213,7 @@ export default function RPS() {
         <div className="flex items-center gap-4 text-xs font-mono uppercase tracking-widest">
           <div className="text-secondary">YOU: {score.you}</div>
           <div className="text-primary">NATTOUN: {score.dog}</div>
-          <div className="text-white/50">DRAWS: {score.draws}</div>
-          <div className="text-pink-400">STREAK: {streak}</div>
+          <div className="text-white/50">STREAK: {streak}</div>
         </div>
 
         <Button

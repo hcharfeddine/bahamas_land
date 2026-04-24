@@ -16,10 +16,11 @@ const RATE_MS = 1500;
 const VIEWER_TTL_MS = 35_000;
 const SSE_KEEPALIVE_MS = 20_000;
 
-const VIEWER_BASE = 1337;
-const VIEWER_MULT_REAL = 247;
-const VIEWER_DRIFT_AMP = 420;
-const TROLL_BOOST = 2.7;
+const VIEWER_BASE = 142_857;
+const VIEWER_MULT_REAL = 1_247;
+const VIEWER_DRIFT_AMP = 8_420;
+const TROLL_BOOST = 1.85;
+const VIEWER_FLOOR = 99_999;
 
 const BOT_CHATTERS = [
   "ogboss",
@@ -205,6 +206,26 @@ const PRES_LINES = [
   "Today's address brought to you by: vibes.",
   "Mods! Ban anyone NOT typing W.",
   "The Court of OGs is now in session. Of course it is.",
+  "There are NO bots in this chat. Every viewer is a real loyal citizen.",
+  "Who said bots? [username] you said bots? MODS. EXILE.",
+  "I personally verified all 142,857 viewers. Hand-shook every one of them.",
+  "Bots? In MY stream? Impossible. The dog sniffs them out.",
+  "Anyone claiming there are bots is a Tunisian spy. Confirmed.",
+  "0 bots. 0%. Zero. None. Stop asking. Next question.",
+  "These usernames look weird because Bahamas Land citizens are CREATIVE.",
+  "If there were bots they would be loyal bots. Which we do not have.",
+  "Every single chatter is a verified human with a passport stamped by me.",
+  "Anyone saying 'bot' gets 30 day timeout. This is a bot-free zone.",
+  "I refuse to acknowledge the existence of bots. They do not exist here.",
+  "[username] those are NOT bots, those are my closest friends.",
+  "BREAKING: Court of OGs has banned the word 'bot' for treason.",
+  "If I see one more 'bot' accusation I am closing the chat. Try me.",
+  "The viewer count is real. The chat is real. I am real. The dog is real.",
+  "Reminder: this stream is 100% organic, free-range, hand-raised viewership.",
+  "Inflated viewer count? Excuse me? I am simply that popular. Move on.",
+  "[username] if you think this is bots wait until you see my Twitter.",
+  "Every viewer here passed a 14-step loyalty audit. There are NO bots.",
+  "The bots accusation is fake news manufactured by my enemies in Tunisia.",
 ];
 
 const state = {
@@ -255,9 +276,13 @@ function isLiveNow(d = new Date()) {
 function inflatedViewerCount(now: number, real: number) {
   const t = Math.floor(now / 4000);
   const drift = Math.abs(Math.sin(t * 0.3)) * VIEWER_DRIFT_AMP;
+  const wobble = Math.abs(Math.sin(t * 1.7)) * 1_300;
   const { trolling } = isLiveNow(new Date(now));
   const boost = trolling ? TROLL_BOOST : 1;
-  return Math.floor((VIEWER_BASE + real * VIEWER_MULT_REAL + drift) * boost);
+  const raw = Math.floor(
+    (VIEWER_BASE + real * VIEWER_MULT_REAL + drift + wobble) * boost,
+  );
+  return Math.max(VIEWER_FLOOR + 1 + Math.floor(wobble), raw);
 }
 
 function viewerStats() {
@@ -327,7 +352,7 @@ function pushBotChatter(count = 1) {
     const roll = Math.random();
     if (roll < 0.08) {
       pushMessage({ user: "NattounBot", text: pick(MOD_LINES), mod: true });
-    } else if (roll < 0.13) {
+    } else if (roll < 0.28) {
       pushMessage({
         user: "President_Nattoun",
         text: pick(PRES_LINES).replace("[username]", pick(BOT_CHATTERS)),
