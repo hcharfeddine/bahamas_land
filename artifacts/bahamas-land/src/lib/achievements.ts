@@ -72,7 +72,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "clicker", name: "Clicky Citizen", hint: "Click around. The dog appreciates it.", emoji: "🖱️", difficulty: "easy" },
   { id: "loyal", name: "Daily Loyalist", hint: "Show up every day.", emoji: "📅", difficulty: "easy" },
   { id: "newshound", name: "Newshound", hint: "Read the state press.", emoji: "📰", difficulty: "easy" },
-  { id: "konami", name: "Konami Veteran", hint: "A code older than time.", emoji: "🎮", difficulty: "easy" },
+  { id: "konami", name: "Baskouta Code", hint: "An ancient code, with extra crumbs at the end.", emoji: "🎮", difficulty: "insane" },
   { id: "gambler", name: "Lil' Gambler", hint: "Bet a single coin and survive the consequences.", emoji: "🎲", difficulty: "easy" },
 
   // MEDIUM TIER — mild effort required
@@ -112,7 +112,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "hacker", name: "Console Cowboy", hint: "Open the place where the truth lives.", emoji: "🖥️", difficulty: "insane" },
   { id: "cheat", name: "Cheat Code", hint: "Print yourself rich.", emoji: "💳", difficulty: "insane" },
   { id: "traitor", name: "Traitor", hint: "Don't even type the word.", emoji: "🗡️", difficulty: "insane" },
-  { id: "breadhead", name: "Bread Historian", hint: "Bread came first. We just took credit.", emoji: "🍞", difficulty: "insane" },
+  { id: "breadhead", name: "Baskouta Historian", hint: "Baskouta came first. We just took credit.", emoji: "🍪", difficulty: "insane" },
   { id: "vaultkeeper", name: "Vaultkeeper", hint: "Crack the dog's piggy bank.", emoji: "🔐", difficulty: "insane" },
   { id: "mastermind", name: "Mastermind", hint: "Trade like the President watches.", emoji: "🧠", difficulty: "insane" },
   { id: "loyaltour", name: "Grand Tour", hint: "Visit every public room of Bahamas Land.", emoji: "🗺️", difficulty: "insane" },

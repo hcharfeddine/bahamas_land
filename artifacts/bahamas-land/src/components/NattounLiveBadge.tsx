@@ -23,11 +23,17 @@ export function NattounLiveBadge() {
 
   if (location === "/stream") return null;
 
+  const t5athelDay = status.category === "t5athel";
+
   if (crashed) {
     return (
       <Link
         href="/stream"
-        title="T5ATHELT. The President quit for today."
+        title={
+          t5athelDay
+            ? "T5ATHELT. No stream today — just send tips."
+            : "T5ATHELT. Today's slot is burned."
+        }
         className="inline-flex items-center gap-2 bg-yellow-500/20 border-2 border-yellow-400 text-yellow-300 px-3 py-1 font-mono text-xs uppercase font-bold tracking-wider hover:bg-yellow-500/40 transition-colors clickable"
         style={{ boxShadow: "0 0 10px rgba(250, 204, 21, 0.6)" }}
       >
@@ -60,8 +66,8 @@ export function NattounLiveBadge() {
       href="/stream"
       title={
         trolling
-          ? "Nattoun is live (random unscheduled slot)."
-          : "Nattoun is live (official 17:50 address)."
+          ? `Nattoun is live (${status.current?.label ?? "random slot"}).`
+          : "Nattoun is live (just chatting)."
       }
       className="inline-flex items-center gap-2 bg-pink-500/20 border-2 border-pink-500 text-pink-300 px-3 py-1 font-mono text-xs uppercase font-bold tracking-wider hover:bg-pink-500/40 transition-colors clickable"
       style={{ boxShadow: "0 0 10px rgba(244, 114, 182, 0.6)" }}

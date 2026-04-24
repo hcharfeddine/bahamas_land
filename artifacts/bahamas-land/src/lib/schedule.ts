@@ -1,27 +1,35 @@
 // ============================================================================
 // President Nattoun's stream schedule
 // ============================================================================
-// Daily-deterministic schedule. Each calendar day produces the same list of
-// "live" slots so visitors agree on when the President is broadcasting.
+// Daily-deterministic schedule. Each calendar day produces the SAME single
+// slot for every visitor.
 //
-//   - First slot every day is the OFFICIAL ADDRESS at 18:30 (35 min)
-//   - Plus 2-3 RANDOM slots scattered across the day (deterministic per day)
-//   - Outside of any slot the stream is CLOSED.
+//   - One slot per day, picked randomly from a category:
+//       * "clips"    — clip compilation
+//       * "chatting" — just chatting
+//       * "kick"     — kick simulcast
+//       * "t5athel"  — President is NOT streaming today, just send tips
+//   - Outside that one slot the stream is CLOSED.
+//   - On t5athel days there is no slot at all.
 // ============================================================================
+
+export type SlotCategory = "clips" | "chatting" | "kick" | "t5athel";
 
 export type Slot = {
   startMin: number; // minutes since 00:00 local
   endMin: number;
-  kind: "official" | "random";
+  category: SlotCategory;
   label: string;
 };
 
-export const MAIN_SLOT_HOUR = 18;
-export const MAIN_SLOT_MIN = 30;
-export const MAIN_SLOT_DURATION = 35;
+const CATEGORIES: SlotCategory[] = ["clips", "chatting", "kick", "t5athel"];
 
-const MAIN_SLOT_START = MAIN_SLOT_HOUR * 60 + MAIN_SLOT_MIN;
-const MAIN_SLOT_END = MAIN_SLOT_START + MAIN_SLOT_DURATION;
+const CATEGORY_LABEL: Record<SlotCategory, string> = {
+  clips: "CLIPS COMPILATION",
+  chatting: "JUST CHATTING",
+  kick: "KICK SIMULCAST",
+  t5athel: "T5ATHELT — NO STREAM TODAY",
+};
 
 function dayKey(d: Date): number {
   const y = d.getFullYear();
@@ -38,53 +46,31 @@ function makeRng(seed: number): () => number {
   };
 }
 
-function overlaps(a: Slot, b: Slot): boolean {
-  return a.startMin < b.endMin && b.startMin < a.endMin;
+export function getDayCategory(d: Date): SlotCategory {
+  const rand = makeRng(dayKey(d));
+  return CATEGORIES[Math.floor(rand() * CATEGORIES.length)];
 }
 
-const RANDOM_LABELS = [
-  "EMERGENCY ADDRESS",
-  "UNSCHEDULED RANT",
-  "BREAD UPDATE",
-  "RANDOM PRESS CONFERENCE",
-  "OG COURT BROADCAST",
-  "VIBE CHECK",
-];
+export function getSlotForDay(d: Date): Slot | null {
+  const rand = makeRng(dayKey(d));
+  // First random pick = category (must match getDayCategory order)
+  const category = CATEGORIES[Math.floor(rand() * CATEGORIES.length)];
 
-export function getSlotsForDay(d: Date): Slot[] {
-  const seed = dayKey(d);
-  const rand = makeRng(seed);
+  if (category === "t5athel") return null;
 
-  const slots: Slot[] = [
-    {
-      startMin: MAIN_SLOT_START,
-      endMin: MAIN_SLOT_END,
-      kind: "official",
-      label: "STATE OF THE UNION",
-    },
-  ];
+  // Single slot at a random time of day, ~25-45 min long
+  const startHour = 8 + Math.floor(rand() * 14); // 08:00 – 21:59
+  const startMin = Math.floor(rand() * 60);
+  const dur = 25 + Math.floor(rand() * 21); // 25 – 45 min
+  const start = startHour * 60 + startMin;
+  const end = Math.min(24 * 60 - 1, start + dur);
 
-  const extraCount = 2 + Math.floor(rand() * 2); // 2 or 3 extras
-  let attempts = 0;
-  while (slots.length < 1 + extraCount && attempts < 30) {
-    attempts++;
-    const startHour = 8 + Math.floor(rand() * 15); // 08:00 - 22:59
-    const startMin = Math.floor(rand() * 60);
-    const dur = 20 + Math.floor(rand() * 25); // 20 - 44 min
-    const start = startHour * 60 + startMin;
-    const end = Math.min(24 * 60 - 1, start + dur);
-    const label = RANDOM_LABELS[Math.floor(rand() * RANDOM_LABELS.length)];
-    const candidate: Slot = {
-      startMin: start,
-      endMin: end,
-      kind: "random",
-      label,
-    };
-    if (slots.some((s) => overlaps(s, candidate))) continue;
-    slots.push(candidate);
-  }
-
-  return slots.sort((a, b) => a.startMin - b.startMin);
+  return {
+    startMin: start,
+    endMin: end,
+    category,
+    label: CATEGORY_LABEL[category],
+  };
 }
 
 function fmt(min: number): string {
@@ -97,45 +83,82 @@ export function formatSlot(s: Slot): string {
   return `${fmt(s.startMin)}–${fmt(s.endMin)}`;
 }
 
-function minutesUntilFromList(
-  nowMin: number,
-  starts: number[],
-): number | null {
-  const future = starts.filter((s) => s > nowMin).sort((a, b) => a - b);
-  if (future.length > 0) return future[0] - nowMin;
-  return null;
-}
-
 export type StreamStatus = {
   now: Date;
   live: boolean;
-  trolling: boolean; // live but in a random (non-official) slot
-  crashed: boolean; // we were live but Nattoun rage-quit ("t5athelt")
+  trolling: boolean; // live in a non-"chatting" category (cosmetic flair)
+  crashed: boolean; // T5ATHELT state (whole day OR slot already burned)
+  category: SlotCategory; // today's chosen category
   current: Slot | null;
   next: { slot: Slot; minutesUntil: number; isToday: boolean } | null;
-  slots: Slot[]; // today's slots
+  slot: Slot | null; // today's single slot (null on t5athel days)
+  slots: Slot[]; // back-compat — array form, length 0 or 1
 };
 
-// How long the President actually stays live before he gives up for the day.
-// Each scheduled slot opens for this many seconds, then the stream "crashes"
-// and shows T5ATHELT for the rest of the slot window.
+// How long the President actually stays live before he gives up for the slot.
+// The slot opens for this many seconds, then the stream "crashes" and shows
+// T5ATHELT for the remainder of the slot window.
 export const LIVE_DURATION_SEC = 60;
 
-export function getStreamStatus(now: Date = new Date()): StreamStatus {
-  const slots = getSlotsForDay(now);
+function findNextSlot(now: Date): {
+  slot: Slot;
+  minutesUntil: number;
+  isToday: boolean;
+} | null {
   const m = now.getHours() * 60 + now.getMinutes();
-  const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-  const inSlot = slots.find((s) => m >= s.startMin && m < s.endMin) ?? null;
+  const todaySlot = getSlotForDay(now);
+  if (todaySlot && m < todaySlot.startMin) {
+    return { slot: todaySlot, minutesUntil: todaySlot.startMin - m, isToday: true };
+  }
+  // Look ahead up to 7 days for the next slot
+  for (let i = 1; i <= 7; i++) {
+    const future = new Date(now);
+    future.setDate(future.getDate() + i);
+    const slot = getSlotForDay(future);
+    if (slot) {
+      const minutesUntil =
+        (24 - now.getHours()) * 60 -
+        now.getMinutes() +
+        (i - 1) * 24 * 60 +
+        slot.startMin;
+      return { slot, minutesUntil, isToday: false };
+    }
+  }
+  return null;
+}
+
+export function getStreamStatus(now: Date = new Date()): StreamStatus {
+  const category = getDayCategory(now);
+  const slot = getSlotForDay(now);
+  const m = now.getHours() * 60 + now.getMinutes();
+  const nowSec =
+    now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+
+  // T5ATHELT day — no stream all day, just send tips
+  if (category === "t5athel" || !slot) {
+    return {
+      now,
+      live: false,
+      trolling: false,
+      crashed: true,
+      category: "t5athel",
+      current: null,
+      next: findNextSlot(now),
+      slot: null,
+      slots: [],
+    };
+  }
 
   let live = false;
   let crashed = false;
   let current: Slot | null = null;
-  if (inSlot) {
-    const slotStartSec = inSlot.startMin * 60;
+
+  if (m >= slot.startMin && m < slot.endMin) {
+    const slotStartSec = slot.startMin * 60;
     const sinceStart = nowSec - slotStartSec;
     if (sinceStart >= 0 && sinceStart < LIVE_DURATION_SEC) {
       live = true;
-      current = inSlot;
+      current = slot;
     } else {
       crashed = true;
     }
@@ -143,37 +166,19 @@ export function getStreamStatus(now: Date = new Date()): StreamStatus {
 
   let next: StreamStatus["next"] = null;
   if (!current) {
-    const upcoming = minutesUntilFromList(
-      m,
-      slots.map((s) => s.startMin),
-    );
-    if (upcoming !== null) {
-      const slot = slots.find((s) => s.startMin === m + upcoming)!;
-      next = { slot, minutesUntil: upcoming, isToday: true };
-    } else {
-      // Next is tomorrow's official address
-      const minutesUntilTomorrowMain = 24 * 60 - m + MAIN_SLOT_START;
-      next = {
-        slot: {
-          startMin: MAIN_SLOT_START,
-          endMin: MAIN_SLOT_END,
-          kind: "official",
-          label: "STATE OF THE UNION",
-        },
-        minutesUntil: minutesUntilTomorrowMain,
-        isToday: false,
-      };
-    }
+    next = findNextSlot(now);
   }
 
   return {
     now,
     live,
-    trolling: live && current !== null && current.kind === "random",
+    trolling: live && current !== null && current.category !== "chatting",
     crashed,
+    category,
     current,
     next,
-    slots,
+    slot,
+    slots: [slot],
   };
 }
 

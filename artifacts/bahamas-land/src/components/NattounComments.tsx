@@ -50,7 +50,7 @@ const COMMENTS_BY_PATH: Record<string, string[]> = {
     "Order in the court! [username] is on trial.",
     "All charges in this court are vibes-based.",
     "[username], you have the right to remain loyal.",
-    "Verdict: probably guilty. Sentence: probably bread.",
+    "Verdict: probably guilty. Sentence: probably baskouta.",
     "The Judge is also Nattoun. The Jury is also Nattoun.",
   ],
   "/museum": [
@@ -130,7 +130,7 @@ const COMMENTS_BY_PATH: Record<string, string[]> = {
   ],
   "/vault": [
     "[username] discovered the Vault. Loyalty score updated.",
-    "The Vault contains: secrets, more secrets, and bread.",
+    "The Vault contains: secrets, more secrets, and baskouta.",
     "Touching the Vault costs 1 finger. Choose wisely.",
   ],
   "/news": [

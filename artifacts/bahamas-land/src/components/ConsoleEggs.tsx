@@ -18,7 +18,7 @@ import { unlock } from "@/lib/achievements";
 //   bahamas.secret()            → goto secret area
 //   bahamas.nattoun()           → speech from the president
 //   bahamas.sudo("...")         → escalate, sometimes works
-//   bahamas.bread()             → reveal bread lore
+//   bahamas.baskouta()          → reveal baskouta lore
 //   bahamas.rules()             → list of stream rules
 //   bahamas.coup()              → DO NOT
 //
@@ -40,7 +40,7 @@ const HELP_LINES: Array<[string, string]> = [
   ["bahamas.secret()", "go to the secret area"],
   ["bahamas.nattoun()", "speech from the president"],
   ["bahamas.sudo(cmd)", "try to escalate (rarely works)"],
-  ["bahamas.bread()", "reveal bread lore"],
+  ["bahamas.baskouta()", "reveal baskouta lore"],
   ["bahamas.rules()", "stream rules"],
   ["bahamas.coup()", "do not"],
 ];
@@ -172,7 +172,7 @@ export function ConsoleEggs() {
 
       nattoun() {
         const speeches = [
-          "I am the President. The dog. The legend. The bread enthusiast.",
+          "I am the President. The dog. The legend. The baskouta enthusiast.",
           "Bahamas Land is a serious country. (it isn't.)",
           "We have never lost an election. We have never held one.",
           "Today's policy: vibes.",
@@ -191,11 +191,11 @@ export function ConsoleEggs() {
         return "denied";
       },
 
-      bread() {
-        speak("BREAD LORE: In year 0, the President invented bread.");
+      baskouta() {
+        speak("BASKOUTA LORE: In year 0, the President invented baskouta.");
         speak("It was already invented. He took credit anyway.");
         unlock("breadhead");
-        return "🍞";
+        return "🍪";
       },
 
       rules() {

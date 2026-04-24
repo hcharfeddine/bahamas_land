@@ -28,13 +28,13 @@ const CLIPS: { title: string; channel: string; emoji: string; reactions: string[
     ],
   },
   {
-    title: "BREAD MAKING ASMR — 4 HOURS OF DOUGH",
-    channel: "BreadCorp",
-    emoji: "🍞",
+    title: "BASKOUTA MAKING ASMR — 4 HOURS OF DOUGH",
+    channel: "BaskoutaCorp",
+    emoji: "🍪",
     reactions: [
-      "Bread is the foundation of Bahamas Land. Respect the loaf.",
+      "Baskouta is the foundation of Bahamas Land. Respect the biscuit.",
       "He is doing it wrong. Ban him.",
-      "I should be in this video. I AM the bread.",
+      "I should be in this video. I AM the baskouta.",
       "T5ATHELT. The dough has betrayed him.",
     ],
   },
@@ -68,7 +68,7 @@ const CLIPS: { title: string; channel: string; emoji: string; reactions: string[
       "Tunisia? Never heard of her. Fake news.",
       "MUTE. SKIP. NEXT.",
       "This is propaganda. Bahamas Land approved propaganda is BETTER.",
-      "I refuse to watch this. Roll the bread video again.",
+      "I refuse to watch this. Roll the baskouta video again.",
     ],
   },
   {

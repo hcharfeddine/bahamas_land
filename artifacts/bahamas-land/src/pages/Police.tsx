@@ -29,7 +29,7 @@ const SUB_LINES = [
 const FAKE_REPORTS = [
   "Citizen reports own NC missing. Suspect: themselves.",
   "Loud barking near the Palace. Investigation: declined.",
-  "Bread theft (again). Filed under 'tradition'.",
+  "Baskouta theft (again). Filed under 'tradition'.",
   "Someone typed 'mid' in chat. Already handled by EXILE.",
   "Reported stream lag. Reroute: M3kky's fault.",
   "Suspicious citizen named [you]. We are watching.",

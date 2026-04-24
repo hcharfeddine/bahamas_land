@@ -333,26 +333,49 @@ export default function World() {
     }
   };
 
-  // Konami Code
+  // Konami Code (HARDER VERSION) — original ↑↑↓↓←→←→ba then keep typing
+  // "skouta" to spell BASKOUTA. Anyone who only knows the classic code
+  // will trigger nothing.
   useEffect(() => {
-    const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+    const konamiCode = [
+      'ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
+      'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight',
+      'b', 'a', 's', 'k', 'o', 'u', 't', 'a',
+    ];
     let konamiIndex = 0;
+    let resetTimer: number | null = null;
+
+    const resetSoon = () => {
+      if (resetTimer) window.clearTimeout(resetTimer);
+      // If the user pauses for >2.5s mid-sequence, reset. Forces continuous typing.
+      resetTimer = window.setTimeout(() => {
+        konamiIndex = 0;
+      }, 2500);
+    };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === konamiCode[konamiIndex] || e.key.toLowerCase() === konamiCode[konamiIndex]) {
+      const expected = konamiCode[konamiIndex];
+      const key = expected.startsWith('Arrow') ? e.key : e.key.toLowerCase();
+      if (key === expected) {
         konamiIndex++;
+        resetSoon();
         if (konamiIndex === konamiCode.length) {
           import("@/lib/achievements").then(({ unlock }) => unlock("konami"));
           setLocation('/secret');
           konamiIndex = 0;
+          if (resetTimer) window.clearTimeout(resetTimer);
         }
       } else {
         konamiIndex = 0;
+        if (resetTimer) window.clearTimeout(resetTimer);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (resetTimer) window.clearTimeout(resetTimer);
+    };
   }, [setLocation]);
 
   return (
