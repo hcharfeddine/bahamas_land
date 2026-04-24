@@ -1,8 +1,7 @@
 # Bahamas Land — Deployment Guide
 
 This is a static Vite SPA. Backend, auth, and database all run on Supabase.
-You can host the frontend on Vercel, Render, Replit, Netlify, or anywhere
-that serves a static `dist/` folder.
+You can host the frontend on Vercel, Render, Netlify, or any platform that serves a static `dist/` folder.
 
 ---
 
@@ -84,15 +83,7 @@ Render → **New → Static Site**:
 
 ---
 
-## 5. Deploy on Replit
-
-Click **Publish** in the workspace. The platform reads `artifact.toml`
-and serves the dev server in production. To use real data, add the same
-three env vars in **Tools → Secrets**.
-
----
-
-## 6. Verify
+## 5. Verify
 
 - Open `/museum` and submit an artifact → should say "Awaiting presidential approval"
 - Open `/adminbahamas`, sign in with the email/password from step 1.5
@@ -108,7 +99,7 @@ three env vars in **Tools → Secrets**.
   Supabase Storage and upload the file there.
 - **Kick LIVE/OFFLINE badge:** the browser cannot call kick.com directly
   (CORS). On Vercel the included Edge function `api/kick-status.ts` is
-  used automatically — no setup needed. On Render/Replit/Netlify static
+  used automatically — no setup needed. On Render/Netlify or other static
   hosting there is no `/api` route, so the badge silently hides until
   you add a similar serverless proxy of your own.
 - **Inbox letters:** generated client-side (no server cost).
