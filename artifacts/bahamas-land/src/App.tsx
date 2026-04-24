@@ -16,6 +16,8 @@ import Passport from "@/pages/Passport";
 import Arcade from "@/pages/Arcade";
 import Wheel from "@/pages/Wheel";
 import TicTacToe from "@/pages/TicTacToe";
+import RPS from "@/pages/RPS";
+import Stream from "@/pages/Stream";
 import Stocks from "@/pages/Stocks";
 import Inbox from "@/pages/Inbox";
 import AdminBahamas from "@/pages/AdminBahamas";
@@ -29,6 +31,8 @@ import { CustomCursor } from "@/components/CustomCursor";
 import { CRTOverlay } from "@/components/CRTOverlay";
 import { OGCheat } from "@/components/OGCheat";
 import { EasterEggs } from "@/components/EasterEggs";
+import { IdleNotifications } from "@/components/IdleNotifications";
+import { ConsoleEggs } from "@/components/ConsoleEggs";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +51,8 @@ function Router() {
       <Route path="/arcade" component={Arcade} />
       <Route path="/wheel" component={Wheel} />
       <Route path="/tictactoe" component={TicTacToe} />
+      <Route path="/rps" component={RPS} />
+      <Route path="/stream" component={Stream} />
       <Route path="/stocks" component={Stocks} />
       <Route path="/inbox" component={Inbox} />
       <Route path="/adminbahamas" component={AdminBahamas} />
@@ -70,6 +76,8 @@ function App() {
           <CRTOverlay />
           <OGCheat />
           <EasterEggs />
+          <IdleNotifications />
+          <ConsoleEggs />
           <Router />
         </WouterRouter>
         <Toaster />

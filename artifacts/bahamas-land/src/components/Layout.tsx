@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useUsername, useCoins } from "@/lib/store";
 import { useLetters } from "@/lib/inbox";
 import { KickBadge } from "@/components/KickBadge";
+import { NattounLiveBadge } from "@/components/NattounLiveBadge";
 
 export function Layout({ children, showBack = true }: { children: ReactNode; showBack?: boolean }) {
   const [isMuted, setIsMuted] = useState(audio.isMuted());
@@ -35,6 +36,7 @@ export function Layout({ children, showBack = true }: { children: ReactNode; sho
             </Link>
           )}
           <KickBadge />
+          <NattounLiveBadge />
         </div>
 
         <div className="flex items-start gap-2 pointer-events-auto">

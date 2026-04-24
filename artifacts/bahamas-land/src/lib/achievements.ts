@@ -25,7 +25,15 @@ export type AchievementId =
   | "midwit"
   | "mekkyfan"
   | "nightcrawler"
-  | "nattounsleeper";
+  | "nattounsleeper"
+  | "hacker"
+  | "cheat"
+  | "traitor"
+  | "breadhead"
+  | "vaultkeeper"
+  | "respected"
+  | "streamer"
+  | "trollchat";
 
 export type Achievement = {
   id: AchievementId;
@@ -60,6 +68,14 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "mekkyfan", name: "M3kky Fan", hint: "Spell his name.", emoji: "💜" },
   { id: "nightcrawler", name: "Nightcrawler", hint: "Be away. Come back.", emoji: "🌑" },
   { id: "nattounsleeper", name: "Don't Wake Him", hint: "Hold a key. Patiently.", emoji: "💤" },
+  { id: "hacker", name: "Console Cowboy", hint: "Open the place where the truth lives.", emoji: "🖥️" },
+  { id: "cheat", name: "Cheat Code", hint: "Print yourself rich.", emoji: "💳" },
+  { id: "traitor", name: "Traitor", hint: "Don't even type the word.", emoji: "🗡️" },
+  { id: "breadhead", name: "Bread Historian", hint: "Bread came first. We just took credit.", emoji: "🍞" },
+  { id: "vaultkeeper", name: "Vaultkeeper", hint: "Crack the dog's piggy bank.", emoji: "🔐" },
+  { id: "respected", name: "Respected", hint: "Beat Nattoun three times in a row.", emoji: "🥇" },
+  { id: "streamer", name: "Front Row", hint: "Catch the President live.", emoji: "📺" },
+  { id: "trollchat", name: "Chatter", hint: "Say something to the President directly.", emoji: "💬" },
 ];
 
 const STORAGE_KEY = "ogs_achievements";
