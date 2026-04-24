@@ -1,0 +1,44 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "B4fAnqjCEtHCgS_j-y51T"
+uri = "file://attached_assets/generated_images/bahamas_map_bg.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "6Aob7BO61YM69iCPkCU9k"
+uri = "file://attached_assets/generated_images/bld_bank.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "RwLpWWrGoa0-BLBEnCgMh"
+uri = "file://attached_assets/generated_images/bld_court.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "EF7Lm18CBulE2Z5Vm-efO"
+uri = "file://attached_assets/generated_images/bld_museum.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "wMZjtohMvMNxtOrPwXOY-"
+uri = "file://attached_assets/generated_images/bld_library.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "59-L1F7-aIMktZXzB8j7c"
+uri = "file://attached_assets/generated_images/bld_palace.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "t-YsWyYfVww5Zze8PZeVC"
+uri = "file://attached_assets/generated_images/bld_arcade.png"
+type = "image"
+title = "generated_image"

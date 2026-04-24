@@ -7,9 +7,24 @@ import { Button } from "@/components/ui/button";
 import { useUsername, useCoins } from "@/lib/store";
 import { Layout } from "@/components/Layout";
 import nattounImg from "@assets/Nattoun_1777028672745.png";
-import bgImg from "@assets/background_1777028829781.webp";
+import bgMap from "@assets/generated_images/bahamas_map_bg.png";
+import imgBank from "@assets/generated_images/bld_bank.png";
+import imgCourt from "@assets/generated_images/bld_court.png";
+import imgMuseum from "@assets/generated_images/bld_museum.png";
+import imgLibrary from "@assets/generated_images/bld_library.png";
+import imgPalace from "@assets/generated_images/bld_palace.png";
+import imgArcade from "@assets/generated_images/bld_arcade.png";
 
 type BuildingShape = "court" | "museum" | "library" | "bank" | "palace" | "arcade";
+
+const BUILDING_IMAGES: Record<BuildingShape, string> = {
+  bank: imgBank,
+  court: imgCourt,
+  museum: imgMuseum,
+  library: imgLibrary,
+  palace: imgPalace,
+  arcade: imgArcade,
+};
 
 interface Location {
   id: string;
@@ -31,6 +46,22 @@ const LOCATIONS: Location[] = [
 ];
 
 function Building({ shape, color }: { shape: BuildingShape; color: string }) {
+  return (
+    <img
+      src={BUILDING_IMAGES[shape]}
+      alt=""
+      draggable={false}
+      className="w-full h-full object-contain object-bottom select-none transition-[filter] duration-300"
+      style={{
+        filter: `drop-shadow(0 0 6px ${color}) drop-shadow(0 0 16px ${color}99) drop-shadow(0 8px 18px rgba(0,0,0,0.7))`,
+      }}
+    />
+  );
+}
+
+// legacy SVG fallback (kept for emergencies; switch in <Building> if you want it back)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _SvgBuilding({ shape, color }: { shape: BuildingShape; color: string }) {
   const stroke = color;
   const fill = "rgba(0, 0, 0, 0.85)";
   const glow = `drop-shadow(0 0 6px ${color}) drop-shadow(0 0 14px ${color})`;
@@ -177,12 +208,12 @@ function Building({ shape, color }: { shape: BuildingShape; color: string }) {
 }
 
 const buildingHeights: Record<BuildingShape, string> = {
-  bank: "h-32 md:h-44",
-  court: "h-32 md:h-44",
-  palace: "h-44 md:h-64",
-  museum: "h-32 md:h-44",
-  library: "h-36 md:h-52",
-  arcade: "h-32 md:h-44",
+  bank: "h-40 md:h-56",
+  court: "h-40 md:h-56",
+  palace: "h-52 md:h-72",
+  museum: "h-40 md:h-56",
+  library: "h-48 md:h-64",
+  arcade: "h-40 md:h-56",
 };
 
 export default function World() {
@@ -230,13 +261,15 @@ export default function World() {
 
   return (
     <div className="relative min-h-[100dvh] w-full overflow-hidden bg-black">
-      {/* Skyline backdrop */}
+      {/* Synthwave map backdrop */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-50"
-        style={{ backgroundImage: `url(${bgImg})` }}
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${bgMap})` }}
       />
-      {/* Vignette */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none" />
+      {/* Atmosphere darken on top + bottom */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/15 to-black/85 pointer-events-none" />
+      {/* Soft pink horizon haze */}
+      <div className="absolute inset-x-0 top-1/3 h-40 bg-gradient-to-b from-pink-500/10 via-pink-500/5 to-transparent pointer-events-none mix-blend-screen" />
 
       <Layout showBack={false}>
         <div className="relative w-full min-h-[calc(100dvh-100px)] flex flex-col">
@@ -263,25 +296,37 @@ export default function World() {
           <div className="relative hidden md:block flex-1 mx-auto w-full max-w-[1400px] px-8">
             {/* Buildings row */}
             <div className="relative flex items-end justify-between gap-4 pt-8">
-              {LOCATIONS.map((loc) => (
+              {LOCATIONS.map((loc, i) => (
                 <motion.button
                   key={loc.id}
                   initial={{ y: 60, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: loc.delay, type: "spring", stiffness: 110, damping: 14 }}
-                  whileHover={{ y: -10 }}
-                  whileTap={{ scale: 0.97 }}
+                  whileHover={{ y: -16 }}
+                  whileTap={{ scale: 0.96 }}
                   onClick={() => setLocation(loc.path)}
                   className="group relative flex-1 max-w-[220px] flex flex-col items-center clickable focus:outline-none"
                 >
-                  <div className={`relative ${buildingHeights[loc.shape]} w-full flex items-end justify-center transition-transform group-hover:scale-[1.04]`}>
-                    <Building shape={loc.shape} color={loc.color} />
+                  {/* Idle bob */}
+                  <motion.div
+                    className={`relative ${buildingHeights[loc.shape]} w-full flex items-end justify-center`}
+                    animate={{ y: [0, -3, 0] }}
+                    transition={{ duration: 4 + (i % 3), repeat: Infinity, ease: "easeInOut", delay: i * 0.2 }}
+                  >
+                    <div className="w-full h-full transition-transform duration-300 group-hover:scale-[1.08]">
+                      <Building shape={loc.shape} color={loc.color} />
+                    </div>
+                    {/* Hover halo behind the building */}
+                    <div
+                      className="pointer-events-none absolute inset-0 -z-10 rounded-full blur-3xl opacity-0 group-hover:opacity-60 transition-opacity duration-300"
+                      style={{ background: `radial-gradient(circle at 50% 60%, ${loc.color} 0%, transparent 65%)` }}
+                    />
                     {/* Glow base */}
                     <div
-                      className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-3/4 h-4 rounded-full blur-xl opacity-70 group-hover:opacity-100 transition-opacity"
+                      className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-3/4 h-5 rounded-full blur-xl opacity-70 group-hover:opacity-100 group-hover:w-[110%] transition-all duration-300"
                       style={{ background: loc.color }}
                     />
-                  </div>
+                  </motion.div>
                 </motion.button>
               ))}
             </div>
