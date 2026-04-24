@@ -4,7 +4,7 @@
 // Daily-deterministic schedule. Each calendar day produces the same list of
 // "live" slots so visitors agree on when the President is broadcasting.
 //
-//   - First slot every day is the OFFICIAL ADDRESS at 18:00 (35 min)
+//   - First slot every day is the OFFICIAL ADDRESS at 18:30 (35 min)
 //   - Plus 2-3 RANDOM slots scattered across the day (deterministic per day)
 //   - Outside of any slot the stream is CLOSED.
 // ============================================================================
@@ -17,7 +17,7 @@ export type Slot = {
 };
 
 export const MAIN_SLOT_HOUR = 18;
-export const MAIN_SLOT_MIN = 0;
+export const MAIN_SLOT_MIN = 30;
 export const MAIN_SLOT_DURATION = 35;
 
 const MAIN_SLOT_START = MAIN_SLOT_HOUR * 60 + MAIN_SLOT_MIN;

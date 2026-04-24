@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 const BASE = import.meta.env.BASE_URL;
 const VERSION_URL = `${BASE}api/chat/version`;
-const POLL_MS = 30_000;
+const POLL_MS = 15_000;
 const STORAGE_KEY = "bahamas_build_id";
 
 export function AutoReload() {
@@ -33,11 +33,11 @@ export function AutoReload() {
         if (knownIdRef.current === null) {
           let stored: string | null = null;
           try {
-            stored = sessionStorage.getItem(STORAGE_KEY);
+            stored = localStorage.getItem(STORAGE_KEY);
           } catch {}
           if (stored && stored !== id) {
             try {
-              sessionStorage.setItem(STORAGE_KEY, id);
+              localStorage.setItem(STORAGE_KEY, id);
             } catch {}
             knownIdRef.current = id;
             doReload("server-restart");
@@ -45,14 +45,14 @@ export function AutoReload() {
           }
           knownIdRef.current = id;
           try {
-            sessionStorage.setItem(STORAGE_KEY, id);
+            localStorage.setItem(STORAGE_KEY, id);
           } catch {}
           return;
         }
 
         if (id !== knownIdRef.current) {
           try {
-            sessionStorage.setItem(STORAGE_KEY, id);
+            localStorage.setItem(STORAGE_KEY, id);
           } catch {}
           knownIdRef.current = id;
           doReload("new-build");
