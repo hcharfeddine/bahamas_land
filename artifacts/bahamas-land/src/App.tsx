@@ -34,6 +34,7 @@ import { EasterEggs } from "@/components/EasterEggs";
 import { IdleNotifications } from "@/components/IdleNotifications";
 import { ConsoleEggs } from "@/components/ConsoleEggs";
 import { NattounComments } from "@/components/NattounComments";
+import { AutoReload } from "@/components/AutoReload";
 
 const queryClient = new QueryClient();
 
@@ -80,6 +81,7 @@ function App() {
           <IdleNotifications />
           <ConsoleEggs />
           <NattounComments />
+          <AutoReload />
           <Router />
         </WouterRouter>
         <Toaster />

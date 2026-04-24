@@ -215,6 +215,32 @@ const state = {
   viewers: new Map<string, number>(),
 };
 
+const BUILD_ID = String(Date.now());
+
+function msUntilNextMidnight() {
+  const now = new Date();
+  const next = new Date(now);
+  next.setHours(24, 0, 0, 0);
+  return next.getTime() - now.getTime();
+}
+
+function scheduleMidnightReload() {
+  const wait = msUntilNextMidnight();
+  setTimeout(() => {
+    broadcast("reload", { reason: "midnight", at: Date.now() });
+    scheduleMidnightReload();
+  }, wait).unref?.();
+}
+scheduleMidnightReload();
+
+function handleVersion(_req: IncomingMessage, res: ServerResponse) {
+  sendJson(res, 200, {
+    buildId: BUILD_ID,
+    nextMidnight: Date.now() + msUntilNextMidnight(),
+    serverTime: Date.now(),
+  });
+}
+
 function pruneViewers(now: number) {
   for (const [id, ts] of state.viewers) {
     if (now - ts > VIEWER_TTL_MS) state.viewers.delete(id);
@@ -477,6 +503,7 @@ export function chatMiddleware(
   if (url.startsWith("/api/chat/send")) return handleSend(req, res);
   if (url.startsWith("/api/chat/state")) return handleState(req, res);
   if (url.startsWith("/api/chat/ping")) return handlePing(req, res);
+  if (url.startsWith("/api/chat/version")) return handleVersion(req, res);
 
   sendJson(res, 404, { error: "not_found" });
 }
