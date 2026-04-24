@@ -60,9 +60,18 @@ export type AchievementId =
   | "kdot"
   | "siuuu"
   | "kratos"
-  | "goatmode"
   | "madridista"
-  | "treasoncule";
+  | "treasoncule"
+  | "faddina"
+  | "catjam"
+  | "cena"
+  | "ggez"
+  | "drake"
+  | "rickroll"
+  | "khamsa"
+  | "omegalul"
+  | "stonecold"
+  | "baskouta";
 
 export type Difficulty = "easy" | "medium" | "hard" | "insane";
 
@@ -133,11 +142,22 @@ export const ACHIEVEMENTS: Achievement[] = [
   // MEDIA EASTER EGGS — type the magic words anywhere
   // ============================
   { id: "siuuu", name: "SIUUUU!", hint: "Spell the celebration of a man in a Portugal kit.", emoji: "🇵🇹", difficulty: "easy" },
-  { id: "kdot", name: "K.Dot Listener", hint: "They not… you know the rest. Type it.", emoji: "👑", difficulty: "easy" },
+  { id: "kdot", name: "K.Dot Listener", hint: "They not… you know the rest. Type it. The track plays.", emoji: "👑", difficulty: "easy" },
   { id: "kratos", name: "Boy.", hint: "Spartan rage. One single word from the bald god.", emoji: "🪓", difficulty: "medium" },
-  { id: "goatmode", name: "GOAT Mode", hint: "Three letters. The Argentine #10 approves.", emoji: "🐐", difficulty: "medium" },
-  { id: "madridista", name: "Madridista", hint: "Hala the white club. The anthem will play itself.", emoji: "🤍", difficulty: "hard" },
+  { id: "madridista", name: "Madridista", hint: "Hala the white club. The real anthem plays itself.", emoji: "🤍", difficulty: "hard" },
   { id: "treasoncule", name: "Culé Confession", hint: "Mention the rival club. Suffer the consequences.", emoji: "🚫", difficulty: "hard" },
+  // M3kky community + Tunisia memes
+  { id: "faddina", name: "FADDINA UNLEASHED", hint: "Type the name of the OG Tunisian rap anthem. Klay knows.", emoji: "🇹🇳", difficulty: "easy" },
+  { id: "khamsa", name: "Khamsa Aleik", hint: "Five fingers in your face. Block the evil eye.", emoji: "🖐", difficulty: "medium" },
+  { id: "baskouta", name: "Cookie Inspector", hint: "The Crunchiest Word. Three syllables, very Tunisian.", emoji: "🍪", difficulty: "easy" },
+  // Internet / gaming / rap memes
+  { id: "catjam", name: "CAT JAM", hint: "When the cat vibes, the OGs vibe. Type the meme.", emoji: "🐈", difficulty: "easy" },
+  { id: "cena", name: "AND HIS NAME IS…", hint: "Trumpets in your ears. Spell the bald champion.", emoji: "🎺", difficulty: "medium" },
+  { id: "ggez", name: "GG EZ", hint: "The two letters that get you reported in any lobby.", emoji: "🎮", difficulty: "easy" },
+  { id: "drake", name: "Hotline Bling", hint: "Hands up, hands down. Spell the 6God.", emoji: "📞", difficulty: "medium" },
+  { id: "rickroll", name: "Rickrolled Yourself", hint: "Never gonna give it up. Type the surname.", emoji: "🕺", difficulty: "easy" },
+  { id: "omegalul", name: "OMEGALUL", hint: "The biggest Twitch laugh emote. Type it.", emoji: "🤣", difficulty: "easy" },
+  { id: "stonecold", name: "WHAT? WHAT?", hint: "Glass shatters. Beer cans fly. Spell the Texas Rattlesnake.", emoji: "🍺", difficulty: "medium" },
 ];
 
 export const DIFFICULTY_REWARDS: Record<Difficulty, number> = {

@@ -10,6 +10,40 @@ const TOAST_MS = 3500;
 
 type Toast = { id: number; text: string; sub?: string };
 
+// ---------------------------------------------------------------
+// Hashed typed-buffer triggers (djb2). Hides the secret words from
+// anyone reading the bundle source. Codes A-H map to actions in the
+// keydown handler below.
+// ---------------------------------------------------------------
+function djb2(s: string): number {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
+  return h >>> 0;
+}
+const HASHED_TRIGGERS: ReadonlyArray<readonly [number, number, string]> = [
+  [5, 177446850, "A"], // mekkyfan flash
+  [3, 193413797, "B"], // mid stamp
+  [7, 1366251267, "C"], // museum respect
+  [5, 189910399, "D"], // /vault
+  [6, 1502837223, "E"], // /banned
+  [5, 165909080, "F"], // /exile
+  [5, 172308130, "G"], // ghost protocol
+  [7, 3245329694, "H"], // president sees you
+];
+const TRIGGER_LENS = Array.from(new Set(HASHED_TRIGGERS.map((t) => t[0]))).sort(
+  (a, b) => b - a,
+);
+function matchHashed(buf: string): string | null {
+  for (const len of TRIGGER_LENS) {
+    if (buf.length < len) continue;
+    const h = djb2(buf.slice(-len));
+    for (const [tlen, thash, code] of HASHED_TRIGGERS) {
+      if (tlen === len && thash === h) return code;
+    }
+  }
+  return null;
+}
+
 export function EasterEggs() {
   const [, setLocation] = useLocation();
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -154,46 +188,48 @@ export function EasterEggs() {
           }, 5000);
         }
       }
-      // Typed buffer for word combos
+      // Typed buffer for word combos. Triggers are stored as djb2 hashes so
+      // viewing the bundle source doesn't reveal what to type.
       if (!isTyping && e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
-        typedBuffer.current = (typedBuffer.current + e.key.toUpperCase()).slice(-16);
+        typedBuffer.current = (typedBuffer.current + e.key.toLowerCase()).slice(-16);
         if (typedTimer.current) window.clearTimeout(typedTimer.current);
         typedTimer.current = window.setTimeout(() => {
           typedBuffer.current = "";
         }, 2000);
 
         const buf = typedBuffer.current;
-        if (buf.endsWith("M3KKY")) {
+        const hit = matchHashed(buf);
+        if (hit === "A") {
           setMekkyFlash(true);
           unlock("mekkyfan");
           audio.playGlitch();
           window.setTimeout(() => setMekkyFlash(false), 3000);
           typedBuffer.current = "";
-        } else if (buf.endsWith("MID")) {
+        } else if (hit === "B") {
           setMidStamp(true);
           unlock("midwit");
           audio.playGlitch();
           window.setTimeout(() => setMidStamp(false), 2500);
           typedBuffer.current = "";
-        } else if (buf.endsWith("RESPECT") && window.location.pathname.endsWith("/museum")) {
+        } else if (hit === "C" && window.location.pathname.endsWith("/museum")) {
           window.dispatchEvent(new CustomEvent("museum-respect"));
           audio.playCoin();
           typedBuffer.current = "";
-        } else if (buf.endsWith("VAULT")) {
+        } else if (hit === "D") {
           setLocation("/vault");
           typedBuffer.current = "";
-        } else if (buf.endsWith("BANNED")) {
+        } else if (hit === "E") {
           setLocation("/banned");
           typedBuffer.current = "";
-        } else if (buf.endsWith("EXILE")) {
+        } else if (hit === "F") {
           setLocation("/exile");
           typedBuffer.current = "";
-        } else if (buf.endsWith("GHOST")) {
+        } else if (hit === "G") {
           unlock("ghost");
           pushToast("👻 GHOST PROTOCOL", "You weren't supposed to find that name.");
           audio.playGlitch();
           typedBuffer.current = "";
-        } else if (buf.endsWith("NATTOUN")) {
+        } else if (hit === "H") {
           unlock("ghost");
           pushToast("THE PRESIDENT SEES YOU", "Identity theft is a Bahamas Land tradition.");
           audio.playGlitch();

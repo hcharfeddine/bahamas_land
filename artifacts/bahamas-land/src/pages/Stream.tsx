@@ -5,14 +5,23 @@ import nattounImg from "@assets/Nattoun_1777028672745.png";
 import streamBg from "@assets/generated_images/bld_stream_studio.png";
 import { useUsername, useCoins, useLocalStorage } from "@/lib/store";
 import { audio } from "@/lib/audio";
-import { Radio, Send, Eye, Heart, MessageSquare, Calendar, Coins } from "lucide-react";
+import {
+  Radio,
+  Send,
+  Eye,
+  Heart,
+  MessageSquare,
+  Calendar,
+  Coins,
+  HelpCircle,
+} from "lucide-react";
 import { unlock } from "@/lib/achievements";
-import { PresidentBroadcast } from "@/components/PresidentBroadcast";
 import { useStreamChat, type ChatMsg as ServerChatMsg } from "@/lib/streamChat";
 import {
   getStreamStatus,
   formatSlot,
   formatCountdown,
+  formatTime,
   type StreamStatus,
   type SlotCategory,
 } from "@/lib/schedule";
@@ -20,12 +29,11 @@ import {
 // ============================================================================
 // SCHEDULE
 // ============================================================================
-// Each calendar day picks ONE random "live mode" deterministically:
-//   clips    — clip compilation
-//   chatting — just chatting
-//   kick     — kick simulcast
-//   t5athel  — President is NOT streaming today, just send tips
-// And on non-t5athel days, ONE single random slot opens for ~25-45 min.
+// Each calendar day picks ONE random "live mode" deterministically from a
+// pool of 9 categories. The mode is HIDDEN from the UI until the day's
+// reveal moment (= slot start for active categories, or an afternoon
+// announcement for t5athel days). When the reveal hits, a dramatic intro
+// overlay plays once and the President "speaks" the announcement.
 // ============================================================================
 
 function useStreamStatus(): StreamStatus {
@@ -81,6 +89,46 @@ const CATEGORY_QUOTES: Record<Exclude<SlotCategory, "t5athel">, string[]> = {
     "Today's bandwidth: 100% Kick. 0% backup. Pray for the wifi.",
     "Watching from the wrong site? You are technically committing treason.",
   ],
+  gaming: [
+    "TONIGHT: a speedrun. I have not played this game. We start now.",
+    "[username] if you backseat I will personally exile your IP.",
+    "I will rage. I will quit. I will blame the keyboard. Then I will rage again.",
+    "Gaming is just clicking with extra steps. Watch me click.",
+    "The President is a Top 500 player. Of a game that doesn't exist.",
+    "If I die in-game, that's a clip. If I die irl, that's also a clip.",
+  ],
+  podcast: [
+    "Podcast time. My three imaginary co-hosts agree with everything.",
+    "Episode 47: 'Why M3kky still hasn't called me back.' Long episode.",
+    "[username], the podcast is sponsored by you. You don't know this yet.",
+    "The mic is on. The brain is off. The vibes are perfect.",
+    "Today's guest cancelled. Replacing with a long awkward silence.",
+    "Subscribe wherever you legally cannot get podcasts.",
+  ],
+  irl: [
+    "IRL stream. We are walking. Allegedly in Tunis. Cannot confirm.",
+    "[username], the camera is shaky because the President is shaky. Same.",
+    "If you see me on the street: do NOT acknowledge me. Loyalty test.",
+    "The wifi out here is 1 bar. The vibes are 11.",
+    "We promised IRL. We delivered: a man holding a phone in a hallway.",
+    "Tunisia is a rumor. This footage proves nothing.",
+  ],
+  asmr: [
+    "Tonight: 4 hours of baskouta crunching, ASMR-style. Headphones on.",
+    "[username], whisper compliments. Loud ones get muted.",
+    "BASKOUTA ASMR vol. 27. The dog approves softly.",
+    "Brain off. Ears on. Bones in. (the biscuit kind.)",
+    "If you fall asleep that counts as subscribing.",
+    "The mic is so close I am breathing on you. Sorry. Not sorry.",
+  ],
+  rage: [
+    "Watch me rage quit. Blindfolded. While crying. Subscribe.",
+    "[username], every controller I throw is on you. Send NC for replacements.",
+    "Rage Mode unlocked. Mods, please contain me. (mods are also raging.)",
+    "I will scream. I will lose. I will blame the dog. Standard.",
+    "Tonight's loss is sponsored by my own decisions.",
+    "If the keyboard breaks, that's content. If my heart breaks, also content.",
+  ],
 };
 
 const TROLL_QUOTES = [
@@ -117,11 +165,91 @@ const T5ATHEL_DAY_QUOTES = [
   "T5ATHELT day. The President is on a strategic nap. Fund it.",
 ];
 
+// Pre-reveal "we don't know what mode today is" lines.
+const MYSTERY_QUOTES = [
+  "Today's mode is CLASSIFIED. Even the President forgot.",
+  "[username], whatever happens today is unrelated to whatever was promised.",
+  "Could be clips. Could be a 4-hour IRL walk. Could be nothing. Refresh.",
+  "The dog spun a wheel. The wheel landed on a different wheel.",
+  "Stream mode is sealed in an envelope. The envelope is also classified.",
+  "Stop trying to predict the schedule. The schedule is the prediction.",
+  "Today's category is being hand-delivered. By dog. Slowly.",
+];
+
+// Lines the President "speaks" during the GOING LIVE intro overlay.
+const INTRO_OPENERS = [
+  "Camera 1… no, camera 2… OK we're live.",
+  "Mic check. Mic check. The mic is judging me.",
+  "Yallah chat, settle down. I am about to do something.",
+  "We are live. Probably. The light is on. That counts.",
+  "OK. Hi. I forgot what I was going to say. We continue.",
+  "If you are watching another stream right now, this is treason.",
+  "Bahamas Land Government Channel — broadcasting from the couch.",
+];
+
+const INTRO_BY_CAT: Record<SlotCategory, string[]> = {
+  clips: [
+    "Today: CLIPS. I curated none of them.",
+    "Sit back. Laugh, react, cope.",
+  ],
+  chatting: [
+    "Today: JUST CHATTING. Tell me your secrets.",
+    "I will not solve any of your problems live on air.",
+  ],
+  kick: [
+    "Today: KICK SIMULCAST. We are stealing M3kky's signal.",
+    "Loyalty audit at the end. Bring snacks.",
+  ],
+  gaming: [
+    "Today: GAMING. Hands shaky. Chair gaming.",
+    "I will rage. I will lose. Subscribe.",
+  ],
+  podcast: [
+    "Today: PODCAST. Three imaginary guests already late.",
+    "Episode 47: 'Why M3kky still hasn't called me back.'",
+  ],
+  irl: [
+    "Today: IRL TUNIS WALK. Allegedly. Footage proves nothing.",
+    "Do not approach me on the street. This is a loyalty test.",
+  ],
+  asmr: [
+    "Today: ASMR. 4 hours of baskouta crunching. Headphones on.",
+    "Whisper your compliments. The dog is listening.",
+  ],
+  rage: [
+    "Today: RAGE QUIT MARATHON. Blindfolded. Send replacement controllers.",
+    "Mods, please restrain me.",
+  ],
+  t5athel: [
+    "Today: T5ATHELT. There is no stream. There is only the tip jar.",
+    "I am NOT live. I am NOT working. I AM accepting NC.",
+  ],
+};
+
 const CATEGORY_BADGE: Record<SlotCategory, { text: string; tone: string }> = {
   clips: { text: "CLIPS", tone: "bg-fuchsia-500 text-black border-fuchsia-300" },
-  chatting: { text: "JUST CHATTING", tone: "bg-cyan-400 text-black border-cyan-200" },
+  chatting: {
+    text: "JUST CHATTING",
+    tone: "bg-cyan-400 text-black border-cyan-200",
+  },
   kick: { text: "KICK", tone: "bg-[#53fc18] text-black border-[#53fc18]" },
-  t5athel: { text: "T5ATHELT", tone: "bg-yellow-400 text-black border-yellow-200" },
+  t5athel: {
+    text: "T5ATHELT",
+    tone: "bg-yellow-400 text-black border-yellow-200",
+  },
+  gaming: { text: "GAMING", tone: "bg-orange-500 text-black border-orange-300" },
+  podcast: {
+    text: "PODCAST",
+    tone: "bg-purple-500 text-white border-purple-300",
+  },
+  irl: { text: "IRL", tone: "bg-emerald-500 text-black border-emerald-300" },
+  asmr: { text: "ASMR", tone: "bg-pink-400 text-black border-pink-200" },
+  rage: { text: "RAGE", tone: "bg-red-600 text-white border-red-300" },
+};
+
+const MYSTERY_BADGE = {
+  text: "??? CLASSIFIED",
+  tone: "bg-zinc-700 text-zinc-300 border-zinc-500",
 };
 
 type ChatMsg = ServerChatMsg;
@@ -145,15 +273,22 @@ export default function Stream() {
     "ogs_stream_tips_sent",
     0,
   );
+  const [introShownFor, setIntroShownFor] = useLocalStorage<number>(
+    "ogs_stream_intro_day",
+    0,
+  );
   const [input, setInput] = useState("");
   const [hearts, setHearts] = useState<{ id: number; x: number }[]>([]);
   const [quoteIndex, setQuoteIndex] = useState(0);
   const [chatError, setChatError] = useState<string>("");
   const [tipFlash, setTipFlash] = useState<string>("");
+  const [introOpen, setIntroOpen] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
   const heartTimer = useRef<number | null>(null);
 
   const safeUser = username || "Citizen";
+  const revealed = status.revealed;
+  const isT5athelDay = status.category === "t5athel";
 
   const {
     messages: chat,
@@ -162,9 +297,8 @@ export default function Stream() {
     send,
   } = useStreamChat(true);
 
-  const isT5athelDay = status.category === "t5athel";
-
   const activeQuotes = useMemo(() => {
+    if (!revealed) return MYSTERY_QUOTES;
     if (status.live && status.current) {
       if (status.trolling) return TROLL_QUOTES;
       const cat = status.current.category;
@@ -174,7 +308,7 @@ export default function Stream() {
     if (isT5athelDay) return T5ATHEL_DAY_QUOTES;
     if (status.crashed) return CRASHED_QUOTES;
     return OFFLINE_QUOTES;
-  }, [status.live, status.trolling, status.current, status.crashed, isT5athelDay]);
+  }, [revealed, status.live, status.trolling, status.current, status.crashed, isT5athelDay]);
 
   const fakeViewers = useMemo(() => {
     if (!status.live) return 0;
@@ -186,6 +320,18 @@ export default function Stream() {
   useEffect(() => {
     if (status.live) unlock("streamer");
   }, [status.live]);
+
+  // Fire intro overlay ONCE per day, when reveal moment arrives.
+  useEffect(() => {
+    if (!revealed) return;
+    if (introShownFor === status.dayKey) return;
+    setIntroOpen(true);
+    setIntroShownFor(status.dayKey);
+    audio.playGlitch();
+    const id = window.setTimeout(() => setIntroOpen(false), 9000);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revealed, status.dayKey]);
 
   // Rotating quote
   useEffect(() => {
@@ -203,14 +349,12 @@ export default function Stream() {
     }
   }, [chat.length]);
 
-  // Clear transient chat error after a moment
   useEffect(() => {
     if (!chatError) return;
     const id = window.setTimeout(() => setChatError(""), 2400);
     return () => window.clearTimeout(id);
   }, [chatError]);
 
-  // Clear tip flash after a moment
   useEffect(() => {
     if (!tipFlash) return;
     const id = window.setTimeout(() => setTipFlash(""), 2400);
@@ -290,11 +434,17 @@ export default function Stream() {
     setTipFlash(lines[Math.floor(Math.random() * lines.length)]);
   };
 
-  const headerSubtitle = isT5athelDay
-    ? "Today: T5ATHELT. No stream. Just send tips."
-    : status.slot
-      ? `One slot today at ${formatSlot(status.slot)} — that's it.`
-      : "One slot a day. Today's was canceled.";
+  const headerSubtitle = !revealed
+    ? `Today's mode is sealed. Reveal at ${formatTime(status.revealMin)}.`
+    : isT5athelDay
+      ? "Today: T5ATHELT. No stream. Just send tips."
+      : status.slot
+        ? `One slot today at ${formatSlot(status.slot)} — that's it.`
+        : "One slot a day. Today's was canceled.";
+
+  const playerBadge = !revealed
+    ? MYSTERY_BADGE
+    : CATEGORY_BADGE[status.category];
 
   return (
     <Layout>
@@ -317,9 +467,7 @@ export default function Stream() {
               className="relative aspect-video w-full overflow-hidden border-2 border-primary neon-box bg-cover bg-center bg-no-repeat"
               style={{ backgroundImage: `url(${streamBg})` }}
             >
-              {/* Vignette */}
               <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/85 pointer-events-none" />
-              {/* Scanlines */}
               <div
                 className="absolute inset-0 pointer-events-none opacity-30 mix-blend-overlay"
                 style={{
@@ -328,7 +476,7 @@ export default function Stream() {
                 }}
               />
 
-              {/* LIVE badge + category */}
+              {/* LIVE badge + (hidden until revealed) category */}
               <div className="absolute top-3 left-3 flex items-center gap-2 z-30 flex-wrap">
                 {status.live ? (
                   <motion.div
@@ -339,21 +487,19 @@ export default function Stream() {
                     <span className="w-2 h-2 rounded-full bg-white" />
                     LIVE
                   </motion.div>
-                ) : status.crashed || isT5athelDay ? (
+                ) : revealed && (status.crashed || isT5athelDay) ? (
                   <div className="bg-yellow-500 text-black px-2 py-1 text-xs font-black uppercase tracking-widest border border-yellow-300">
                     T5ATHELT
                   </div>
                 ) : (
                   <div className="bg-black/80 text-white/60 px-2 py-1 text-xs font-black uppercase tracking-widest border border-white/30">
-                    OFFLINE
+                    {revealed ? "OFFLINE" : "STANDBY"}
                   </div>
                 )}
                 <div
-                  className={`px-2 py-1 text-xs font-black uppercase tracking-widest border ${
-                    CATEGORY_BADGE[status.category].tone
-                  }`}
+                  className={`px-2 py-1 text-xs font-black uppercase tracking-widest border ${playerBadge.tone}`}
                 >
-                  {CATEGORY_BADGE[status.category].text}
+                  {playerBadge.text}
                 </div>
                 <div className="bg-black/70 text-white px-2 py-1 text-[11px] font-mono flex items-center gap-1 border border-white/30">
                   <Eye className="w-3 h-3" />
@@ -376,9 +522,11 @@ export default function Stream() {
                     ease: "easeInOut",
                   }}
                   style={
-                    status.crashed || isT5athelDay
+                    revealed && (status.crashed || isT5athelDay)
                       ? { filter: "grayscale(1) blur(2px)", opacity: 0.4 }
-                      : undefined
+                      : !revealed
+                        ? { filter: "grayscale(0.5) blur(1px)", opacity: 0.65 }
+                        : undefined
                   }
                 >
                   <img
@@ -397,8 +545,41 @@ export default function Stream() {
                 </motion.div>
               </div>
 
-              {/* T5ATHELT crash overlay (slot burned OR full t5athel day) */}
-              {(status.crashed || isT5athelDay) && (
+              {/* Pre-reveal "STANDBY" curtain */}
+              {!revealed && (
+                <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                  <div className="absolute inset-0 bg-black/55" />
+                  <motion.div
+                    initial={{ scale: 0.85, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 14 }}
+                    className="relative text-center px-6 py-5 border-4 border-zinc-500 bg-black/80"
+                    style={{
+                      boxShadow:
+                        "0 0 30px rgba(120,120,120,0.5), inset 0 0 18px rgba(120,120,120,0.3)",
+                    }}
+                  >
+                    <motion.div
+                      animate={{ opacity: [1, 0.3, 1] }}
+                      transition={{ duration: 1.6, repeat: Infinity }}
+                      className="text-zinc-300 font-black uppercase tracking-[0.4em] text-3xl md:text-5xl flex items-center justify-center gap-3"
+                      style={{ textShadow: "0 0 14px rgba(200,200,200,0.7)" }}
+                    >
+                      <HelpCircle className="w-7 h-7 md:w-10 md:h-10" />
+                      STAND BY
+                    </motion.div>
+                    <div className="mt-2 text-white/70 font-mono text-[11px] uppercase tracking-widest">
+                      Today's mode is being decided. Or already was.
+                    </div>
+                    <div className="mt-1 text-zinc-400/80 font-mono text-[10px] uppercase tracking-widest">
+                      Reveal at {formatTime(status.revealMin)} — set an alarm.
+                    </div>
+                  </motion.div>
+                </div>
+              )}
+
+              {/* T5ATHELT crash overlay (slot burned OR full t5athel day) — only after reveal */}
+              {revealed && (status.crashed || isT5athelDay) && (
                 <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
                   <div
                     className="absolute inset-0 opacity-60 mix-blend-screen"
@@ -420,7 +601,11 @@ export default function Stream() {
                   >
                     <motion.div
                       animate={{ x: [0, -2, 2, -1, 1, 0] }}
-                      transition={{ duration: 0.4, repeat: Infinity, repeatDelay: 1.2 }}
+                      transition={{
+                        duration: 0.4,
+                        repeat: Infinity,
+                        repeatDelay: 1.2,
+                      }}
                       className="text-yellow-400 font-black uppercase tracking-[0.5em] text-4xl md:text-6xl"
                       style={{ textShadow: "0 0 18px rgba(250, 204, 21, 0.9)" }}
                     >
@@ -442,7 +627,16 @@ export default function Stream() {
               <div className="absolute bottom-3 left-3 right-3 z-20">
                 <AnimatePresence mode="wait">
                   <motion.div
-                    key={quoteIndex + (status.live ? "live" : isT5athelDay ? "t5" : "off")}
+                    key={
+                      quoteIndex +
+                      (revealed
+                        ? status.live
+                          ? "live"
+                          : isT5athelDay
+                            ? "t5"
+                            : "off"
+                        : "mystery")
+                    }
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -450,10 +644,7 @@ export default function Stream() {
                     className="bg-black/85 border-2 border-secondary px-4 py-2 text-secondary font-mono text-sm md:text-base neon-box-cyan"
                   >
                     "
-                    {activeQuotes[quoteIndex].replace(
-                      "[username]",
-                      safeUser,
-                    )}
+                    {activeQuotes[quoteIndex].replace("[username]", safeUser)}
                     "
                   </motion.div>
                 </AnimatePresence>
@@ -528,20 +719,24 @@ export default function Stream() {
                 <div className="flex-1 min-w-0">
                   <h2
                     className={`font-black uppercase text-base md:text-lg tracking-wider truncate ${
-                      status.crashed || isT5athelDay
+                      revealed && (status.crashed || isT5athelDay)
                         ? "text-yellow-400"
-                        : "text-primary"
+                        : !revealed
+                          ? "text-zinc-300"
+                          : "text-primary"
                     }`}
                   >
-                    {status.live && status.current
-                      ? `${status.current.label} — LIVE NOW`
-                      : isT5athelDay
-                        ? "T5ATHELT — NO STREAM TODAY (TIPS ONLY)"
-                        : status.crashed
-                          ? "T5ATHELT — TODAY'S SLOT IS BURNED"
-                          : status.next
-                            ? `LIVE OPENS IN ${formatCountdown(status.next.minutesUntil)}${status.next.isToday ? "" : " (TOMORROW)"}`
-                            : "LIVE IS CLOSED"}
+                    {!revealed
+                      ? `STAND BY — REVEAL AT ${formatTime(status.revealMin)}`
+                      : status.live && status.current
+                        ? `${status.current.label} — LIVE NOW`
+                        : isT5athelDay
+                          ? "T5ATHELT — NO STREAM TODAY (TIPS ONLY)"
+                          : status.crashed
+                            ? "T5ATHELT — TODAY'S SLOT IS BURNED"
+                            : status.next
+                              ? `LIVE OPENS IN ${formatCountdown(status.next.minutesUntil)}${status.next.isToday ? "" : " (TOMORROW)"}`
+                              : "LIVE IS CLOSED"}
                   </h2>
                   <p className="text-secondary font-mono text-xs uppercase mt-1">
                     President Nattoun • Bahamas Land Government Channel
@@ -569,7 +764,7 @@ export default function Stream() {
                 {viewers.real} online ·{" "}
                 {status.live
                   ? "LIVE"
-                  : isT5athelDay || status.crashed
+                  : revealed && (isT5athelDay || status.crashed)
                     ? "T5ATHELT"
                     : "READ ONLY"}
               </div>
@@ -635,12 +830,9 @@ export default function Stream() {
           </div>
         </div>
 
-        {/* President's broadcast (random: reacts OR watches M3kky) */}
-        <PresidentBroadcast />
-
-        {/* Today's slot OR Tip Jar (t5athel) + Rules */}
+        {/* Today's slot OR Tip Jar (t5athel) + Rules — Tip Jar only after reveal */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {isT5athelDay ? (
+          {revealed && isT5athelDay ? (
             <div className="bg-black/70 border-2 border-yellow-400 p-4 neon-box">
               <h3 className="text-yellow-400 font-black uppercase tracking-widest text-sm mb-2 flex items-center gap-2">
                 <Coins className="w-4 h-4" /> Tip Jar — T5ATHELT Day
@@ -674,7 +866,7 @@ export default function Stream() {
                 </div>
               )}
               <p className="text-white/40 font-mono text-[10px] uppercase tracking-widest mt-3 border-t border-yellow-400/30 pt-2">
-                Tomorrow may be: clips, just chatting, kick — or another t5athel day. Roll the dice.
+                Tomorrow's mode could be anything. Roll the dice.
               </p>
             </div>
           ) : (
@@ -682,59 +874,63 @@ export default function Stream() {
               <h3 className="text-primary font-black uppercase tracking-widest text-sm mb-2 flex items-center gap-2">
                 <Calendar className="w-4 h-4" /> Today's Stream
               </h3>
-              {status.slot ? (
-                <div className="space-y-2 font-mono text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/70 uppercase tracking-widest">
-                      Mode
-                    </span>
-                    <span
-                      className={`px-2 py-0.5 font-black uppercase tracking-widest border ${
-                        CATEGORY_BADGE[status.slot.category].tone
-                      }`}
-                    >
-                      {status.slot.label}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/70 uppercase tracking-widest">
-                      Slot
-                    </span>
-                    <span className="text-secondary tabular-nums">
-                      {formatSlot(status.slot)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/70 uppercase tracking-widest">
-                      Status
-                    </span>
-                    <span
-                      className={`font-black uppercase tracking-widest ${
-                        status.live
-                          ? "text-pink-400"
+              <div className="space-y-2 font-mono text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-white/70 uppercase tracking-widest">
+                    Mode
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 font-black uppercase tracking-widest border ${playerBadge.tone}`}
+                  >
+                    {!revealed
+                      ? "?????"
+                      : status.slot
+                        ? status.slot.label
+                        : "T5ATHELT"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-white/70 uppercase tracking-widest">
+                    Slot
+                  </span>
+                  <span className="text-secondary tabular-nums">
+                    {!revealed
+                      ? "??:??–??:??"
+                      : status.slot
+                        ? formatSlot(status.slot)
+                        : "—"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-white/70 uppercase tracking-widest">
+                    Status
+                  </span>
+                  <span
+                    className={`font-black uppercase tracking-widest ${
+                      status.live
+                        ? "text-pink-400"
+                        : !revealed
+                          ? "text-zinc-300"
                           : status.crashed
                             ? "text-yellow-400"
                             : "text-secondary"
-                      }`}
-                    >
-                      {status.live
+                    }`}
+                  >
+                    {!revealed
+                      ? `STAND BY · ${formatTime(status.revealMin)}`
+                      : status.live
                         ? "● LIVE NOW"
                         : status.crashed
                           ? "T5ATHELT — burned"
                           : status.next?.isToday
                             ? `OPENS IN ${formatCountdown(status.next.minutesUntil)}`
                             : "DONE FOR TODAY"}
-                    </span>
-                  </div>
+                  </span>
                 </div>
-              ) : (
-                <p className="text-white/60 font-mono text-xs">
-                  No slot today. The President is on a strategic absence.
-                </p>
-              )}
+              </div>
               <p className="text-secondary/70 font-mono text-[11px] mt-3 border-t border-primary/30 pt-2 leading-snug">
-                → ONE slot per day. ONE category. No reruns. No second chances.
-                Catch it or wait for tomorrow.
+                → ONE slot per day. ONE category, randomly picked from 9 modes.
+                You won't know which one until reveal time.
               </p>
             </div>
           )}
@@ -752,6 +948,195 @@ export default function Stream() {
           </div>
         </div>
       </div>
+
+      {/* GOING LIVE intro overlay — fires once per slot */}
+      <AnimatePresence>
+        {introOpen && (
+          <IntroOverlay
+            category={status.category}
+            onClose={() => setIntroOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </Layout>
+  );
+}
+
+// ============================================================================
+// Intro Overlay — dramatic "stream is starting" reveal
+// ============================================================================
+function IntroOverlay({
+  category,
+  onClose,
+}: {
+  category: SlotCategory;
+  onClose: () => void;
+}) {
+  const [phase, setPhase] = useState<"countdown" | "reveal" | "speak">(
+    "countdown",
+  );
+  const [count, setCount] = useState(3);
+  const [speakIdx, setSpeakIdx] = useState(0);
+  const opener = useMemo(
+    () => INTRO_OPENERS[Math.floor(Math.random() * INTRO_OPENERS.length)],
+    [],
+  );
+  const lines = useMemo(
+    () => [opener, ...(INTRO_BY_CAT[category] ?? [])],
+    [opener, category],
+  );
+
+  useEffect(() => {
+    const t1 = window.setInterval(() => {
+      setCount((c) => Math.max(0, c - 1));
+    }, 700);
+    const t2 = window.setTimeout(() => setPhase("reveal"), 2200);
+    const t3 = window.setTimeout(() => setPhase("speak"), 4000);
+    return () => {
+      window.clearInterval(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (phase !== "speak") return;
+    const id = window.setInterval(() => {
+      setSpeakIdx((i) => (i + 1 < lines.length ? i + 1 : i));
+    }, 1700);
+    return () => window.clearInterval(id);
+  }, [phase, lines.length]);
+
+  const badge = CATEGORY_BADGE[category];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      className="fixed inset-0 z-[100] flex items-center justify-center cursor-pointer overflow-hidden"
+      data-testid="stream-intro"
+    >
+      {/* Curtain backdrop */}
+      <motion.div
+        animate={{ opacity: [1, 0.85, 1] }}
+        transition={{ duration: 1.2, repeat: Infinity }}
+        className="absolute inset-0 bg-black"
+      />
+      <div
+        className="absolute inset-0 opacity-50 mix-blend-overlay"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0 2px, transparent 2px 5px)",
+        }}
+      />
+
+      {/* Scene-change flash bars */}
+      <motion.div
+        initial={{ scaleX: 0 }}
+        animate={{ scaleX: 1 }}
+        transition={{ duration: 0.4 }}
+        className="absolute top-0 left-0 right-0 h-12 bg-primary origin-left"
+      />
+      <motion.div
+        initial={{ scaleX: 0 }}
+        animate={{ scaleX: 1 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="absolute bottom-0 left-0 right-0 h-12 bg-secondary origin-right"
+      />
+
+      {/* Content per phase */}
+      <div className="relative z-10 text-center px-6 max-w-3xl">
+        <AnimatePresence mode="wait">
+          {phase === "countdown" && (
+            <motion.div
+              key="countdown"
+              initial={{ scale: 5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.6, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 220, damping: 18 }}
+            >
+              <div className="text-secondary font-mono uppercase tracking-[0.5em] text-sm md:text-lg mb-2">
+                GOING LIVE IN
+              </div>
+              <div
+                className="font-black text-primary leading-none"
+                style={{
+                  fontSize: "clamp(8rem, 26vw, 20rem)",
+                  textShadow:
+                    "0 0 30px hsl(var(--primary)), 0 0 60px hsl(var(--primary))",
+                }}
+              >
+                {count > 0 ? count : "GO"}
+              </div>
+            </motion.div>
+          )}
+          {phase === "reveal" && (
+            <motion.div
+              key="reveal"
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -40, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 180, damping: 16 }}
+            >
+              <div className="text-white font-mono uppercase tracking-[0.35em] text-sm md:text-base mb-3">
+                ★ TODAY'S MODE ★
+              </div>
+              <motion.div
+                animate={{ scale: [1, 1.04, 1] }}
+                transition={{ duration: 0.8, repeat: Infinity }}
+                className={`inline-block px-6 py-3 border-4 font-black uppercase tracking-widest text-3xl md:text-6xl ${badge.tone}`}
+                style={{ textShadow: "0 0 20px rgba(255,255,255,0.4)" }}
+              >
+                {badge.text}
+              </motion.div>
+              <div className="mt-4 text-secondary font-mono text-xs md:text-sm uppercase tracking-widest">
+                The President has chosen. There is no appeal.
+              </div>
+            </motion.div>
+          )}
+          {phase === "speak" && (
+            <motion.div
+              key={`speak-${speakIdx}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.35 }}
+              className="space-y-4"
+            >
+              <div className="flex items-center justify-center gap-3">
+                <motion.span
+                  animate={{ opacity: [1, 0.4, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                  className="inline-block w-3 h-3 rounded-full bg-red-500"
+                />
+                <span className="text-red-400 font-black uppercase tracking-[0.3em] text-sm">
+                  ON AIR · PRESIDENT NATTOUN
+                </span>
+              </div>
+              <div
+                className="text-white font-black tracking-wider leading-tight"
+                style={{
+                  fontSize: "clamp(1.5rem, 5vw, 3rem)",
+                  textShadow: "0 0 18px rgba(255,255,255,0.4)",
+                }}
+              >
+                "{lines[speakIdx]}"
+              </div>
+              <div
+                className={`inline-block px-3 py-1 border-2 font-black uppercase tracking-widest text-xs ${badge.tone}`}
+              >
+                {badge.text}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="absolute bottom-3 right-4 text-white/50 font-mono text-[10px] uppercase tracking-wider">
+        [click anywhere to dismiss]
+      </div>
+    </motion.div>
   );
 }

@@ -4,16 +4,23 @@
 // Daily-deterministic schedule. Each calendar day produces the SAME single
 // slot for every visitor.
 //
-//   - One slot per day, picked randomly from a category:
-//       * "clips"    — clip compilation
-//       * "chatting" — just chatting
-//       * "kick"     — kick simulcast
-//       * "t5athel"  — President is NOT streaming today, just send tips
+//   - One slot per day, picked randomly from a pool of categories.
+//   - The category is HIDDEN from the UI until reveal time (when the slot
+//     opens, or for t5athel days, an afternoon "reveal" moment).
 //   - Outside that one slot the stream is CLOSED.
-//   - On t5athel days there is no slot at all.
+//   - On t5athel days there is no slot at all — only a tip jar.
 // ============================================================================
 
-export type SlotCategory = "clips" | "chatting" | "kick" | "t5athel";
+export type SlotCategory =
+  | "clips"
+  | "chatting"
+  | "kick"
+  | "t5athel"
+  | "gaming"
+  | "podcast"
+  | "irl"
+  | "asmr"
+  | "rage";
 
 export type Slot = {
   startMin: number; // minutes since 00:00 local
@@ -22,13 +29,28 @@ export type Slot = {
   label: string;
 };
 
-const CATEGORIES: SlotCategory[] = ["clips", "chatting", "kick", "t5athel"];
+const CATEGORIES: SlotCategory[] = [
+  "clips",
+  "chatting",
+  "kick",
+  "t5athel",
+  "gaming",
+  "podcast",
+  "irl",
+  "asmr",
+  "rage",
+];
 
 const CATEGORY_LABEL: Record<SlotCategory, string> = {
   clips: "CLIPS COMPILATION",
   chatting: "JUST CHATTING",
   kick: "KICK SIMULCAST",
   t5athel: "T5ATHELT — NO STREAM TODAY",
+  gaming: "GAMING — RAGE SPEEDRUN",
+  podcast: "PODCAST WITH 3 IMAGINARY GUESTS",
+  irl: "IRL TUNIS WALK (ALLEGEDLY)",
+  asmr: "BASKOUTA ASMR — 4 HOURS OF CRUNCH",
+  rage: "WATCH NATTOUN RAGE QUIT (BLINDFOLDED)",
 };
 
 function dayKey(d: Date): number {
@@ -73,6 +95,19 @@ export function getSlotForDay(d: Date): Slot | null {
   };
 }
 
+// Reveal time: the moment the day's mode becomes public. For active categories
+// this is the slot start (when he goes live). For t5athel days it's an
+// afternoon announcement window.
+export function getRevealMinForDay(d: Date): number {
+  const slot = getSlotForDay(d);
+  if (slot) return slot.startMin;
+  // t5athel day → "no-stream announcement" between 11:00 and 15:00
+  const rand = makeRng(dayKey(d) ^ 0x5a5a);
+  const hour = 11 + Math.floor(rand() * 4);
+  const min = Math.floor(rand() * 60);
+  return hour * 60 + min;
+}
+
 function fmt(min: number): string {
   const h = Math.floor(min / 60);
   const m = min % 60;
@@ -81,6 +116,10 @@ function fmt(min: number): string {
 
 export function formatSlot(s: Slot): string {
   return `${fmt(s.startMin)}–${fmt(s.endMin)}`;
+}
+
+export function formatTime(min: number): string {
+  return fmt(min);
 }
 
 export type StreamStatus = {
@@ -93,6 +132,9 @@ export type StreamStatus = {
   next: { slot: Slot; minutesUntil: number; isToday: boolean } | null;
   slot: Slot | null; // today's single slot (null on t5athel days)
   slots: Slot[]; // back-compat — array form, length 0 or 1
+  revealed: boolean; // has the day's mode been announced yet?
+  revealMin: number; // minutes from midnight when the reveal happens
+  dayKey: number; // stable id for "today" — useful for once-per-slot keys
 };
 
 // How long the President actually stays live before he gives up for the slot.
@@ -133,6 +175,9 @@ export function getStreamStatus(now: Date = new Date()): StreamStatus {
   const m = now.getHours() * 60 + now.getMinutes();
   const nowSec =
     now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+  const revealMin = getRevealMinForDay(now);
+  const revealed = m >= revealMin;
+  const dk = dayKey(now);
 
   // T5ATHELT day — no stream all day, just send tips
   if (category === "t5athel" || !slot) {
@@ -146,6 +191,9 @@ export function getStreamStatus(now: Date = new Date()): StreamStatus {
       next: findNextSlot(now),
       slot: null,
       slots: [],
+      revealed,
+      revealMin,
+      dayKey: dk,
     };
   }
 
@@ -179,6 +227,9 @@ export function getStreamStatus(now: Date = new Date()): StreamStatus {
     next,
     slot,
     slots: [slot],
+    revealed,
+    revealMin,
+    dayKey: dk,
   };
 }
 
