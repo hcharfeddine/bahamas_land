@@ -33,6 +33,7 @@ import { OGCheat } from "@/components/OGCheat";
 import { EasterEggs } from "@/components/EasterEggs";
 import { IdleNotifications } from "@/components/IdleNotifications";
 import { ConsoleEggs } from "@/components/ConsoleEggs";
+import { NattounComments } from "@/components/NattounComments";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +79,7 @@ function App() {
           <EasterEggs />
           <IdleNotifications />
           <ConsoleEggs />
+          <NattounComments />
           <Router />
         </WouterRouter>
         <Toaster />
