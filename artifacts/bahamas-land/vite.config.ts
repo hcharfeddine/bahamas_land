@@ -1,14 +1,26 @@
-import { defineConfig } from "vite";
+import { defineConfig, type PluginOption } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import { chatMiddleware } from "./server/chatMiddleware";
 
 const port = process.env.PORT ? Number(process.env.PORT) : 5173;
+
+const chatApiPlugin = (): PluginOption => ({
+  name: "bahamas-chat-api",
+  configureServer(server) {
+    server.middlewares.use(chatMiddleware);
+  },
+  configurePreviewServer(server) {
+    server.middlewares.use(chatMiddleware);
+  },
+});
 
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    chatApiPlugin(),
   ],
   resolve: {
     alias: {
