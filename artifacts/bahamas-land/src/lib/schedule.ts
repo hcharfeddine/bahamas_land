@@ -110,7 +110,7 @@ export type StreamStatus = {
   now: Date;
   live: boolean;
   trolling: boolean; // live but in a random (non-official) slot
-  crashed: boolean; // we were live but Nattoun rage-quit ("t8athelt")
+  crashed: boolean; // we were live but Nattoun rage-quit ("t5athelt")
   current: Slot | null;
   next: { slot: Slot; minutesUntil: number; isToday: boolean } | null;
   slots: Slot[]; // today's slots
@@ -118,7 +118,7 @@ export type StreamStatus = {
 
 // How long the President actually stays live before he gives up for the day.
 // Each scheduled slot opens for this many seconds, then the stream "crashes"
-// and shows T8ATHELT for the rest of the slot window.
+// and shows T5ATHELT for the rest of the slot window.
 export const LIVE_DURATION_SEC = 60;
 
 export function getStreamStatus(now: Date = new Date()): StreamStatus {

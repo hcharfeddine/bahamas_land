@@ -90,12 +90,12 @@ const OFFLINE_QUOTES = [
 ];
 
 const CRASHED_QUOTES = [
-  "T8ATHELT. I do not feel like streaming today. Goodbye.",
-  "T8ATHELT. The vibes left the building. Stream postponed.",
-  "T8ATHELT. The mic broke. The dog ate it. Cope.",
-  "T8ATHELT. I quit for today. Try tomorrow. Or do not.",
-  "T8ATHELT. Internet is mid. Bahamas Land WiFi is on strike.",
-  "T8ATHELT. Loyalty audit interrupted the stream. Sorry not sorry.",
+  "T5ATHELT. I do not feel like streaming today. Goodbye.",
+  "T5ATHELT. The vibes left the building. Stream postponed.",
+  "T5ATHELT. The mic broke. The dog ate it. Cope.",
+  "T5ATHELT. I quit for today. Try tomorrow. Or do not.",
+  "T5ATHELT. Internet is mid. Bahamas Land WiFi is on strike.",
+  "T5ATHELT. Loyalty audit interrupted the stream. Sorry not sorry.",
 ];
 
 type ChatMsg = ServerChatMsg;
@@ -189,7 +189,7 @@ export default function Stream() {
     } else if (result.error === "stream_offline") {
       setChatError(
         status.crashed
-          ? "T8ATHELT. The President quit. Chat closed for today."
+          ? "T5ATHELT. The President quit. Chat closed for today."
           : "Stream is offline. Try again when Nattoun returns.",
       );
     } else if (result.error === "empty") {
@@ -271,7 +271,7 @@ export default function Stream() {
                   </motion.div>
                 ) : status.crashed ? (
                   <div className="bg-yellow-500 text-black px-2 py-1 text-xs font-black uppercase tracking-widest border border-yellow-300">
-                    T8ATHELT
+                    T5ATHELT
                   </div>
                 ) : (
                   <div className="bg-black/80 text-white/60 px-2 py-1 text-xs font-black uppercase tracking-widest border border-white/30">
@@ -321,7 +321,7 @@ export default function Stream() {
                 </motion.div>
               </div>
 
-              {/* T8ATHELT crash overlay */}
+              {/* T5ATHELT crash overlay */}
               {status.crashed && (
                 <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
                   {/* TV-static / glitch background */}
@@ -349,7 +349,7 @@ export default function Stream() {
                       className="text-yellow-400 font-black uppercase tracking-[0.5em] text-4xl md:text-6xl"
                       style={{ textShadow: "0 0 18px rgba(250, 204, 21, 0.9)" }}
                     >
-                      T8ATHELT
+                      T5ATHELT
                     </motion.div>
                     <div className="mt-2 text-white/80 font-mono text-[11px] uppercase tracking-widest">
                       President Nattoun does not feel like streaming today
@@ -455,7 +455,7 @@ export default function Stream() {
                         ? `${status.current.label} — DAILY 18:30`
                         : `${status.current.label} — UNSCHEDULED — DEAL WITH IT`
                       : status.crashed
-                        ? "T8ATHELT — PRESIDENT QUIT FOR TODAY"
+                        ? "T5ATHELT — PRESIDENT QUIT FOR TODAY"
                         : status.next
                           ? `LIVE IS CLOSED — NEXT SLOT IN ${formatCountdown(status.next.minutesUntil)}${status.next.isToday ? "" : " (TOMORROW)"}`
                           : "LIVE IS CLOSED"}
@@ -483,7 +483,7 @@ export default function Stream() {
                     connected ? "bg-green-400" : "bg-white/30"
                   }`}
                 />
-                {viewers.real} online · {status.live ? "LIVE" : status.crashed ? "T8ATHELT" : "READ ONLY"}
+                {viewers.real} online · {status.live ? "LIVE" : status.crashed ? "T5ATHELT" : "READ ONLY"}
               </div>
             </div>
             <div
