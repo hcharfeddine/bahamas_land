@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "M3kky & The OGs - Bahamas Land"
+version = "1.0.0"
+id = "artifacts/bahamas-land"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21785
+
+[services.development]
+run = "pnpm --filter @workspace/bahamas-land run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/bahamas-land", "run", "build" ]
+publicDir = "artifacts/bahamas-land/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21785"
+BASE_PATH = "/"
