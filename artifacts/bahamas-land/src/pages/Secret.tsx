@@ -5,12 +5,12 @@ import { motion } from "framer-motion";
 import nattounImg from "@assets/Nattoun_1777028672745.png";
 
 const LORE = [
-  "Remember when M3kky lost to the chat in Geoguessr?",
   "The original capital of Bahamas Land was just a Discord voice channel.",
   "President Nattoun does not actually know how to read.",
   "The economy is backed entirely by stolen memes.",
   "M3kky's aura is technically negative according to state scientists.",
-  "This page is illegal in 14 countries."
+  "This page is illegal in 14 countries.",
+  "If you type 'OG' anywhere, the dogs come out. Do not abuse this."
 ];
 
 export default function Secret() {

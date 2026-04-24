@@ -12,9 +12,11 @@ import Library from "@/pages/Library";
 import Bank from "@/pages/Bank";
 import Palace from "@/pages/Palace";
 import Secret from "@/pages/Secret";
+import Passport from "@/pages/Passport";
 
 import { CustomCursor } from "@/components/CustomCursor";
 import { CRTOverlay } from "@/components/CRTOverlay";
+import { OGCheat } from "@/components/OGCheat";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +31,7 @@ function Router() {
       <Route path="/bank" component={Bank} />
       <Route path="/palace" component={Palace} />
       <Route path="/secret" component={Secret} />
+      <Route path="/passport" component={Passport} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -41,6 +44,7 @@ function App() {
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <CustomCursor />
           <CRTOverlay />
+          <OGCheat />
           <Router />
         </WouterRouter>
         <Toaster />

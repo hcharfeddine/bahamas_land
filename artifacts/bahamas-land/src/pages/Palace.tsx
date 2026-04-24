@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { useUsername } from "@/lib/store";
+import { useUsername, useApplause } from "@/lib/store";
 import { motion } from "framer-motion";
 import nattounImg from "@assets/Nattoun_1777028672745.png";
 import { Castle, Star } from "lucide-react";
@@ -20,7 +20,7 @@ const SPEECHES = [
 export default function Palace() {
   const [username] = useUsername();
   const [speechIndex, setSpeechIndex] = useState(0);
-  const [applause, setApplause] = useState(0);
+  const [applause, setApplause] = useApplause();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -32,7 +32,7 @@ export default function Palace() {
   const currentSpeech = SPEECHES[speechIndex].replace("[username]", username || "Citizen");
 
   const handleApplaud = () => {
-    setApplause(a => a + 1);
+    setApplause((a: number) => a + 1);
     audio.playBlip();
   };
 

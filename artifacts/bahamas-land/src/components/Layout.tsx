@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
-import { Link } from "wouter";
-import { ChevronLeft, Volume2, VolumeX } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { ChevronLeft, Volume2, VolumeX, IdCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { audio } from "@/lib/audio";
 import { useState } from "react";
@@ -10,6 +10,8 @@ export function Layout({ children, showBack = true }: { children: ReactNode; sho
   const [isMuted, setIsMuted] = useState(audio.isMuted());
   const [username] = useUsername();
   const [coins] = useCoins();
+  const [location] = useLocation();
+  const showPassport = !!username && location !== "/passport";
 
   const toggleMute = () => {
     const newMuted = !isMuted;
@@ -32,10 +34,20 @@ export function Layout({ children, showBack = true }: { children: ReactNode; sho
         
         <div className="flex items-start gap-4 pointer-events-auto">
           {username && (
-            <div className="bg-black/50 border border-secondary text-secondary px-4 py-2 text-sm font-mono uppercase neon-box-cyan flex flex-col items-end">
-              <div>CITIZEN: {username}</div>
-              <div>BALANCE: {coins} NC</div>
-            </div>
+            showPassport ? (
+              <Link href="/passport" className="bg-black/50 border border-secondary text-secondary px-4 py-2 text-sm font-mono uppercase neon-box-cyan flex flex-col items-end hover:bg-secondary/10 transition-colors group">
+                <div className="flex items-center gap-2">
+                  <IdCard className="w-3 h-3 opacity-70 group-hover:opacity-100" />
+                  CITIZEN: {username}
+                </div>
+                <div>BALANCE: {coins} NC</div>
+              </Link>
+            ) : (
+              <div className="bg-black/50 border border-secondary text-secondary px-4 py-2 text-sm font-mono uppercase neon-box-cyan flex flex-col items-end">
+                <div>CITIZEN: {username}</div>
+                <div>BALANCE: {coins} NC</div>
+              </div>
+            )
           )}
           <Button 
             variant="outline" 
