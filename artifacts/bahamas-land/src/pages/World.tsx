@@ -15,9 +15,16 @@ import imgLibrary from "@assets/generated_images/bld_library.png";
 import imgPalace from "@assets/generated_images/bld_palace.png";
 import imgArcade from "@assets/generated_images/bld_arcade.png";
 
-type BuildingShape = "court" | "museum" | "library" | "bank" | "palace" | "arcade";
+type BuildingShape =
+  | "court"
+  | "museum"
+  | "library"
+  | "bank"
+  | "palace"
+  | "arcade"
+  | "police";
 
-const BUILDING_IMAGES: Record<BuildingShape, string> = {
+const BUILDING_IMAGES: Partial<Record<BuildingShape, string>> = {
   bank: imgBank,
   court: imgCourt,
   museum: imgMuseum,
@@ -38,17 +45,101 @@ interface Location {
 
 const LOCATIONS: Location[] = [
   { id: "bank", path: "/bank", label: "BANK", sublabel: "of Nattoun", shape: "bank", color: "hsl(48 100% 60%)", delay: 0.05 },
-  { id: "court", path: "/court", label: "COURT", sublabel: "of OGs", shape: "court", color: "hsl(190 100% 60%)", delay: 0.15 },
-  { id: "palace", path: "/palace", label: "PALACE", sublabel: "President", shape: "palace", color: "hsl(320 100% 60%)", delay: 0.25 },
-  { id: "museum", path: "/museum", label: "MUSEUM", sublabel: "of OGs", shape: "museum", color: "hsl(280 100% 65%)", delay: 0.35 },
-  { id: "library", path: "/library", label: "LIBRARY", sublabel: "Forbidden", shape: "library", color: "hsl(140 100% 55%)", delay: 0.45 },
-  { id: "arcade", path: "/arcade", label: "ARCADE", sublabel: "State-Licensed", shape: "arcade", color: "hsl(0 100% 60%)", delay: 0.55 },
+  { id: "court", path: "/court", label: "COURT", sublabel: "of OGs", shape: "court", color: "hsl(190 100% 60%)", delay: 0.10 },
+  { id: "police", path: "/police", label: "POLICE", sublabel: "(decorative)", shape: "police", color: "hsl(210 100% 65%)", delay: 0.18 },
+  { id: "palace", path: "/palace", label: "PALACE", sublabel: "President", shape: "palace", color: "hsl(320 100% 60%)", delay: 0.26 },
+  { id: "museum", path: "/museum", label: "MUSEUM", sublabel: "of OGs", shape: "museum", color: "hsl(280 100% 65%)", delay: 0.34 },
+  { id: "library", path: "/library", label: "LIBRARY", sublabel: "Forbidden", shape: "library", color: "hsl(140 100% 55%)", delay: 0.42 },
+  { id: "arcade", path: "/arcade", label: "ARCADE", sublabel: "State-Licensed", shape: "arcade", color: "hsl(0 100% 60%)", delay: 0.50 },
 ];
 
+function PoliceBuilding({ color }: { color: string }) {
+  const stroke = color;
+  const fill = "rgba(0, 0, 0, 0.85)";
+  const common = { stroke, fill, strokeWidth: 2.5, strokeLinejoin: "round" as const };
+  return (
+    <svg
+      viewBox="0 0 120 150"
+      className="w-full h-full"
+      style={{
+        filter: `drop-shadow(0 0 6px ${color}) drop-shadow(0 0 14px ${color}99) drop-shadow(0 8px 18px rgba(0,0,0,0.7))`,
+      }}
+    >
+      {/* siren on roof */}
+      <rect x="55" y="12" width="10" height="6" {...common} />
+      <circle cx="60" cy="10" r="4" stroke={color} fill={color} opacity="0.7" />
+      {/* main facade */}
+      <rect x="15" y="22" width="90" height="100" {...common} />
+      {/* sign band */}
+      <rect x="20" y="28" width="80" height="14" stroke={color} fill={color} opacity="0.35" />
+      <text
+        x="60"
+        y="38"
+        textAnchor="middle"
+        fontSize="8"
+        fontWeight="900"
+        fontFamily="monospace"
+        fill="white"
+        style={{ letterSpacing: "1px" }}
+      >
+        POLICE
+      </text>
+      {/* big shield emblem */}
+      <path
+        d="M 60 50 L 75 56 L 75 72 Q 75 84 60 90 Q 45 84 45 72 L 45 56 Z"
+        stroke={color}
+        fill={color}
+        fillOpacity="0.25"
+        strokeWidth="2"
+      />
+      <text
+        x="60"
+        y="74"
+        textAnchor="middle"
+        fontSize="10"
+        fontWeight="900"
+        fontFamily="monospace"
+        fill={color}
+      >
+        ?
+      </text>
+      {/* windows */}
+      <rect x="22" y="92" width="14" height="18" stroke={color} fill={color} opacity="0.35" />
+      <rect x="84" y="92" width="14" height="18" stroke={color} fill={color} opacity="0.35" />
+      {/* door */}
+      <rect x="50" y="92" width="20" height="30" stroke={color} fill={color} opacity="0.5" />
+      {/* boarded-up plank across the door */}
+      <rect x="44" y="100" width="32" height="4" fill={color} opacity="0.8" />
+      {/* "CLOSED" tape */}
+      <rect x="20" y="78" width="80" height="6" fill="hsl(48 100% 55%)" opacity="0.9" />
+      <text
+        x="60"
+        y="83"
+        textAnchor="middle"
+        fontSize="5"
+        fontWeight="900"
+        fontFamily="monospace"
+        fill="black"
+        style={{ letterSpacing: "1.5px" }}
+      >
+        ★ CLOSED ★ FOREVER ★
+      </text>
+      {/* base + steps */}
+      <rect x="10" y="122" width="100" height="14" {...common} />
+      <rect x="0" y="136" width="120" height="6" {...common} />
+    </svg>
+  );
+}
+
 function Building({ shape, color }: { shape: BuildingShape; color: string }) {
+  const src = BUILDING_IMAGES[shape];
+  if (!src) {
+    if (shape === "police") return <PoliceBuilding color={color} />;
+    return null;
+  }
   return (
     <img
-      src={BUILDING_IMAGES[shape]}
+      src={src}
       alt=""
       draggable={false}
       className="w-full h-full object-contain object-bottom select-none transition-[filter] duration-300"
@@ -214,6 +305,7 @@ const buildingHeights: Record<BuildingShape, string> = {
   museum: "h-40 md:h-56",
   library: "h-48 md:h-64",
   arcade: "h-40 md:h-56",
+  police: "h-40 md:h-56",
 };
 
 export default function World() {

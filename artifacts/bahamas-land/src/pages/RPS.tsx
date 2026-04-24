@@ -6,7 +6,13 @@ import nattounImg from "@assets/Nattoun_1777028672745.png";
 import { audio } from "@/lib/audio";
 import { useCoins } from "@/lib/store";
 import { unlock } from "@/lib/achievements";
-import { Hand, Scissors, Square } from "lucide-react";
+import { trackSpend } from "@/lib/tracker";
+import { Hand, Scissors, Square, Coins } from "lucide-react";
+
+const COST_PER_ROUND = 25;
+// Once-in-a-blue-moon mercy: 5% chance Nattoun "lets you have it" and you win.
+const MERCY_RATE = 0.05;
+const MERCY_REWARD = 200;
 
 type Choice = "rock" | "paper" | "scissors";
 type Outcome = "win" | "lose" | "draw" | null;
@@ -41,31 +47,13 @@ const TAUNTS_LOSE = [
   "Did you really think you could beat me? In MY country?",
 ];
 const TAUNTS_WIN = [
-  "Lucky. Once.",
-  "Recount.",
-  "I let you have it. Pity.",
-  "The cameras malfunctioned.",
-  "This victory is unofficial.",
-];
-const TAUNTS_DRAW = [
-  "Boring. Try harder.",
-  "Draws are illegal. We move on.",
-  "You copied me, didn't you.",
+  "Lucky. Once. It will not happen again.",
+  "Recount. Recount. RECOUNT.",
+  "I let you have it. Pity. Spend the NC fast.",
+  "The cameras malfunctioned. The win stands. Barely.",
+  "This victory is unofficial. The NC is real though.",
 ];
 
-function beats(a: Choice, b: Choice) {
-  if (a === b) return 0;
-  if (
-    (a === "rock" && b === "scissors") ||
-    (a === "paper" && b === "rock") ||
-    (a === "scissors" && b === "paper")
-  )
-    return 1;
-  return -1;
-}
-
-// Nattoun is the President. The President always wins. He simply picks the
-// move that counters whatever the citizen just played. No randomness, no mercy.
 function nattounCounter(playerChoice: Choice): Choice {
   if (playerChoice === "rock") return "paper";
   if (playerChoice === "paper") return "scissors";
@@ -73,35 +61,62 @@ function nattounCounter(playerChoice: Choice): Choice {
 }
 
 export default function RPS() {
-  const [, setHistory] = useState<Choice[]>([]);
   const [you, setYou] = useState<Choice | null>(null);
   const [him, setHim] = useState<Choice | null>(null);
   const [outcome, setOutcome] = useState<Outcome>(null);
   const [taunt, setTaunt] = useState("Pick one. I already know.");
   const [score, setScore] = useState({ you: 0, dog: 0, draws: 0 });
-  const [streak] = useState(0);
-  const [, setCoins] = useCoins();
+  const [winStreak, setWinStreak] = useState(0);
+  const [coins, setCoins] = useCoins();
   const [revealing, setRevealing] = useState(false);
 
+  const canAfford = coins >= COST_PER_ROUND;
+
   useEffect(() => {
-    void unlock;
-    void setCoins;
-  }, []);
+    if (winStreak >= 3) unlock("respected");
+  }, [winStreak]);
 
   const play = (c: Choice) => {
     if (revealing) return;
+    if (!canAfford) {
+      setTaunt(`The fee is ${COST_PER_ROUND} NC. The Bank is that way.`);
+      return;
+    }
+
+    setCoins((cv) => cv - COST_PER_ROUND);
+    trackSpend(COST_PER_ROUND);
+
     setYou(c);
     setRevealing(true);
     audio.playBlip();
-    // Nattoun ALWAYS counters the player's pick. Citizen always loses.
-    const opp = nattounCounter(c);
+
+    const mercy = Math.random() < MERCY_RATE;
+    // On mercy, Nattoun "loses" by playing what you beat.
+    const opp: Choice = mercy
+      ? c === "rock"
+        ? "scissors"
+        : c === "paper"
+          ? "rock"
+          : "paper"
+      : nattounCounter(c);
+
     window.setTimeout(() => {
       setHim(opp);
-      setOutcome("lose");
-      setScore((s) => ({ ...s, dog: s.dog + 1 }));
-      setTaunt(TAUNTS_LOSE[Math.floor(Math.random() * TAUNTS_LOSE.length)]);
-      audio.playGlitch();
-      setHistory((h) => [...h, c].slice(-10));
+      if (mercy) {
+        setOutcome("win");
+        setScore((s) => ({ ...s, you: s.you + 1 }));
+        setWinStreak((w) => w + 1);
+        setTaunt(TAUNTS_WIN[Math.floor(Math.random() * TAUNTS_WIN.length)]);
+        setCoins((cv) => cv + MERCY_REWARD);
+        unlock("survivor");
+        audio.playCoin();
+      } else {
+        setOutcome("lose");
+        setScore((s) => ({ ...s, dog: s.dog + 1 }));
+        setWinStreak(0);
+        setTaunt(TAUNTS_LOSE[Math.floor(Math.random() * TAUNTS_LOSE.length)]);
+        audio.playGlitch();
+      }
       setRevealing(false);
     }, 700);
   };
@@ -121,8 +136,19 @@ export default function RPS() {
             Rock · Paper · Scissors vs Nattoun
           </h1>
           <p className="text-secondary font-mono text-xs uppercase mt-2">
-            The President never loses. Try anyway. It's tradition.
+            Ante: {COST_PER_ROUND} NC per round. Mercy reward if you somehow win: {MERCY_REWARD} NC.
           </p>
+        </div>
+
+        {/* Cost / balance bar */}
+        <div className="flex items-center gap-4 bg-black/70 border-2 border-accent px-4 py-2 font-mono text-xs uppercase tracking-widest">
+          <span className="text-accent flex items-center gap-1">
+            <Coins className="w-3.5 h-3.5" /> {coins} NC
+          </span>
+          <span className="text-white/40">·</span>
+          <span className="text-secondary">
+            Cost per round: {COST_PER_ROUND} NC
+          </span>
         </div>
 
         <div className="flex items-center gap-4">
@@ -199,7 +225,7 @@ export default function RPS() {
             <motion.button
               key={c}
               onClick={() => play(c)}
-              disabled={revealing}
+              disabled={revealing || !canAfford}
               whileHover={{ y: -4 }}
               whileTap={{ scale: 0.95 }}
               className="bg-black/70 border-2 border-primary px-5 py-4 text-primary uppercase font-black tracking-widest clickable disabled:opacity-30 flex flex-col items-center gap-1"
@@ -210,10 +236,16 @@ export default function RPS() {
           ))}
         </div>
 
+        {!canAfford && (
+          <p className="text-center text-xs font-mono uppercase text-red-400/80 max-w-md">
+            Out of NC. The President doesn't accept IOUs.
+          </p>
+        )}
+
         <div className="flex items-center gap-4 text-xs font-mono uppercase tracking-widest">
           <div className="text-secondary">YOU: {score.you}</div>
           <div className="text-primary">NATTOUN: {score.dog}</div>
-          <div className="text-white/50">STREAK: {streak}</div>
+          <div className="text-white/50">STREAK: {winStreak}</div>
         </div>
 
         <Button

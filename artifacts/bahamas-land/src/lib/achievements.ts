@@ -33,50 +33,114 @@ export type AchievementId =
   | "vaultkeeper"
   | "respected"
   | "streamer"
-  | "trollchat";
+  | "trollchat"
+  // ============================
+  // NEW EASTER EGGS — DIFFICULTY TIERS
+  // ============================
+  // EASY
+  | "tourist"
+  | "clicker"
+  | "gambler"
+  // MEDIUM
+  | "minister"
+  | "broke"
+  | "subscriber"
+  | "reactor"
+  // HARD
+  | "loyaltour"
+  | "richman"
+  | "patriot"
+  // INSANE
+  | "ascended"
+  | "completionist"
+  | "ghost";
+
+export type Difficulty = "easy" | "medium" | "hard" | "insane";
 
 export type Achievement = {
   id: AchievementId;
   name: string;
   hint: string;
   emoji: string;
+  difficulty: Difficulty;
 };
 
 export const ACHIEVEMENTS: Achievement[] = [
-  { id: "citizen", name: "Citizen", hint: "Pick a name. Become a person.", emoji: "🏝️" },
-  { id: "spy", name: "Spy", hint: "Some doors don't have handles.", emoji: "👁️" },
-  { id: "og", name: "OG", hint: "Two letters. The dogs come.", emoji: "🐕" },
-  { id: "konami", name: "Konami Veteran", hint: "A code older than time.", emoji: "🎮" },
-  { id: "bankrupt", name: "Bankrupt", hint: "Lose everything at the bank.", emoji: "💸" },
-  { id: "survivor", name: "Survivor", hint: "Beat Nattoun. Somehow.", emoji: "⚔️" },
-  { id: "curator", name: "Curator", hint: "Get a relic approved.", emoji: "🎨" },
-  { id: "scholar", name: "Scholar", hint: "Read every book in the library.", emoji: "📜" },
-  { id: "nightowl", name: "Night Owl", hint: "Visit when the world sleeps.", emoji: "🌙" },
-  { id: "suspect", name: "Suspect", hint: "Get banned (sort of).", emoji: "🚫" },
-  { id: "urlsnoop", name: "URL Snoop", hint: "Type a path that isn't there.", emoji: "🔎" },
-  { id: "bonker", name: "Bonker", hint: "Bonk the President. A lot.", emoji: "🔨" },
-  { id: "vip", name: "VIP Citizen", hint: "Refuse to leave the front door.", emoji: "⭐" },
-  { id: "taxpayer", name: "Taxpayer", hint: "The President wants his cut.", emoji: "💰" },
-  { id: "loyal", name: "Daily Loyalist", hint: "Show up every day.", emoji: "📅" },
-  { id: "loremaster", name: "Loremaster", hint: "Find every hidden door.", emoji: "🗝️" },
-  { id: "mastermind", name: "Mastermind", hint: "Trade like the President watches.", emoji: "🧠" },
-  { id: "chainletter", name: "Forwarded", hint: "Open a letter you shouldn't have.", emoji: "📧" },
-  { id: "exiled", name: "Exiled", hint: "Take a 30-second vacation.", emoji: "🏖️" },
-  { id: "denied", name: "Denied", hint: "Apply for what you cannot have.", emoji: "📝" },
-  { id: "newshound", name: "Newshound", hint: "Read the state press.", emoji: "📰" },
-  { id: "midwit", name: "Certified Mid", hint: "Type the verdict on yourself.", emoji: "🟨" },
-  { id: "mekkyfan", name: "M3kky Fan", hint: "Spell his name.", emoji: "💜" },
-  { id: "nightcrawler", name: "Nightcrawler", hint: "Be away. Come back.", emoji: "🌑" },
-  { id: "nattounsleeper", name: "Don't Wake Him", hint: "Hold a key. Patiently.", emoji: "💤" },
-  { id: "hacker", name: "Console Cowboy", hint: "Open the place where the truth lives.", emoji: "🖥️" },
-  { id: "cheat", name: "Cheat Code", hint: "Print yourself rich.", emoji: "💳" },
-  { id: "traitor", name: "Traitor", hint: "Don't even type the word.", emoji: "🗡️" },
-  { id: "breadhead", name: "Bread Historian", hint: "Bread came first. We just took credit.", emoji: "🍞" },
-  { id: "vaultkeeper", name: "Vaultkeeper", hint: "Crack the dog's piggy bank.", emoji: "🔐" },
-  { id: "respected", name: "Respected", hint: "Beat Nattoun three times in a row.", emoji: "🥇" },
-  { id: "streamer", name: "Front Row", hint: "Catch the President live.", emoji: "📺" },
-  { id: "trollchat", name: "Chatter", hint: "Say something to the President directly.", emoji: "💬" },
+  // EASY TIER — first-time visitor stuff
+  { id: "citizen", name: "Citizen", hint: "Pick a name. Become a person.", emoji: "🏝️", difficulty: "easy" },
+  { id: "tourist", name: "Tourist", hint: "Visit 3 different rooms in Bahamas Land.", emoji: "🧳", difficulty: "easy" },
+  { id: "clicker", name: "Clicky Citizen", hint: "Click around. The dog appreciates it.", emoji: "🖱️", difficulty: "easy" },
+  { id: "loyal", name: "Daily Loyalist", hint: "Show up every day.", emoji: "📅", difficulty: "easy" },
+  { id: "newshound", name: "Newshound", hint: "Read the state press.", emoji: "📰", difficulty: "easy" },
+  { id: "konami", name: "Konami Veteran", hint: "A code older than time.", emoji: "🎮", difficulty: "easy" },
+  { id: "gambler", name: "Lil' Gambler", hint: "Bet a single coin and survive the consequences.", emoji: "🎲", difficulty: "easy" },
+
+  // MEDIUM TIER — mild effort required
+  { id: "spy", name: "Spy", hint: "Some doors don't have handles.", emoji: "👁️", difficulty: "medium" },
+  { id: "og", name: "OG", hint: "Two letters. The dogs come.", emoji: "🐕", difficulty: "medium" },
+  { id: "midwit", name: "Certified Mid", hint: "Type the verdict on yourself.", emoji: "🟨", difficulty: "medium" },
+  { id: "mekkyfan", name: "M3kky Fan", hint: "Spell his name.", emoji: "💜", difficulty: "medium" },
+  { id: "bonker", name: "Bonker", hint: "Bonk the President. A lot.", emoji: "🔨", difficulty: "medium" },
+  { id: "curator", name: "Curator", hint: "Get a relic approved.", emoji: "🎨", difficulty: "medium" },
+  { id: "urlsnoop", name: "URL Snoop", hint: "Type a path that isn't there.", emoji: "🔎", difficulty: "medium" },
+  { id: "vip", name: "VIP Citizen", hint: "Refuse to leave the front door.", emoji: "⭐", difficulty: "medium" },
+  { id: "minister", name: "Minister of Mid", hint: "Reach the official rank of Minister.", emoji: "🎖️", difficulty: "medium" },
+  { id: "subscriber", name: "Paying Citizen", hint: "Subscribe to the President's stream. Yes, with NC.", emoji: "💳", difficulty: "medium" },
+  { id: "broke", name: "Broke Bahamian", hint: "Lose every coin to the Bank.", emoji: "📉", difficulty: "medium" },
+  { id: "reactor", name: "Reaction Watcher", hint: "Catch the President reacting to a video.", emoji: "🎥", difficulty: "medium" },
+
+  // HARD TIER — needs a real visit pattern or mini-skill
+  { id: "scholar", name: "Scholar", hint: "Read every book in the library.", emoji: "📜", difficulty: "hard" },
+  { id: "nightowl", name: "Night Owl", hint: "Visit when the world sleeps.", emoji: "🌙", difficulty: "hard" },
+  { id: "suspect", name: "Suspect", hint: "Get banned (sort of).", emoji: "🚫", difficulty: "hard" },
+  { id: "bankrupt", name: "Bankrupt", hint: "Lose everything at the bank.", emoji: "💸", difficulty: "hard" },
+  { id: "survivor", name: "Survivor", hint: "Beat Nattoun. Somehow.", emoji: "⚔️", difficulty: "hard" },
+  { id: "taxpayer", name: "Taxpayer", hint: "The President wants his cut.", emoji: "💰", difficulty: "hard" },
+  { id: "chainletter", name: "Forwarded", hint: "Open a letter you shouldn't have.", emoji: "📧", difficulty: "hard" },
+  { id: "exiled", name: "Exiled", hint: "Take a 30-second vacation.", emoji: "🏖️", difficulty: "hard" },
+  { id: "denied", name: "Denied", hint: "Apply for what you cannot have.", emoji: "📝", difficulty: "hard" },
+  { id: "nightcrawler", name: "Nightcrawler", hint: "Be away. Come back.", emoji: "🌑", difficulty: "hard" },
+  { id: "nattounsleeper", name: "Don't Wake Him", hint: "Hold a key. Patiently.", emoji: "💤", difficulty: "hard" },
+  { id: "streamer", name: "Front Row", hint: "Catch the President live.", emoji: "📺", difficulty: "hard" },
+  { id: "trollchat", name: "Chatter", hint: "Say something to the President directly.", emoji: "💬", difficulty: "hard" },
+  { id: "respected", name: "Respected", hint: "Beat Nattoun three times in a row.", emoji: "🥇", difficulty: "hard" },
+  { id: "richman", name: "Suspiciously Rich", hint: "Stack 10,000 NC. The Bank is watching.", emoji: "🪙", difficulty: "hard" },
+  { id: "patriot", name: "Patriot", hint: "Spend 1,000 NC on the President. Worth it.", emoji: "🏛️", difficulty: "hard" },
+  { id: "loremaster", name: "Loremaster", hint: "Find every hidden door.", emoji: "🗝️", difficulty: "hard" },
+
+  // INSANE TIER — chef's special
+  { id: "hacker", name: "Console Cowboy", hint: "Open the place where the truth lives.", emoji: "🖥️", difficulty: "insane" },
+  { id: "cheat", name: "Cheat Code", hint: "Print yourself rich.", emoji: "💳", difficulty: "insane" },
+  { id: "traitor", name: "Traitor", hint: "Don't even type the word.", emoji: "🗡️", difficulty: "insane" },
+  { id: "breadhead", name: "Bread Historian", hint: "Bread came first. We just took credit.", emoji: "🍞", difficulty: "insane" },
+  { id: "vaultkeeper", name: "Vaultkeeper", hint: "Crack the dog's piggy bank.", emoji: "🔐", difficulty: "insane" },
+  { id: "mastermind", name: "Mastermind", hint: "Trade like the President watches.", emoji: "🧠", difficulty: "insane" },
+  { id: "loyaltour", name: "Grand Tour", hint: "Visit every public room of Bahamas Land.", emoji: "🗺️", difficulty: "insane" },
+  { id: "ascended", name: "Ascended Citizen", hint: "Reach the rank of Protected Class.", emoji: "👑", difficulty: "insane" },
+  { id: "completionist", name: "Completionist", hint: "Unlock everything else first.", emoji: "🌟", difficulty: "insane" },
+  { id: "ghost", name: "Ghost in the Machine", hint: "Discover a name no one was meant to find.", emoji: "👻", difficulty: "insane" },
 ];
+
+export const DIFFICULTY_REWARDS: Record<Difficulty, number> = {
+  easy: 25,
+  medium: 75,
+  hard: 200,
+  insane: 750,
+};
+
+export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
+  easy: "EASY",
+  medium: "MEDIUM",
+  hard: "HARD",
+  insane: "INSANE",
+};
+
+export const DIFFICULTY_COLOR: Record<Difficulty, string> = {
+  easy: "hsl(140 80% 55%)",
+  medium: "hsl(48 100% 60%)",
+  hard: "hsl(20 100% 60%)",
+  insane: "hsl(320 100% 65%)",
+};
 
 const STORAGE_KEY = "ogs_achievements";
 
@@ -107,6 +171,19 @@ export function unlock(id: AchievementId) {
   write(data);
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("achievement-unlock", { detail: { id } }));
+    // Auto-pay reward into NC bank
+    try {
+      const ach = ACHIEVEMENTS.find((a) => a.id === id);
+      if (ach) {
+        const reward = DIFFICULTY_REWARDS[ach.difficulty];
+        const cur = Number(window.localStorage.getItem("ogs_coins"));
+        const safeCur = Number.isFinite(cur) ? cur : 0;
+        window.localStorage.setItem("ogs_coins", JSON.stringify(safeCur + reward));
+        window.dispatchEvent(new Event("local-storage"));
+      }
+    } catch {
+      /* ignore */
+    }
   }
   return true;
 }
@@ -130,11 +207,23 @@ export function useAchievements() {
       window.removeEventListener("storage", refresh);
     };
   }, []);
-  const unlockedCount = Object.keys(data).length;
-  if (unlockedCount === ACHIEVEMENTS.length) {
-    if (!data["loremaster"]) {
-      // safety: loremaster auto-fires when all hidden URLs visited; not all achievements
-    }
-  }
+  const unlockedCount = Object.keys(data).filter((k) =>
+    ACHIEVEMENTS.some((a) => a.id === k),
+  ).length;
   return { data, unlockedCount, total: ACHIEVEMENTS.length };
+}
+
+export function useAchievementsByDifficulty() {
+  const { data } = useAchievements();
+  const byDiff: Record<Difficulty, { total: number; unlocked: number }> = {
+    easy: { total: 0, unlocked: 0 },
+    medium: { total: 0, unlocked: 0 },
+    hard: { total: 0, unlocked: 0 },
+    insane: { total: 0, unlocked: 0 },
+  };
+  for (const a of ACHIEVEMENTS) {
+    byDiff[a.difficulty].total += 1;
+    if (data[a.id]) byDiff[a.difficulty].unlocked += 1;
+  }
+  return byDiff;
 }

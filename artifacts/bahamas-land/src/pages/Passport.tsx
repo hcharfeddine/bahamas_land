@@ -2,7 +2,16 @@ import { Layout } from "@/components/Layout";
 import { useUsername, useCoins, useVerdicts, useMuseum, useApplause, useSecretVisitors, useFirstVisit } from "@/lib/store";
 import { motion } from "framer-motion";
 import nattounImg from "@assets/Nattoun_1777028672745.png";
-import { Stamp, ShieldAlert } from "lucide-react";
+import { Stamp, ShieldAlert, Lock, Check } from "lucide-react";
+import {
+  ACHIEVEMENTS,
+  DIFFICULTY_COLOR,
+  DIFFICULTY_LABEL,
+  DIFFICULTY_REWARDS,
+  type Difficulty,
+  useAchievements,
+  useAchievementsByDifficulty,
+} from "@/lib/achievements";
 
 function rank(coins: number, verdicts: number, applause: number) {
   const score = coins / 100 + verdicts * 5 + applause * 0.5;
@@ -21,6 +30,8 @@ function formatDate(ts: number) {
   }
 }
 
+const DIFF_ORDER: Difficulty[] = ["easy", "medium", "hard", "insane"];
+
 export default function Passport() {
   const [username] = useUsername();
   const [coins] = useCoins();
@@ -29,15 +40,26 @@ export default function Passport() {
   const [applause] = useApplause();
   const [secretVisitors] = useSecretVisitors();
   const [firstVisit] = useFirstVisit();
+  const { data: achData, unlockedCount, total } = useAchievements();
+  const byDiff = useAchievementsByDifficulty();
 
   const lastVerdict = verdicts.length > 0 ? verdicts[verdicts.length - 1] : null;
   const citizenRank = rank(coins, verdicts.length, applause);
   const idNumber = (username || "GHOST").toUpperCase().padEnd(6, "X").slice(0, 6) + "-" +
     String(Math.abs((username || "x").split("").reduce((a, c) => a + c.charCodeAt(0), 0) * 31)).slice(0, 4);
 
+  const totalReward = ACHIEVEMENTS.reduce(
+    (sum, a) => sum + (achData[a.id] ? DIFFICULTY_REWARDS[a.difficulty] : 0),
+    0,
+  );
+  const possibleReward = ACHIEVEMENTS.reduce(
+    (sum, a) => sum + DIFFICULTY_REWARDS[a.difficulty],
+    0,
+  );
+
   return (
     <Layout>
-      <div className="max-w-3xl mx-auto w-full flex flex-col items-center justify-center min-h-[calc(100dvh-120px)] py-8">
+      <div className="max-w-4xl mx-auto w-full flex flex-col items-center justify-center py-8 gap-8">
         <motion.div
           initial={{ opacity: 0, y: 20, rotate: -2 }}
           animate={{ opacity: 1, y: 0, rotate: -1 }}
@@ -94,6 +116,8 @@ export default function Passport() {
                 <Field label="Museum Contributions" value={String(museum.length)} />
                 <Field label="Applauses Given" value={String(applause)} />
                 <Field label="Secret Area Found" value={secretVisitors > 0 ? "YES (suspicious)" : "NO"} />
+                <Field label="Secrets Unlocked" value={`${unlockedCount} / ${total}`} />
+                <Field label="Reward Earned" value={`${totalReward} / ${possibleReward} NC`} />
                 <Field label="Last Verdict" value={lastVerdict ? lastVerdict.verdict : "Never been judged. Yet."} />
               </div>
             </div>
@@ -129,7 +153,145 @@ export default function Passport() {
           </div>
         </motion.div>
 
-        <div className="mt-6 text-center text-xs font-mono text-primary/60 uppercase">
+        {/* ==================== SECRETS LOG ==================== */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="w-full bg-black/85 border-2 border-primary neon-box p-6"
+        >
+          <div className="flex flex-wrap justify-between items-center gap-3 mb-4 pb-3 border-b-2 border-primary/40">
+            <div>
+              <h2 className="text-xl md:text-2xl font-black text-primary uppercase tracking-widest neon-text">
+                Secret Log
+              </h2>
+              <p className="text-secondary/80 font-mono text-[11px] uppercase mt-1 tracking-widest">
+                {unlockedCount}/{total} secrets discovered • {totalReward}/{possibleReward} NC reward earned
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-[10px] uppercase text-secondary/70 font-mono">Completion</div>
+              <div className="text-primary font-black text-2xl tabular-nums">
+                {Math.round((unlockedCount / total) * 100)}%
+              </div>
+            </div>
+          </div>
+
+          {/* Difficulty progress bars */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            {DIFF_ORDER.map((d) => {
+              const stats = byDiff[d];
+              const pct = stats.total === 0 ? 0 : Math.round((stats.unlocked / stats.total) * 100);
+              return (
+                <div
+                  key={d}
+                  className="border-2 p-3 bg-black/60"
+                  style={{ borderColor: DIFFICULTY_COLOR[d] }}
+                >
+                  <div
+                    className="text-[10px] font-black uppercase tracking-widest"
+                    style={{ color: DIFFICULTY_COLOR[d] }}
+                  >
+                    {DIFFICULTY_LABEL[d]}
+                  </div>
+                  <div className="text-white font-black text-lg tabular-nums">
+                    {stats.unlocked}<span className="text-white/40">/{stats.total}</span>
+                  </div>
+                  <div className="h-1.5 mt-1 bg-white/10 overflow-hidden">
+                    <div
+                      className="h-full transition-all"
+                      style={{ width: `${pct}%`, background: DIFFICULTY_COLOR[d] }}
+                    />
+                  </div>
+                  <div className="text-[10px] font-mono text-white/50 mt-1 uppercase">
+                    {DIFFICULTY_REWARDS[d]} NC each
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Achievement grid grouped by difficulty */}
+          <div className="space-y-5">
+            {DIFF_ORDER.map((d) => {
+              const list = ACHIEVEMENTS.filter((a) => a.difficulty === d);
+              return (
+                <div key={d}>
+                  <div
+                    className="flex items-baseline gap-2 mb-2"
+                    style={{ color: DIFFICULTY_COLOR[d] }}
+                  >
+                    <span className="font-black uppercase tracking-widest text-sm">
+                      {DIFFICULTY_LABEL[d]}
+                    </span>
+                    <span className="text-[10px] font-mono uppercase opacity-70">
+                      ·  {DIFFICULTY_REWARDS[d]} NC reward each
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {list.map((a) => {
+                      const unlocked = !!achData[a.id];
+                      return (
+                        <div
+                          key={a.id}
+                          className={`flex items-start gap-2 border p-2 transition-all ${
+                            unlocked
+                              ? "bg-black/60"
+                              : "bg-black/40 border-white/10"
+                          }`}
+                          style={
+                            unlocked
+                              ? {
+                                  borderColor: DIFFICULTY_COLOR[d],
+                                  boxShadow: `0 0 8px ${DIFFICULTY_COLOR[d]}55`,
+                                }
+                              : undefined
+                          }
+                          title={a.hint}
+                        >
+                          <div
+                            className={`text-2xl shrink-0 ${unlocked ? "" : "grayscale opacity-30"}`}
+                            aria-hidden
+                          >
+                            {a.emoji}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1">
+                              <div
+                                className={`font-black uppercase text-xs tracking-wider truncate ${
+                                  unlocked ? "text-white" : "text-white/40"
+                                }`}
+                              >
+                                {unlocked ? a.name : "???"}
+                              </div>
+                              {unlocked ? (
+                                <Check
+                                  className="w-3 h-3 shrink-0"
+                                  style={{ color: DIFFICULTY_COLOR[d] }}
+                                />
+                              ) : (
+                                <Lock className="w-3 h-3 text-white/30 shrink-0" />
+                              )}
+                            </div>
+                            <div
+                              className={`font-mono text-[10px] leading-snug ${
+                                unlocked ? "text-secondary/80" : "text-white/35 italic"
+                              }`}
+                            >
+                              {a.hint}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+
+        <div className="text-center text-xs font-mono text-primary/60 uppercase">
           Take a screenshot. Brag responsibly.
         </div>
       </div>

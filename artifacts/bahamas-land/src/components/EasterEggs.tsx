@@ -188,6 +188,16 @@ export function EasterEggs() {
         } else if (buf.endsWith("EXILE")) {
           setLocation("/exile");
           typedBuffer.current = "";
+        } else if (buf.endsWith("GHOST")) {
+          unlock("ghost");
+          pushToast("👻 GHOST PROTOCOL", "You weren't supposed to find that name.");
+          audio.playGlitch();
+          typedBuffer.current = "";
+        } else if (buf.endsWith("NATTOUN")) {
+          unlock("ghost");
+          pushToast("THE PRESIDENT SEES YOU", "Identity theft is a Bahamas Land tradition.");
+          audio.playGlitch();
+          typedBuffer.current = "";
         }
       }
     };

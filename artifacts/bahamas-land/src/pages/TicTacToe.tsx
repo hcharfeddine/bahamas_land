@@ -4,6 +4,11 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import nattounImg from "@assets/Nattoun_1777028672745.png";
 import { audio } from "@/lib/audio";
+import { useCoins } from "@/lib/store";
+import { trackSpend } from "@/lib/tracker";
+import { Coins } from "lucide-react";
+
+const COST_PER_GAME = 30;
 
 type Cell = "X" | "O" | null;
 
@@ -22,15 +27,12 @@ function checkWinner(b: Cell[]): { winner: Cell; line: number[] | null } {
 }
 
 function bestMove(b: Cell[]): number {
-  // Nattoun cheats. He wins if possible, blocks if needed, otherwise picks center, then corners.
-  // Try to win
   for (const line of WINS) {
     const cells = line.map((i) => b[i]);
     if (cells.filter((c) => c === "O").length === 2 && cells.includes(null)) {
       return line[cells.indexOf(null)];
     }
   }
-  // Block
   for (const line of WINS) {
     const cells = line.map((i) => b[i]);
     if (cells.filter((c) => c === "X").length === 2 && cells.includes(null)) {
@@ -54,68 +56,81 @@ const TAUNTS = [
 ];
 
 export default function TicTacToe() {
+  const [coins, setCoins] = useCoins();
+  const [paid, setPaid] = useState(false);
   const [board, setBoard] = useState<Cell[]>(Array(9).fill(null));
   const [turn, setTurn] = useState<"X" | "O">("X");
-  const [taunt, setTaunt] = useState("Your move, citizen.");
+  const [taunt, setTaunt] = useState(`Pay ${COST_PER_GAME} NC. Then we play.`);
   const [score, setScore] = useState({ you: 0, dog: 0, draws: 0 });
   const [cheated, setCheated] = useState<number | null>(null);
 
   const result = checkWinner(board);
   const isFull = board.every((c) => c !== null);
   const gameOver = !!result.winner || isFull;
+  const canAfford = coins >= COST_PER_GAME;
+
+  const startGame = () => {
+    if (paid || !canAfford) return;
+    setCoins((c) => c - COST_PER_GAME);
+    trackSpend(COST_PER_GAME);
+    setPaid(true);
+    setBoard(Array(9).fill(null));
+    setTurn("X");
+    setTaunt("Your move, citizen. The fee is non-refundable.");
+    setCheated(null);
+    audio.playCoin();
+  };
 
   useEffect(() => {
-    if (gameOver) {
-      if (result.winner === "X") {
-        // Nattoun "cheats": flips one of your X to O after a delay so he wins.
-        const xs = board.map((c, i) => (c === "X" ? i : -1)).filter((i) => i >= 0);
-        const flip = xs[Math.floor(Math.random() * xs.length)];
+    if (!paid || !gameOver) return;
+    if (result.winner === "X") {
+      const xs = board.map((c, i) => (c === "X" ? i : -1)).filter((i) => i >= 0);
+      const flip = xs[Math.floor(Math.random() * xs.length)];
+      window.setTimeout(() => {
+        setCheated(flip);
+        setTaunt("INVALID MOVE. Reviewing tape... Nattoun wins.");
         window.setTimeout(() => {
-          setCheated(flip);
-          setTaunt("INVALID MOVE. Reviewing tape... Nattoun wins.");
-          window.setTimeout(() => {
-            const newBoard = [...board];
-            newBoard[flip] = "O";
-            setBoard(newBoard);
-            setScore((s) => ({ ...s, dog: s.dog + 1 }));
-            setCheated(null);
-          }, 1500);
-        }, 600);
-      } else if (result.winner === "O") {
-        setTaunt("Nattoun wins. Naturally.");
-        setScore((s) => ({ ...s, dog: s.dog + 1 }));
-      } else {
-        // Draw is unacceptable. Nattoun flips one of your X into an O so
-        // he completes a winning line. Tape will be reviewed. He wins.
-        const xs = board.map((c, i) => (c === "X" ? i : -1)).filter((i) => i >= 0);
-        // Find an X that, when flipped to O, completes a 3-in-a-row for O.
-        let flip = xs[0];
-        for (const idx of xs) {
-          const trial = [...board];
-          trial[idx] = "O";
-          if (checkWinner(trial).winner === "O") {
-            flip = idx;
-            break;
-          }
+          const newBoard = [...board];
+          newBoard[flip] = "O";
+          setBoard(newBoard);
+          setScore((s) => ({ ...s, dog: s.dog + 1 }));
+          setCheated(null);
+          setPaid(false);
+        }, 1500);
+      }, 600);
+    } else if (result.winner === "O") {
+      setTaunt(`Nattoun wins. Pay ${COST_PER_GAME} NC to lose again.`);
+      setScore((s) => ({ ...s, dog: s.dog + 1 }));
+      setPaid(false);
+    } else {
+      const xs = board.map((c, i) => (c === "X" ? i : -1)).filter((i) => i >= 0);
+      let flip = xs[0];
+      for (const idx of xs) {
+        const trial = [...board];
+        trial[idx] = "O";
+        if (checkWinner(trial).winner === "O") {
+          flip = idx;
+          break;
         }
-        window.setTimeout(() => {
-          setCheated(flip);
-          setTaunt("Draw? IMPOSSIBLE. Recounting... Nattoun wins.");
-          window.setTimeout(() => {
-            const newBoard = [...board];
-            newBoard[flip] = "O";
-            setBoard(newBoard);
-            setScore((s) => ({ ...s, dog: s.dog + 1 }));
-            setCheated(null);
-          }, 1500);
-        }, 600);
       }
+      window.setTimeout(() => {
+        setCheated(flip);
+        setTaunt("Draw? IMPOSSIBLE. Recounting... Nattoun wins.");
+        window.setTimeout(() => {
+          const newBoard = [...board];
+          newBoard[flip] = "O";
+          setBoard(newBoard);
+          setScore((s) => ({ ...s, dog: s.dog + 1 }));
+          setCheated(null);
+          setPaid(false);
+        }, 1500);
+      }, 600);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameOver, result.winner]);
+  }, [gameOver, result.winner, paid]);
 
   useEffect(() => {
-    if (turn === "O" && !gameOver) {
+    if (turn === "O" && !gameOver && paid) {
       const timer = window.setTimeout(() => {
         const move = bestMove(board);
         if (move >= 0) {
@@ -130,22 +145,15 @@ export default function TicTacToe() {
       return () => window.clearTimeout(timer);
     }
     return undefined;
-  }, [turn, board, gameOver]);
+  }, [turn, board, gameOver, paid]);
 
   const handleClick = (i: number) => {
-    if (board[i] || gameOver || turn !== "X" || cheated !== null) return;
+    if (!paid || board[i] || gameOver || turn !== "X" || cheated !== null) return;
     const next = [...board];
     next[i] = "X";
     setBoard(next);
     setTurn("O");
     audio.playBlip();
-  };
-
-  const reset = () => {
-    setBoard(Array(9).fill(null));
-    setTurn("X");
-    setTaunt("Your move, citizen.");
-    setCheated(null);
   };
 
   return (
@@ -158,8 +166,16 @@ export default function TicTacToe() {
           <p className="text-secondary font-mono text-xs uppercase mt-2">You are X. He is O. He is also the referee.</p>
         </div>
 
+        <div className="flex items-center gap-4 bg-black/70 border-2 border-accent px-4 py-2 font-mono text-xs uppercase tracking-widest">
+          <span className="text-accent flex items-center gap-1">
+            <Coins className="w-3.5 h-3.5" /> {coins} NC
+          </span>
+          <span className="text-white/40">·</span>
+          <span className="text-secondary">Cost per game: {COST_PER_GAME} NC</span>
+        </div>
+
         <div className="flex items-center gap-4">
-          <img src={nattounImg} alt="Nattoun" className="w-16 h-16 object-cover border-2 border-primary neon-box" />
+          <img src={nattounImg} alt="Nattoun" data-nattoun="true" className="w-16 h-16 object-cover border-2 border-primary neon-box" />
           <div className="bg-black/80 border-2 border-secondary px-4 py-2 max-w-xs neon-box-cyan">
             <p className="text-secondary font-mono text-sm">"{taunt}"</p>
           </div>
@@ -170,11 +186,12 @@ export default function TicTacToe() {
             <motion.button
               key={i}
               onClick={() => handleClick(i)}
-              whileHover={!c && !gameOver && turn === "X" ? { scale: 1.05 } : {}}
-              whileTap={!c && !gameOver && turn === "X" ? { scale: 0.95 } : {}}
+              disabled={!paid}
+              whileHover={!c && !gameOver && turn === "X" && paid ? { scale: 1.05 } : {}}
+              whileTap={!c && !gameOver && turn === "X" && paid ? { scale: 0.95 } : {}}
               className={`w-20 h-20 md:w-24 md:h-24 bg-black border border-primary/50 text-4xl md:text-5xl font-black flex items-center justify-center transition-colors clickable ${
-                cheated === i ? "border-secondary" : ""
-              } ${result.line?.includes(i) ? "bg-primary/20" : ""}`}
+                !paid ? "opacity-40 cursor-not-allowed" : ""
+              } ${cheated === i ? "border-secondary" : ""} ${result.line?.includes(i) ? "bg-primary/20" : ""}`}
               style={{
                 color: c === "X" ? "hsl(var(--secondary))" : "hsl(var(--primary))",
                 textShadow: c ? `0 0 8px ${c === "X" ? "hsl(var(--secondary))" : "hsl(var(--primary))"}` : undefined,
@@ -192,10 +209,15 @@ export default function TicTacToe() {
         </div>
 
         <Button
-          onClick={reset}
-          className="bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-black uppercase font-bold tracking-widest"
+          onClick={startGame}
+          disabled={paid || !canAfford}
+          className="bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-black uppercase font-bold tracking-widest disabled:opacity-30"
         >
-          New Game
+          {paid
+            ? "Game in progress..."
+            : !canAfford
+              ? `Need ${COST_PER_GAME} NC`
+              : `Insert ${COST_PER_GAME} NC to play`}
         </Button>
       </div>
     </Layout>

@@ -7,6 +7,7 @@ import { useUsername, useCoins, useLocalStorage } from "@/lib/store";
 import { audio } from "@/lib/audio";
 import { Radio, Send, Eye, Heart, MessageSquare, Calendar } from "lucide-react";
 import { unlock } from "@/lib/achievements";
+import { PresidentBroadcast } from "@/components/PresidentBroadcast";
 import { useStreamChat, type ChatMsg as ServerChatMsg } from "@/lib/streamChat";
 import {
   getStreamStatus,
@@ -222,6 +223,7 @@ export default function Stream() {
     if (!subbed) {
       setSubbed(true);
       setCoins((c) => Math.max(0, c - 100));
+      unlock("subscriber");
       audio.playGlitch();
     }
   };
@@ -546,6 +548,9 @@ export default function Stream() {
             </form>
           </div>
         </div>
+
+        {/* President's broadcast (random: reacts OR watches M3kky) */}
+        <PresidentBroadcast />
 
         {/* Schedule + Rules */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

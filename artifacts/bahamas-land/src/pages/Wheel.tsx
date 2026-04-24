@@ -2,8 +2,13 @@ import { useState } from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { useUsername, useVerdicts } from "@/lib/store";
+import { useUsername, useVerdicts, useCoins } from "@/lib/store";
 import { audio } from "@/lib/audio";
+import { Coins } from "lucide-react";
+import { trackSpend } from "@/lib/tracker";
+import { unlock } from "@/lib/achievements";
+
+const COST_PER_SPIN = 20;
 
 const VERDICTS = [
   "GUILTY of vibing",
@@ -27,6 +32,18 @@ const FULL_VERDICTS: Record<string, string> = {
   "RETRIAL TOMORROW": "RETRIAL: come back tomorrow",
 };
 
+// Reward / penalty per verdict label.
+const VERDICT_PAYOUT: Record<string, number> = {
+  "GUILTY of vibing": -10,
+  "INNOCENT-ish": 50,
+  "MILDLY GUILTY": -5,
+  "EXTREMELY GUILTY": -25,
+  "PARDONED": 100,
+  "FINED 5 NC": -5,
+  "DEPORTED": -15,
+  "RETRIAL TOMORROW": 0,
+};
+
 const COLORS = [
   "hsl(320 100% 60%)",
   "hsl(190 100% 60%)",
@@ -39,12 +56,22 @@ const COLORS = [
 export default function Wheel() {
   const [username] = useUsername();
   const [, setVerdicts] = useVerdicts();
+  const [coins, setCoins] = useCoins();
   const [angle, setAngle] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [delta, setDelta] = useState<number>(0);
+
+  const canAfford = coins >= COST_PER_SPIN;
 
   const spin = () => {
-    if (spinning) return;
+    if (spinning || !canAfford) return;
+
+    // Charge the spin up front. NC has value now.
+    setCoins((c) => c - COST_PER_SPIN);
+    trackSpend(COST_PER_SPIN);
+    unlock("gambler");
+
     const idx = Math.floor(Math.random() * VERDICTS.length);
     const segment = 360 / VERDICTS.length;
     const target = 360 * 6 + (360 - (idx * segment + segment / 2));
@@ -52,11 +79,20 @@ export default function Wheel() {
     setAngle(newAngle);
     setSpinning(true);
     setResult(null);
+    setDelta(0);
     audio.playGlitch();
     window.setTimeout(() => {
-      const v = FULL_VERDICTS[VERDICTS[idx]] || VERDICTS[idx];
+      const verdict = VERDICTS[idx];
+      const v = FULL_VERDICTS[verdict] || verdict;
+      const payout = VERDICT_PAYOUT[verdict] ?? 0;
       setResult(v);
+      setDelta(payout);
       setSpinning(false);
+      if (payout !== 0) {
+        setCoins((c) => Math.max(0, c + payout));
+        if (payout > 0) audio.playCoin();
+        else audio.playGlitch();
+      }
       setVerdicts((arr) => [
         ...arr,
         {
@@ -74,12 +110,23 @@ export default function Wheel() {
 
   return (
     <Layout>
-      <div className="max-w-3xl mx-auto w-full flex flex-col items-center justify-center min-h-[calc(100dvh-120px)] py-8 space-y-8">
+      <div className="max-w-3xl mx-auto w-full flex flex-col items-center justify-center min-h-[calc(100dvh-120px)] py-8 space-y-6">
         <div className="text-center">
           <h1 className="text-3xl md:text-5xl font-black text-primary uppercase tracking-widest neon-text">
             Wheel of Verdicts
           </h1>
           <p className="text-secondary font-mono text-sm uppercase mt-2">Justice is random. Embrace it.</p>
+        </div>
+
+        {/* Cost / balance bar */}
+        <div className="flex items-center gap-4 bg-black/70 border-2 border-accent px-4 py-2 font-mono text-xs uppercase tracking-widest">
+          <span className="text-accent flex items-center gap-1">
+            <Coins className="w-3.5 h-3.5" /> {coins} NC
+          </span>
+          <span className="text-white/40">·</span>
+          <span className="text-secondary">
+            Cost per spin: {COST_PER_SPIN} NC
+          </span>
         </div>
 
         <div className="relative w-72 h-72 md:w-96 md:h-96">
@@ -154,10 +201,14 @@ export default function Wheel() {
 
         <Button
           onClick={spin}
-          disabled={spinning}
-          className="bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-black uppercase font-black tracking-widest px-12 py-6 text-base"
+          disabled={spinning || !canAfford}
+          className="bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-black uppercase font-black tracking-widest px-12 py-6 text-base disabled:opacity-30"
         >
-          {spinning ? "JUDGING..." : "SPIN"}
+          {spinning
+            ? "JUDGING..."
+            : !canAfford
+              ? `NEED ${COST_PER_SPIN} NC`
+              : `SPIN (${COST_PER_SPIN} NC)`}
         </Button>
 
         {result && (
@@ -168,7 +219,20 @@ export default function Wheel() {
             style={{ textShadow: "0 0 8px hsl(var(--secondary))" }}
           >
             VERDICT: {result}
+            {delta !== 0 && (
+              <div
+                className={`mt-2 text-xs font-mono ${delta > 0 ? "text-green-400" : "text-red-400"}`}
+              >
+                {delta > 0 ? `+${delta}` : `${delta}`} NC
+              </div>
+            )}
           </motion.div>
+        )}
+
+        {!canAfford && (
+          <p className="text-center text-xs font-mono uppercase text-white/50 max-w-md">
+            You're broke. Beg the President at the Bank, or earn NC by completing secrets.
+          </p>
         )}
       </div>
     </Layout>

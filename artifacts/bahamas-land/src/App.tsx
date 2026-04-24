@@ -26,15 +26,16 @@ import Banned from "@/pages/Banned";
 import Exile from "@/pages/Exile";
 import Citizenship from "@/pages/Citizenship";
 import News from "@/pages/News";
+import Police from "@/pages/Police";
 
 import { CustomCursor } from "@/components/CustomCursor";
 import { CRTOverlay } from "@/components/CRTOverlay";
 import { OGCheat } from "@/components/OGCheat";
 import { EasterEggs } from "@/components/EasterEggs";
-import { IdleNotifications } from "@/components/IdleNotifications";
 import { ConsoleEggs } from "@/components/ConsoleEggs";
 import { NattounComments } from "@/components/NattounComments";
 import { AutoReload } from "@/components/AutoReload";
+import { ActivityTracker } from "@/components/ActivityTracker";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +64,7 @@ function Router() {
       <Route path="/banned" component={Banned} />
       <Route path="/exile" component={Exile} />
       <Route path="/citizenship" component={Citizenship} />
+      <Route path="/police" component={Police} />
       <Route path="/news" component={News} />
       <Route component={NotFound} />
     </Switch>
@@ -78,10 +80,10 @@ function App() {
           <CRTOverlay />
           <OGCheat />
           <EasterEggs />
-          <IdleNotifications />
           <ConsoleEggs />
           <NattounComments />
           <AutoReload />
+          <ActivityTracker />
           <Router />
         </WouterRouter>
         <Toaster />
