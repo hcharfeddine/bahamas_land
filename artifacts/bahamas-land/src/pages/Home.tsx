@@ -25,7 +25,7 @@ export default function Home() {
       onClick={handleClick}
     >
       <motion.div
-        className="w-full h-full origin-[48%_55%]" // roughly nose area, adjust if needed
+        className="w-full h-full origin-[54%_42%]" // nose area: shifted up and slightly right
         animate={
           isZooming
             ? { scale: 40, opacity: 0, filter: "blur(10px)" }
