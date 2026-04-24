@@ -14,6 +14,7 @@ import imgMuseum from "@assets/generated_images/bld_museum.png";
 import imgLibrary from "@assets/generated_images/bld_library.png";
 import imgPalace from "@assets/generated_images/bld_palace.png";
 import imgArcade from "@assets/generated_images/bld_arcade.png";
+import imgPolice from "@assets/generated_images/bld_police.png";
 
 type BuildingShape =
   | "court"
@@ -31,6 +32,7 @@ const BUILDING_IMAGES: Partial<Record<BuildingShape, string>> = {
   library: imgLibrary,
   palace: imgPalace,
   arcade: imgArcade,
+  police: imgPolice,
 };
 
 interface Location {
