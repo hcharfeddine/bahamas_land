@@ -32,6 +32,7 @@ import { CustomCursor } from "@/components/CustomCursor";
 import { CRTOverlay } from "@/components/CRTOverlay";
 import { OGCheat } from "@/components/OGCheat";
 import { EasterEggs } from "@/components/EasterEggs";
+import { MediaEasterEggs } from "@/components/MediaEasterEggs";
 import { ConsoleEggs } from "@/components/ConsoleEggs";
 import { NattounComments } from "@/components/NattounComments";
 import { AutoReload } from "@/components/AutoReload";
@@ -80,6 +81,7 @@ function App() {
           <CRTOverlay />
           <OGCheat />
           <EasterEggs />
+          <MediaEasterEggs />
           <ConsoleEggs />
           <NattounComments />
           <AutoReload />

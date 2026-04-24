@@ -53,7 +53,16 @@ export type AchievementId =
   // INSANE
   | "ascended"
   | "completionist"
-  | "ghost";
+  | "ghost"
+  // ============================
+  // MEDIA EASTER EGGS — pop culture
+  // ============================
+  | "kdot"
+  | "siuuu"
+  | "kratos"
+  | "goatmode"
+  | "madridista"
+  | "treasoncule";
 
 export type Difficulty = "easy" | "medium" | "hard" | "insane";
 
@@ -112,13 +121,23 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "hacker", name: "Console Cowboy", hint: "Open the place where the truth lives.", emoji: "🖥️", difficulty: "insane" },
   { id: "cheat", name: "Cheat Code", hint: "Print yourself rich.", emoji: "💳", difficulty: "insane" },
   { id: "traitor", name: "Traitor", hint: "Don't even type the word.", emoji: "🗡️", difficulty: "insane" },
-  { id: "breadhead", name: "Baskouta Historian", hint: "Baskouta came first. We just took credit.", emoji: "🍪", difficulty: "insane" },
+  { id: "breadhead", name: "Baskouta Historian", hint: "Baskouta came first. We just took credit.", emoji: "🦴", difficulty: "insane" },
   { id: "vaultkeeper", name: "Vaultkeeper", hint: "Crack the dog's piggy bank.", emoji: "🔐", difficulty: "insane" },
   { id: "mastermind", name: "Mastermind", hint: "Trade like the President watches.", emoji: "🧠", difficulty: "insane" },
   { id: "loyaltour", name: "Grand Tour", hint: "Visit every public room of Bahamas Land.", emoji: "🗺️", difficulty: "insane" },
   { id: "ascended", name: "Ascended Citizen", hint: "Reach the rank of Protected Class.", emoji: "👑", difficulty: "insane" },
   { id: "completionist", name: "Completionist", hint: "Unlock everything else first.", emoji: "🌟", difficulty: "insane" },
   { id: "ghost", name: "Ghost in the Machine", hint: "Discover a name no one was meant to find.", emoji: "👻", difficulty: "insane" },
+
+  // ============================
+  // MEDIA EASTER EGGS — type the magic words anywhere
+  // ============================
+  { id: "siuuu", name: "SIUUUU!", hint: "Spell the celebration of a man in a Portugal kit.", emoji: "🇵🇹", difficulty: "easy" },
+  { id: "kdot", name: "K.Dot Listener", hint: "They not… you know the rest. Type it.", emoji: "👑", difficulty: "easy" },
+  { id: "kratos", name: "Boy.", hint: "Spartan rage. One single word from the bald god.", emoji: "🪓", difficulty: "medium" },
+  { id: "goatmode", name: "GOAT Mode", hint: "Three letters. The Argentine #10 approves.", emoji: "🐐", difficulty: "medium" },
+  { id: "madridista", name: "Madridista", hint: "Hala the white club. The anthem will play itself.", emoji: "🤍", difficulty: "hard" },
+  { id: "treasoncule", name: "Culé Confession", hint: "Mention the rival club. Suffer the consequences.", emoji: "🚫", difficulty: "hard" },
 ];
 
 export const DIFFICULTY_REWARDS: Record<Difficulty, number> = {
