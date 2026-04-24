@@ -1,0 +1,8 @@
+{
+  "buildCommand": "pnpm --filter @workspace/bahamas-land build",
+  "outputDirectory": "artifacts/bahamas-land/dist",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "env": {
+    "PNPM_HOME": ".pnpm"
+  }
+}
