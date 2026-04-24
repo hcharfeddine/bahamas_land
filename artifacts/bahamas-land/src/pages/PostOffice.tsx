@@ -14,8 +14,9 @@ import { Button } from "@/components/ui/button";
 import { useUsername, useCoins } from "@/lib/store";
 import { useLetters, generateLetter } from "@/lib/inbox";
 
-import m3kkyImg from "@/assets/postoffice/po_m3kky_sprite.png";
-import nattounImg from "@/assets/postoffice/po_nattoun_sprite.png";
+import playerImg from "@/assets/postoffice/po_player_courier.png";
+import nattounImg from "@assets/Nattoun_1777028672745.png";
+import m3kkyNpcImg from "@assets/m3kky_1777028672745.png";
 import postOfficeImg from "@/assets/postoffice/po_postoffice_building.png";
 import palaceImg from "@/assets/postoffice/po_palace_building.png";
 import studioImg from "@/assets/postoffice/po_studio_building.png";
@@ -242,16 +243,14 @@ function PlayerCharacter({
   onActionPress: (pos: THREE.Vector3) => void;
 }) {
   const group = useRef<THREE.Group>(null!);
-  const leftLeg = useRef<THREE.Mesh>(null!);
-  const rightLeg = useRef<THREE.Mesh>(null!);
-  const leftArm = useRef<THREE.Mesh>(null!);
-  const rightArm = useRef<THREE.Mesh>(null!);
+  const spriteRef = useRef<THREE.Group>(null!);
   const carriedRef = useRef<THREE.Group>(null!);
+
+  const playerTex = useSpriteTex(playerImg);
 
   const [, getControls] = useKeyboardControls<ControlsKey>();
   const velocity = useRef(new THREE.Vector3());
   const animTime = useRef(0);
-  const facing = useRef(0); // radians around Y
   const lastAction = useRef(false);
 
   useEffect(() => {
@@ -268,7 +267,7 @@ function PlayerCharacter({
     }
   }, [playerRef]);
 
-  useFrame((state, dt) => {
+  useFrame((_state, dt) => {
     if (!group.current) return;
     const c = getControls();
     const dir = new THREE.Vector3(
@@ -283,7 +282,6 @@ function PlayerCharacter({
     if (moving) {
       dir.normalize();
       velocity.current.lerp(dir.multiplyScalar(speed), 0.25);
-      facing.current = Math.atan2(dir.x, dir.z);
     } else {
       velocity.current.lerp(new THREE.Vector3(0, 0, 0), 0.3);
     }
@@ -291,29 +289,21 @@ function PlayerCharacter({
     // move
     group.current.position.x += velocity.current.x * dt;
     group.current.position.z += velocity.current.z * dt;
-    // bounds (large field)
     group.current.position.x = THREE.MathUtils.clamp(group.current.position.x, -28, 28);
     group.current.position.z = THREE.MathUtils.clamp(group.current.position.z, -28, 22);
 
-    // smooth rotation
-    const cur = group.current.rotation.y;
-    let diff = facing.current - cur;
-    while (diff > Math.PI) diff -= Math.PI * 2;
-    while (diff < -Math.PI) diff += Math.PI * 2;
-    group.current.rotation.y = cur + diff * 0.2;
-
-    // walk/run animation
+    // animate sprite — bob & lean for walk/run feel
     const animSpeed = moving ? (running ? 14 : 9) : 0;
     animTime.current += dt * animSpeed;
-    const swing = moving ? Math.sin(animTime.current) * (running ? 0.9 : 0.6) : 0;
-    if (leftLeg.current) leftLeg.current.rotation.x = swing;
-    if (rightLeg.current) rightLeg.current.rotation.x = -swing;
-    if (leftArm.current) leftArm.current.rotation.x = -swing * 0.8;
-    if (rightArm.current) rightArm.current.rotation.x = swing * 0.8;
-
-    // body bob
-    const bob = moving ? Math.abs(Math.sin(animTime.current * 0.5)) * 0.08 : 0;
-    group.current.position.y = bob;
+    const bob = moving ? Math.abs(Math.sin(animTime.current)) * (running ? 0.18 : 0.12) : 0;
+    const lean = moving ? Math.sin(animTime.current) * (running ? 0.12 : 0.08) : 0;
+    if (spriteRef.current) {
+      spriteRef.current.position.y = 1.45 + bob;
+      spriteRef.current.rotation.z = lean;
+      // facing flip — if moving left, mirror sprite a bit (dir.x sign already applied via lean)
+      const xScale = velocity.current.x < -0.5 ? -1 : 1;
+      spriteRef.current.scale.x = THREE.MathUtils.lerp(spriteRef.current.scale.x, xScale, 0.2);
+    }
 
     // action edge
     if (c.action && !lastAction.current) {
@@ -321,13 +311,11 @@ function PlayerCharacter({
     }
     lastAction.current = !!c.action;
 
-    // expose state
     if (playerRef.current) {
       playerRef.current.isMoving = moving;
       playerRef.current.isRunning = running;
     }
 
-    // carried envelope visual
     if (carriedRef.current) {
       carriedRef.current.visible = !!playerRef.current?.carrying;
     }
@@ -336,74 +324,39 @@ function PlayerCharacter({
   return (
     <group ref={group} position={[0, 0, 8]}>
       {/* shadow blob */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <circleGeometry args={[0.55, 24]} />
-        <meshBasicMaterial color="#000" transparent opacity={0.25} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+        <circleGeometry args={[0.7, 24]} />
+        <meshBasicMaterial color="#000" transparent opacity={0.32} />
       </mesh>
-      {/* legs */}
-      <mesh ref={leftLeg} position={[-0.18, 0.45, 0]}>
-        <boxGeometry args={[0.22, 0.9, 0.22]} />
-        <meshToonMaterial color="#1d1d1d" />
-      </mesh>
-      <mesh ref={rightLeg} position={[0.18, 0.45, 0]}>
-        <boxGeometry args={[0.22, 0.9, 0.22]} />
-        <meshToonMaterial color="#1d1d1d" />
-      </mesh>
-      {/* torso (hoodie) */}
-      <group position={[0, 1.25, 0]}>
-        <SketchOutline args={[0.85, 0.95, 0.45]} />
-        <mesh castShadow>
-          <boxGeometry args={[0.85, 0.95, 0.45]} />
-          <meshToonMaterial color="#2b2b2b" />
-        </mesh>
-        {/* hoodie strings */}
-        <mesh position={[-0.08, -0.3, 0.24]}>
-          <boxGeometry args={[0.04, 0.18, 0.02]} />
-          <meshBasicMaterial color="#fff" />
-        </mesh>
-        <mesh position={[0.08, -0.3, 0.24]}>
-          <boxGeometry args={[0.04, 0.18, 0.02]} />
-          <meshBasicMaterial color="#fff" />
-        </mesh>
-      </group>
-      {/* arms */}
-      <mesh ref={leftArm} position={[-0.55, 1.45, 0]}>
-        <boxGeometry args={[0.2, 0.85, 0.22]} />
-        <meshToonMaterial color="#2b2b2b" />
-      </mesh>
-      <mesh ref={rightArm} position={[0.55, 1.45, 0]}>
-        <boxGeometry args={[0.2, 0.85, 0.22]} />
-        <meshToonMaterial color="#2b2b2b" />
-      </mesh>
-      {/* head */}
-      <group position={[0, 2.05, 0]}>
-        <SketchSphereOutline r={0.36} />
-        <mesh castShadow>
-          <sphereGeometry args={[0.36, 24, 18]} />
-          <meshToonMaterial color="#e9c79a" />
-        </mesh>
-        {/* sunglasses */}
-        <mesh position={[0, 0.04, 0.32]}>
-          <boxGeometry args={[0.6, 0.13, 0.06]} />
-          <meshBasicMaterial color={INK} />
-        </mesh>
-        {/* hood back */}
-        <mesh position={[0, 0.05, -0.18]}>
-          <sphereGeometry args={[0.42, 24, 18]} />
-          <meshToonMaterial color="#2b2b2b" />
-        </mesh>
+
+      {/* Player courier sprite (always faces camera) */}
+      <group ref={spriteRef} position={[0, 1.45, 0]} scale={[1, 1, 1]}>
+        <Billboard follow lockX lockZ>
+          <mesh>
+            <planeGeometry args={[1.6, 2.85]} />
+            <meshBasicMaterial
+              map={playerTex}
+              transparent
+              alphaTest={0.18}
+              side={THREE.DoubleSide}
+              depthWrite={false}
+            />
+          </mesh>
+        </Billboard>
       </group>
 
-      {/* carried envelope */}
-      <group ref={carriedRef} position={[0, 1.45, 0.4]} rotation={[0.3, 0, 0]}>
-        <mesh>
-          <boxGeometry args={[0.5, 0.34, 0.04]} />
-          <meshBasicMaterial color={PAPER} />
-        </mesh>
-        <mesh position={[0, 0, 0.025]}>
-          <boxGeometry args={[0.5, 0.34, 0.005]} />
-          <meshBasicMaterial color="#000" wireframe />
-        </mesh>
+      {/* carried envelope (also a billboard) */}
+      <group ref={carriedRef} position={[0, 1.95, 0]}>
+        <Billboard follow lockX lockZ>
+          <mesh>
+            <planeGeometry args={[0.55, 0.4]} />
+            <meshBasicMaterial color={PAPER} side={THREE.DoubleSide} />
+          </mesh>
+          <mesh position={[0, 0, 0.005]}>
+            <planeGeometry args={[0.55, 0.4]} />
+            <meshBasicMaterial color={INK} wireframe transparent opacity={0.7} />
+          </mesh>
+        </Billboard>
       </group>
     </group>
   );
@@ -415,126 +368,83 @@ function PlayerCharacter({
 
 function Nattoun({ position }: { position: [number, number, number] }) {
   const group = useRef<THREE.Group>(null!);
-  const tail = useRef<THREE.Mesh>(null!);
-  const front = useRef<THREE.Mesh>(null!);
-  const back = useRef<THREE.Mesh>(null!);
+  const spriteRef = useRef<THREE.Group>(null!);
   const wanderRef = useRef({ t: Math.random() * 10, target: new THREE.Vector3() });
+  const animTime = useRef(0);
+  const movingRef = useRef(false);
+  const facingX = useRef(1);
+  const tex = useSpriteTex(nattounImg);
 
-  useFrame((state, dt) => {
+  useFrame((_state, dt) => {
     if (!group.current) return;
-    const t = state.clock.getElapsedTime();
-    // gentle wander around base position
     wanderRef.current.t += dt;
     if (wanderRef.current.t > 2.5) {
       wanderRef.current.t = 0;
       wanderRef.current.target.set(
-        position[0] + (Math.random() - 0.5) * 4,
+        position[0] + (Math.random() - 0.5) * 6,
         0,
-        position[2] + (Math.random() - 0.5) * 4
+        position[2] + (Math.random() - 0.5) * 6
       );
     }
     const targetPos = wanderRef.current.target;
     const dx = targetPos.x - group.current.position.x;
     const dz = targetPos.z - group.current.position.z;
     const dist = Math.hypot(dx, dz);
+    let moving = false;
     if (dist > 0.1) {
-      const sp = 1.2;
+      const sp = 1.4;
       group.current.position.x += (dx / dist) * sp * dt;
       group.current.position.z += (dz / dist) * sp * dt;
-      const yaw = Math.atan2(dx, dz);
-      let diff = yaw - group.current.rotation.y;
-      while (diff > Math.PI) diff -= Math.PI * 2;
-      while (diff < -Math.PI) diff += Math.PI * 2;
-      group.current.rotation.y += diff * 0.1;
+      moving = true;
+      facingX.current = dx >= 0 ? 1 : -1;
     }
-    if (tail.current) tail.current.rotation.y = Math.sin(t * 8) * 0.6;
-    const trot = Math.sin(t * 6) * 0.5;
-    if (front.current) front.current.rotation.x = trot;
-    if (back.current) back.current.rotation.x = -trot;
+    movingRef.current = moving;
+    animTime.current += dt * (moving ? 9 : 1.5);
+    if (spriteRef.current) {
+      const bob = moving ? Math.abs(Math.sin(animTime.current)) * 0.14 : 0;
+      const lean = moving ? Math.sin(animTime.current) * 0.1 : Math.sin(animTime.current) * 0.04;
+      spriteRef.current.position.y = 1.0 + bob;
+      spriteRef.current.rotation.z = lean;
+      spriteRef.current.scale.x = THREE.MathUtils.lerp(
+        spriteRef.current.scale.x,
+        facingX.current,
+        0.2
+      );
+    }
   });
 
   return (
     <group ref={group} position={position}>
-      {/* shadow */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <circleGeometry args={[0.7, 24]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+        <circleGeometry args={[0.65, 24]} />
         <meshBasicMaterial color="#000" transparent opacity={0.3} />
       </mesh>
-      {/* body */}
-      <group position={[0, 0.55, 0]}>
-        <SketchOutline args={[1.4, 0.6, 0.7]} />
-        <mesh castShadow>
-          <boxGeometry args={[1.4, 0.6, 0.7]} />
-          <meshToonMaterial color="#f0e6d0" />
-        </mesh>
+      <group ref={spriteRef} position={[0, 1.2, 0]}>
+        <Billboard follow lockX lockZ>
+          <mesh>
+            <planeGeometry args={[3.0, 2.0]} />
+            <meshBasicMaterial
+              map={tex}
+              transparent
+              alphaTest={0.18}
+              side={THREE.DoubleSide}
+              depthWrite={false}
+            />
+          </mesh>
+        </Billboard>
       </group>
-      {/* sash */}
-      <mesh position={[0, 0.55, 0.36]} rotation={[0, 0, 0.3]}>
-        <boxGeometry args={[1.4, 0.18, 0.02]} />
-        <meshBasicMaterial color="#c33" />
-      </mesh>
-      {/* head */}
-      <group position={[0.7, 0.95, 0]}>
-        <SketchSphereOutline r={0.42} />
-        <mesh castShadow>
-          <sphereGeometry args={[0.42, 24, 18]} />
-          <meshToonMaterial color="#f0e6d0" />
-        </mesh>
-        {/* snout */}
-        <mesh position={[0.32, -0.1, 0]}>
-          <boxGeometry args={[0.32, 0.22, 0.28]} />
-          <meshToonMaterial color="#f0e6d0" />
-        </mesh>
-        <mesh position={[0.5, -0.04, 0]}>
-          <sphereGeometry args={[0.06, 12, 10]} />
-          <meshBasicMaterial color={INK} />
-        </mesh>
-        {/* eyes */}
-        <mesh position={[0.16, 0.12, 0.22]}>
-          <sphereGeometry args={[0.06, 12, 10]} />
-          <meshBasicMaterial color={INK} />
-        </mesh>
-        <mesh position={[0.16, 0.12, -0.22]}>
-          <sphereGeometry args={[0.06, 12, 10]} />
-          <meshBasicMaterial color={INK} />
-        </mesh>
-        {/* ears */}
-        <mesh position={[-0.08, 0.4, 0.22]} rotation={[0, 0, -0.4]}>
-          <boxGeometry args={[0.16, 0.34, 0.18]} />
-          <meshToonMaterial color="#d6c5a0" />
-        </mesh>
-        <mesh position={[-0.08, 0.4, -0.22]} rotation={[0, 0, -0.4]}>
-          <boxGeometry args={[0.16, 0.34, 0.18]} />
-          <meshToonMaterial color="#d6c5a0" />
-        </mesh>
-        {/* crown */}
-        <mesh position={[0.05, 0.5, 0]}>
-          <coneGeometry args={[0.25, 0.3, 6]} />
-          <meshToonMaterial color="#ffd24a" />
-        </mesh>
-      </group>
-      {/* legs */}
-      <mesh ref={front} position={[0.45, 0.2, 0.25]}>
-        <boxGeometry args={[0.18, 0.5, 0.18]} />
-        <meshToonMaterial color="#f0e6d0" />
-      </mesh>
-      <mesh position={[0.45, 0.2, -0.25]}>
-        <boxGeometry args={[0.18, 0.5, 0.18]} />
-        <meshToonMaterial color="#f0e6d0" />
-      </mesh>
-      <mesh ref={back} position={[-0.5, 0.2, 0.25]}>
-        <boxGeometry args={[0.18, 0.5, 0.18]} />
-        <meshToonMaterial color="#f0e6d0" />
-      </mesh>
-      <mesh position={[-0.5, 0.2, -0.25]}>
-        <boxGeometry args={[0.18, 0.5, 0.18]} />
-        <meshToonMaterial color="#f0e6d0" />
-      </mesh>
-      {/* tail */}
-      <mesh ref={tail} position={[-0.78, 0.7, 0]}>
-        <boxGeometry args={[0.34, 0.12, 0.12]} />
-        <meshToonMaterial color="#f0e6d0" />
-      </mesh>
+      {/* tag */}
+      <Text
+        position={[0, 2.7, 0]}
+        fontSize={0.36}
+        color="#ff2d8c"
+        anchorX="center"
+        anchorY="middle"
+        outlineColor="#000"
+        outlineWidth={0.02}
+      >
+        ★ PRESIDENT NATTOUN ★
+      </Text>
     </group>
   );
 }
@@ -544,52 +454,45 @@ function Nattoun({ position }: { position: [number, number, number] }) {
 /* ------------------------------------------------------------------ */
 
 function M3kkyNPC({ position }: { position: [number, number, number] }) {
-  const group = useRef<THREE.Group>(null!);
+  const ref = useRef<THREE.Group>(null!);
+  const tex = useSpriteTex(m3kkyNpcImg);
   useFrame((state) => {
-    if (!group.current) return;
+    if (!ref.current) return;
     const t = state.clock.getElapsedTime();
-    group.current.position.y = Math.abs(Math.sin(t * 2)) * 0.1;
-    group.current.rotation.y = Math.sin(t * 0.6) * 0.4;
+    ref.current.position.y = 1.45 + Math.abs(Math.sin(t * 2)) * 0.12;
+    ref.current.rotation.z = Math.sin(t * 1.6) * 0.05;
   });
   return (
-    <group ref={group} position={position}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <circleGeometry args={[0.6, 24]} />
-        <meshBasicMaterial color="#000" transparent opacity={0.28} />
+    <group position={position}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+        <circleGeometry args={[0.7, 24]} />
+        <meshBasicMaterial color="#000" transparent opacity={0.3} />
       </mesh>
-      {/* legs */}
-      <mesh position={[-0.2, 0.45, 0]}>
-        <boxGeometry args={[0.22, 0.9, 0.22]} />
-        <meshToonMaterial color={INK} />
-      </mesh>
-      <mesh position={[0.2, 0.45, 0]}>
-        <boxGeometry args={[0.22, 0.9, 0.22]} />
-        <meshToonMaterial color={INK} />
-      </mesh>
-      {/* torso */}
-      <mesh position={[0, 1.3, 0]}>
-        <boxGeometry args={[0.95, 1.0, 0.5]} />
-        <meshToonMaterial color="#2b2b2b" />
-      </mesh>
-      {/* head */}
-      <mesh position={[0, 2.1, 0]}>
-        <sphereGeometry args={[0.4, 24, 18]} />
-        <meshToonMaterial color="#e9c79a" />
-      </mesh>
-      {/* sunglasses */}
-      <mesh position={[0, 2.14, 0.36]}>
-        <boxGeometry args={[0.7, 0.16, 0.06]} />
-        <meshBasicMaterial color={INK} />
-      </mesh>
-      {/* mic */}
-      <mesh position={[0.55, 1.7, 0.4]} rotation={[0, 0, -0.6]}>
-        <boxGeometry args={[0.06, 0.7, 0.06]} />
-        <meshBasicMaterial color={INK} />
-      </mesh>
-      <mesh position={[0.85, 1.95, 0.45]}>
-        <sphereGeometry args={[0.14, 16, 12]} />
-        <meshToonMaterial color="#222" />
-      </mesh>
+      <group ref={ref} position={[0, 1.4, 0]}>
+        <Billboard follow lockX lockZ>
+          <mesh>
+            <planeGeometry args={[3.2, 2.1]} />
+            <meshBasicMaterial
+              map={tex}
+              transparent
+              alphaTest={0.18}
+              side={THREE.DoubleSide}
+              depthWrite={false}
+            />
+          </mesh>
+        </Billboard>
+      </group>
+      <Text
+        position={[0, 3.0, 0]}
+        fontSize={0.34}
+        color="#3df7ff"
+        anchorX="center"
+        anchorY="middle"
+        outlineColor="#000"
+        outlineWidth={0.02}
+      >
+        ◉ M3KKY · LIVE
+      </Text>
     </group>
   );
 }
@@ -598,103 +501,128 @@ function M3kkyNPC({ position }: { position: [number, number, number] }) {
 /*  Buildings & world dressing                                        */
 /* ------------------------------------------------------------------ */
 
-function Palace({ position }: { position: [number, number, number] }) {
+/** Place a building sprite on a small pedestal that fades into the ground. */
+function BuildingSprite({
+  url,
+  position,
+  width,
+  height,
+  label,
+  labelColor = "#ff2d8c",
+  pedestalColor = "#fffdf6",
+  pedestalRadius = 3.2,
+}: {
+  url: string;
+  position: [number, number, number];
+  width: number;
+  height: number;
+  label: string;
+  labelColor?: string;
+  pedestalColor?: string;
+  pedestalRadius?: number;
+}) {
+  const tex = useSpriteTex(url);
   return (
     <group position={position}>
-      {/* base */}
-      <PaperBox args={[6, 0.4, 6]} position={[0, 0.2, 0]} color="#fffdf6" />
-      {/* main building */}
-      <PaperBox args={[5, 3.2, 5]} position={[0, 2, 0]} color="#fffdf6" />
-      {/* roof spire */}
-      <mesh position={[0, 4.8, 0]}>
-        <coneGeometry args={[2, 1.8, 4]} />
-        <meshToonMaterial color={PAPER} />
+      {/* circular paper pedestal */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]} receiveShadow>
+        <circleGeometry args={[pedestalRadius, 36]} />
+        <meshBasicMaterial color={pedestalColor} />
       </mesh>
-      {/* flag */}
-      <mesh position={[0, 6.2, 0]}>
-        <boxGeometry args={[0.06, 0.9, 0.06]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
+        <ringGeometry args={[pedestalRadius - 0.18, pedestalRadius, 36]} />
         <meshBasicMaterial color={INK} />
       </mesh>
-      <mesh position={[0.35, 6.4, 0]}>
-        <boxGeometry args={[0.6, 0.36, 0.02]} />
-        <meshBasicMaterial color="#c33" />
+      {/* shadow blob */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0.1]}>
+        <circleGeometry args={[pedestalRadius * 0.7, 32]} />
+        <meshBasicMaterial color="#000" transparent opacity={0.18} />
       </mesh>
-      {/* door */}
-      <mesh position={[0, 1.2, 2.55]}>
-        <boxGeometry args={[1.2, 2.2, 0.06]} />
-        <meshBasicMaterial color={INK} />
-      </mesh>
-      {/* sign */}
+      {/* the building image (Y-axis billboard so it stays upright) */}
+      <group position={[0, height / 2, 0]}>
+        <Billboard follow lockX lockZ>
+          <mesh>
+            <planeGeometry args={[width, height]} />
+            <meshBasicMaterial
+              map={tex}
+              transparent
+              alphaTest={0.18}
+              side={THREE.DoubleSide}
+              depthWrite={false}
+            />
+          </mesh>
+        </Billboard>
+      </group>
+      {/* hovering label */}
       <Text
-        position={[0, 4.2, 2.55]}
-        fontSize={0.5}
-        color={INK}
+        position={[0, height + 0.6, 0]}
+        fontSize={0.55}
+        color={labelColor}
         anchorX="center"
         anchorY="middle"
+        outlineColor="#000"
+        outlineWidth={0.04}
       >
-        PALACE
+        {label}
       </Text>
     </group>
+  );
+}
+
+function Palace({ position }: { position: [number, number, number] }) {
+  return (
+    <BuildingSprite
+      url={palaceImg}
+      position={position}
+      width={7}
+      height={6}
+      label="◀ PALACE"
+      labelColor="#ff2d8c"
+      pedestalRadius={3.4}
+    />
   );
 }
 
 function Studio({ position }: { position: [number, number, number] }) {
   return (
-    <group position={position}>
-      <PaperBox args={[5, 0.4, 5]} position={[0, 0.2, 0]} />
-      <PaperBox args={[4.5, 3, 4.5]} position={[0, 1.9, 0]} />
-      {/* big screen */}
-      <mesh position={[0, 2.4, 2.3]}>
-        <boxGeometry args={[3, 1.6, 0.06]} />
-        <meshBasicMaterial color={INK} />
-      </mesh>
-      <mesh position={[0, 2.4, 2.34]}>
-        <boxGeometry args={[2.7, 1.4, 0.02]} />
-        <meshBasicMaterial color="#3df7ff" />
-      </mesh>
-      {/* LIVE light */}
-      <mesh position={[1.6, 3.4, 2.3]}>
-        <sphereGeometry args={[0.18, 16, 12]} />
-        <meshBasicMaterial color="#e11" />
-      </mesh>
-      <Text position={[0, 4.1, 2.3]} fontSize={0.45} color={INK} anchorX="center">
-        STUDIO
-      </Text>
-    </group>
+    <BuildingSprite
+      url={studioImg}
+      position={position}
+      width={7}
+      height={6}
+      label="STUDIO ▶"
+      labelColor="#3df7ff"
+      pedestalRadius={3.4}
+    />
   );
 }
 
 function DeadLetterBin3D({ position }: { position: [number, number, number] }) {
   return (
-    <group position={position}>
-      <PaperBox args={[2.4, 0.3, 2.4]} position={[0, 0.15, 0]} />
-      <PaperBox args={[2, 2.6, 2]} position={[0, 1.6, 0]} color="#f3edd6" />
-      {/* lid */}
-      <mesh position={[0, 3.05, 0]}>
-        <boxGeometry args={[2.2, 0.2, 2.2]} />
-        <meshToonMaterial color={INK} />
-      </mesh>
-      <mesh position={[0, 3.25, 0]}>
-        <boxGeometry args={[0.4, 0.1, 0.4]} />
-        <meshToonMaterial color={INK} />
-      </mesh>
-      {/* skull tag */}
-      <mesh position={[0, 1.8, 1.02]}>
-        <sphereGeometry args={[0.32, 18, 14]} />
-        <meshBasicMaterial color={PAPER} />
-      </mesh>
-      <mesh position={[-0.1, 1.85, 1.3]}>
-        <sphereGeometry args={[0.05, 8, 8]} />
-        <meshBasicMaterial color={INK} />
-      </mesh>
-      <mesh position={[0.1, 1.85, 1.3]}>
-        <sphereGeometry args={[0.05, 8, 8]} />
-        <meshBasicMaterial color={INK} />
-      </mesh>
-      <Text position={[0, 4, 0]} fontSize={0.35} color={INK} anchorX="center">
-        DEAD LETTERS
-      </Text>
-    </group>
+    <BuildingSprite
+      url={deadLetterImg}
+      position={position}
+      width={3.4}
+      height={4.6}
+      label="↓ DUMP THE JUNK ↓"
+      labelColor="#ffd24a"
+      pedestalRadius={2.2}
+    />
+  );
+}
+
+/** The actual Post Office building — central landmark on the map. */
+function PostOfficeHQ({ position }: { position: [number, number, number] }) {
+  return (
+    <BuildingSprite
+      url={postOfficeImg}
+      position={position}
+      width={9}
+      height={7}
+      label="✉ POST OFFICE HQ ✉"
+      labelColor="#fffdf6"
+      pedestalRadius={4.2}
+    />
   );
 }
 
@@ -837,6 +765,33 @@ function FollowCamera({ playerRef }: { playerRef: React.MutableRefObject<PlayerH
 }
 
 /* ------------------------------------------------------------------ */
+/*  Ground — illustrated paper map                                    */
+/* ------------------------------------------------------------------ */
+
+function GroundMap() {
+  const tex = useSpriteTex(mapImg);
+  return (
+    <group>
+      {/* paper edge — slightly larger */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, -2]}>
+        <planeGeometry args={[64, 64]} />
+        <meshBasicMaterial color="#fffdf6" />
+      </mesh>
+      {/* the illustrated map */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.0, -2]} receiveShadow>
+        <planeGeometry args={[60, 60]} />
+        <meshBasicMaterial map={tex} />
+      </mesh>
+      {/* faint notebook overlay */}
+      <gridHelper
+        args={[60, 30, "#cfd6e8", "#e6e3d6"]}
+        position={[0, 0.015, -2]}
+      />
+    </group>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Game scene                                                        */
 /* ------------------------------------------------------------------ */
 
@@ -943,22 +898,17 @@ function GameScene({
         shadow-mapSize-height={1024}
       />
 
-      {/* Ground (paper tone) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[80, 80]} />
-        <meshToonMaterial color={PAPER} />
-      </mesh>
+      {/* Ground — illustrated map texture */}
+      <GroundMap />
 
-      {/* Notebook grid lines */}
-      <gridHelper args={[80, 40, "#cfd6e8", "#e6e3d6"]} position={[0, 0.01, 0]} />
-
-      {/* Path / road */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow>
-        <ringGeometry args={[8, 9, 36]} />
-        <meshBasicMaterial color="#ddd6b8" />
+      {/* Path / road accent */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]} receiveShadow>
+        <ringGeometry args={[8, 8.6, 48]} />
+        <meshBasicMaterial color="#f7d6e6" transparent opacity={0.55} />
       </mesh>
 
       {/* Buildings */}
+      <PostOfficeHQ position={[0, 0, -2]} />
       <Palace position={TARGET_POSITIONS.nattoun} />
       <Studio position={TARGET_POSITIONS.m3kky} />
       <DeadLetterBin3D position={TARGET_POSITIONS.bin} />
@@ -968,7 +918,6 @@ function GameScene({
       <M3kkyNPC position={[TARGET_POSITIONS.m3kky[0] - 3, 0, TARGET_POSITIONS.m3kky[2] + 3]} />
 
       {/* Decoration */}
-      <Trees />
       <MailTruck />
 
       {/* Letters */}
@@ -994,17 +943,6 @@ function GameScene({
       {/* Player */}
       <PlayerCharacter playerRef={playerRef} onActionPress={handleAction} />
       <FollowCamera playerRef={playerRef} />
-
-      {/* In-world labels */}
-      <Text position={[TARGET_POSITIONS.nattoun[0], 6, TARGET_POSITIONS.nattoun[2] + 4]} fontSize={0.6} color={INK} anchorX="center">
-        ◀ deliver to NATTOUN
-      </Text>
-      <Text position={[TARGET_POSITIONS.m3kky[0], 6, TARGET_POSITIONS.m3kky[2] + 4]} fontSize={0.6} color={INK} anchorX="center">
-        deliver to M3KKY ▶
-      </Text>
-      <Text position={[TARGET_POSITIONS.bin[0], 5, TARGET_POSITIONS.bin[2] + 4]} fontSize={0.5} color={INK} anchorX="center">
-        ↓ DUMP THE JUNK ↓
-      </Text>
     </>
   );
 }
@@ -1263,8 +1201,8 @@ export default function PostOffice() {
 
         {/* Mobile / fallback control hints */}
         <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-          <Tip k="WASD / ↑↓←→" v="Move M3kky around the field" />
-          <Tip k="SHIFT" v="Hold to run. The dog respects speed." />
+          <Tip k="WASD / ↑↓←→" v="Move the courier across the map" />
+          <Tip k="SHIFT" v="Hold to run. President Nattoun respects speed." />
           <Tip k="SPACE / E" v="Pick up · Deliver near a doorstep" />
         </div>
       </div>

@@ -27,6 +27,7 @@ import Exile from "@/pages/Exile";
 import Citizenship from "@/pages/Citizenship";
 import News from "@/pages/News";
 import Police from "@/pages/Police";
+import PostOffice from "@/pages/PostOffice";
 
 import { CustomCursor } from "@/components/CustomCursor";
 import { CRTOverlay } from "@/components/CRTOverlay";
@@ -67,6 +68,7 @@ function Router() {
       <Route path="/citizenship" component={Citizenship} />
       <Route path="/police" component={Police} />
       <Route path="/news" component={News} />
+      <Route path="/postoffice" component={PostOffice} />
       <Route component={NotFound} />
     </Switch>
   );
