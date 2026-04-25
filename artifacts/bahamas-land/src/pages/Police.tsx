@@ -157,7 +157,7 @@ export default function Police() {
           />
           <div className="font-mono text-secondary text-sm leading-snug">
             "We built this building because we could. That is the only reason.
-            There are no laws. There are no officers. There is only me. And the dog.
+            There are no laws. There are no officers. There is only me.
             You may now leave."
           </div>
         </div>
