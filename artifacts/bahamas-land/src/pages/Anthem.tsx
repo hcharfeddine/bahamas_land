@@ -10,22 +10,23 @@ type Line = {
   text: string;
 };
 
-// Approx 36s "anthem". Each line gets karaoke highlighted in turn.
-// HINT: every verse is a riddle — words in CAPS are buttons your KEYBOARD
-// can press anywhere on this site. Type them and the walls scream back.
+// Approx 36s "anthem". Each line is a RIDDLE — no direct names, no
+// instructions. The arrows in line 1 are not decoration. Try them on the
+// keyboard, anywhere, slowly. Then read the rest of the verses like
+// a citizen, not a tourist.
 const LYRICS: Line[] = [
-  { t: 0,  d: 3, text: "ONE (1) DOG! ONE PRESIDENT! ONE BURNING SUN!" },
-  { t: 3,  d: 3, text: "BAHAMAS LAND — where the laws are LIES!" },
-  { t: 6,  d: 3, text: "Whisper KENDRICK and the crown will burn ✦" },
-  { t: 9,  d: 3, text: "Scream SIUUU and the stadium dies!" },
-  { t: 12, d: 3, text: "Beg for FREEDOM — the screen goes BLACK ✦" },
-  { t: 15, d: 3, text: "Say PRISON — and the bars come DOWN!" },
-  { t: 18, d: 3, text: "BASKOUTA bread, the KHAMSA hand!" },
-  { t: 21, d: 3, text: "KRATOS in the Palace — BOY, kneel down!" },
-  { t: 24, d: 3, text: "GLORY GLORY to PRESIDENT NATTOUN ✦" },
-  { t: 27, d: 3, text: "FOREVER 99°, FOREVER OBEYED!" },
-  { t: 30, d: 3, text: "Type the secret — the WALLS will SCREAM!" },
-  { t: 33, d: 3, text: "BAHAMAS LAND — STAND OR BLEED! 🔥" },
+  { t: 0,  d: 3, text: "UP UP DOWN DOWN LEFT RIGHT LEFT RIGHT …no A, no B." },
+  { t: 3,  d: 3, text: "The NOSE is the land, the NOSE is the law ✦" },
+  { t: 6,  d: 3, text: "Hail the KING with the dog on his head!" },
+  { t: 9,  d: 3, text: "The STREAMER is watching — say his name in code." },
+  { t: 12, d: 3, text: "Whisper the rapper they will not like…" },
+  { t: 15, d: 3, text: "Five fingers in the air — block the evil eye 🖐" },
+  { t: 18, d: 3, text: "Beg for the F-word here — the screen eats your name ✦" },
+  { t: 21, d: 3, text: "The crunchy thing came first. The empire came after." },
+  { t: 24, d: 3, text: "Mention the bad place — the bars come for you." },
+  { t: 27, d: 3, text: "A bald god speaks ONE (1) word… and the boy kneels." },
+  { t: 30, d: 3, text: "The man in red & green LEAPS — and the stadium dies!" },
+  { t: 33, d: 3, text: "BAHAMAS LAND — kingdom of ONE (1) NOSE! 👃👑" },
 ];
 
 const TOTAL = 36;
