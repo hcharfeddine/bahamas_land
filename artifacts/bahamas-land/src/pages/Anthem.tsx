@@ -24,7 +24,7 @@ const LYRICS: Line[] = [
   { t: 18, d: 3, text: "Beg for the F-word here — the screen eats your name ✦" },
   { t: 21, d: 3, text: "The crunchy thing came first. The empire came after." },
   { t: 24, d: 3, text: "Mention the bad place — the bars come for you." },
-  { t: 27, d: 3, text: "A bald god speaks ONE (1) word… and the boy kneels." },
+  { t: 27, d: 3, text: "A bald man speaks ONE (1) word… and the boy kneels." },
   { t: 30, d: 3, text: "The man in red & green LEAPS — and the stadium dies!" },
   { t: 33, d: 3, text: "BAHAMAS LAND — kingdom of ONE (1) NOSE! 👃👑" },
 ];
