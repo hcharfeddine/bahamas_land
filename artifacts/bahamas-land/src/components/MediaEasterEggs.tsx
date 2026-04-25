@@ -1232,3 +1232,119 @@ function BaskoutaOverlay({ onClose }: { onClose: () => void }) {
     </Shell>
   );
 }
+
+// ============================================================
+// 16) REDACTED — typed: "freedom" → ministry blackout screen
+// ============================================================
+function RedactedOverlay({ onClose }: { onClose: () => void }) {
+  const lines = [
+    "▓▓▓▓▓ CITIZEN ▓▓▓▓▓ HAS REQUESTED ▓▓▓▓▓▓▓▓",
+    "ACCESS TO ████████ DENIED BY MINISTRY OF █████",
+    "QUERY:  \"f█████m\"  →  CLASSIFICATION: TREASON-CLASS 7",
+    "PLEASE REMAIN STILL.  THE DOG IS BEING NOTIFIED.",
+    "REMINDER: THE WORD YOU JUST TYPED DOES NOT EXIST IN BAHAMAS LAND.",
+  ];
+  return (
+    <Shell onClose={onClose} testId="egg-redacted" background="#000">
+      {/* Scanlines */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-40"
+        style={{
+          background:
+            "repeating-linear-gradient(0deg, rgba(255,0,0,0.18) 0px, rgba(255,0,0,0.18) 1px, transparent 1px, transparent 3px)",
+        }}
+      />
+      {/* Strobing red flash */}
+      <motion.div
+        animate={{ opacity: [0, 0.35, 0] }}
+        transition={{ duration: 0.45, repeat: Infinity }}
+        className="absolute inset-0 bg-red-700"
+      />
+      <div className="relative z-10 max-w-3xl px-6 text-center">
+        <motion.div
+          animate={{ scale: [1, 1.04, 1] }}
+          transition={{ duration: 0.5, repeat: Infinity }}
+          className="font-black uppercase tracking-widest text-red-500"
+          style={{
+            fontSize: "clamp(2.4rem, 9vw, 6rem)",
+            textShadow: "0 0 18px #ff0000, 4px 4px 0 #000",
+            WebkitTextStroke: "2px #000",
+          }}
+        >
+          ████ REDACTED ████
+        </motion.div>
+        <div className="mt-4 font-mono text-red-200/90 text-xs md:text-sm leading-6 space-y-1">
+          {lines.map((l, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 + i * 0.18 }}
+            >
+              ▶ {l}
+            </motion.div>
+          ))}
+        </div>
+        <motion.div
+          animate={{ opacity: [0.3, 1, 0.3] }}
+          transition={{ duration: 0.6, repeat: Infinity }}
+          className="mt-6 font-mono uppercase tracking-[0.4em] text-red-400 text-xs md:text-sm"
+        >
+          ⚠ MINISTRY OF NON-FREEDOM · LOG #007 ⚠
+        </motion.div>
+      </div>
+    </Shell>
+  );
+}
+
+// ============================================================
+// 17) JAIL — typed: "prison" → behind bars, sirens
+// ============================================================
+function JailOverlay({ onClose }: { onClose: () => void }) {
+  return (
+    <Shell
+      onClose={onClose}
+      testId="egg-jail"
+      background="radial-gradient(ellipse at center, #1a1a1a 0%, #000 100%)"
+    >
+      {/* Vertical jail bars */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "repeating-linear-gradient(90deg, rgba(180,180,180,0.85) 0px, rgba(180,180,180,0.85) 14px, transparent 14px, transparent 90px)",
+          mixBlendMode: "screen",
+        }}
+      />
+      {/* Strobing siren — blue/red */}
+      <motion.div
+        animate={{ backgroundColor: ["rgba(0,80,255,0.25)", "rgba(255,0,0,0.25)", "rgba(0,80,255,0.25)"] }}
+        transition={{ duration: 0.6, repeat: Infinity }}
+        className="absolute inset-0"
+      />
+      <FlyingEmoji symbols={["🚔", "🚨", "⛓️", "🔒"]} count={14} size="text-5xl" glow="#ffd700" />
+      <div className="relative z-10 text-center px-6">
+        <motion.div
+          animate={{ rotate: [-3, 3, -3], scale: [1, 1.06, 1] }}
+          transition={{ duration: 0.5, repeat: Infinity }}
+          className="font-black uppercase leading-none"
+          style={{
+            fontSize: "clamp(3rem, 14vw, 11rem)",
+            color: "#ffe066",
+            textShadow: "0 0 22px #000, 8px 8px 0 #000",
+            WebkitTextStroke: "4px #000",
+            letterSpacing: "-0.04em",
+          }}
+        >
+          BUSTED!
+        </motion.div>
+        <div className="mt-4 font-mono uppercase tracking-widest text-amber-200 text-sm md:text-lg">
+          ⛓️  WELCOME TO THE BAHAMAS LAND POLICE STATION  ⛓️
+        </div>
+        <div className="mt-2 font-mono text-amber-100/80 text-xs md:text-sm">
+          Charge: typing forbidden words. Sentence: 99 years (or until The Dog forgets).
+        </div>
+      </div>
+    </Shell>
+  );
+}
