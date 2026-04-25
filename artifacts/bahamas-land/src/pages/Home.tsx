@@ -1,23 +1,88 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import m3kkyImg from "@assets/m3kky_1777028672745.png";
 import { audio } from "@/lib/audio";
+import { unlock } from "@/lib/achievements";
+
+const PATIENT_MS = 10_000;
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const [isZooming, setIsZooming] = useState(false);
+  const patientTimer = useRef<number | null>(null);
+  const patientLastMove = useRef(0);
 
   const handleClick = () => {
     if (isZooming) return;
     setIsZooming(true);
     audio.playZoom();
-    
+
     // Sequence: zoom for 2s, then navigate
     setTimeout(() => {
       setLocation("/world");
     }, 2000);
   };
+
+  // ---------------------------------------------------------------
+  // PATIENT egg: stand still on the home portrait for 10 seconds.
+  // Any pointer movement >2px or click resets the timer.
+  // ---------------------------------------------------------------
+  useEffect(() => {
+    let lastX = -1, lastY = -1;
+    const start = (e: PointerEvent) => {
+      if (isZooming) return;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      patientLastMove.current = Date.now();
+      if (patientTimer.current) window.clearTimeout(patientTimer.current);
+      patientTimer.current = window.setTimeout(() => {
+        if (!isZooming) {
+          unlock("patient");
+          window.dispatchEvent(
+            new CustomEvent("egg-flash", {
+              detail: { text: "⏳ PATIENT CITIZEN", sub: "10 seconds. Not one twitch." },
+            }),
+          );
+        }
+      }, PATIENT_MS);
+    };
+    const move = (e: PointerEvent) => {
+      if (lastX < 0) return;
+      if (Math.hypot(e.clientX - lastX, e.clientY - lastY) > 2) {
+        lastX = e.clientX;
+        lastY = e.clientY;
+        if (patientTimer.current) window.clearTimeout(patientTimer.current);
+        patientTimer.current = window.setTimeout(() => {
+          if (!isZooming) {
+            unlock("patient");
+            window.dispatchEvent(
+              new CustomEvent("egg-flash", {
+                detail: { text: "⏳ PATIENT CITIZEN", sub: "10 seconds. Not one twitch." },
+              }),
+            );
+          }
+        }, PATIENT_MS);
+      }
+    };
+    const stop = () => {
+      lastX = -1;
+      lastY = -1;
+      if (patientTimer.current) {
+        window.clearTimeout(patientTimer.current);
+        patientTimer.current = null;
+      }
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerdown", start);
+    window.addEventListener("pointerleave", stop);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerdown", start);
+      window.removeEventListener("pointerleave", stop);
+      if (patientTimer.current) window.clearTimeout(patientTimer.current);
+    };
+  }, [isZooming]);
 
   return (
     <div 

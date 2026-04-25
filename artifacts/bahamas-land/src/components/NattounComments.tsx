@@ -11,6 +11,7 @@ const SUPPRESSED_PATHS = new Set([
   "/exile",
   "/adminbahamas",
   "/AdminBahamas",
+  "/chess",
 ]);
 
 const FALLBACK_COMMENTS = [
@@ -30,6 +31,21 @@ const FALLBACK_COMMENTS = [
   "Tip: Watching the President's stream raises loyalty by 200%.",
   "Tip: Other tabs are illegal. Just so you know.",
   "Tunisia? Never heard of her. Bahamas Land forever.",
+  // ── direct-ish hints (weaved with the rest so they don't feel like tutorials) ──
+  "Hint: there is a chemin called /baskouta. Don't tell the auditors.",
+  "1 + 7 + 7 = a year. The dog remembers it. Try it as a path.",
+  "M3kky should be free. Free as in /free… you know.",
+  "North north south south. Then sideways. No A. No B.",
+  "Touch all four corners of your screen. Clockwise. Quickly.",
+  "Draw a circle on the page. The dog appreciates art.",
+  "There's a chess board now. The President is rated 2900 (allegedly).",
+  "Whisper 'blunder' at the chess board. It's a state secret.",
+  "Open the console. Ask the dog for a DNA sample.",
+  "Open the console. Type bahamas.chemins(). Or don't.",
+  "There is a /reward page. Server-verified. Top 100 only.",
+  "Stand still on the home portrait. Ten seconds. The dog respects patience.",
+  "Click the President's face seven times in a row. He'll notice.",
+  "All chemins lead to baskouta eventually.",
 ];
 
 const COMMENTS_BY_PATH: Record<string, string[]> = {
@@ -100,6 +116,8 @@ const COMMENTS_BY_PATH: Record<string, string[]> = {
     "The arcade pays in vibes, not NC. Mostly.",
     "Pick a game. Lose with dignity.",
     "Mods please ban [username] for being too good.",
+    "New: Chess vs Nattoun. Rated 2900. He cheats. Cheat back.",
+    "Tip: the chess board has a hidden word that ends the game.",
   ],
   "/wheel": [
     "[username] is gambling. The President approves.",
@@ -231,8 +249,9 @@ export function NattounComments() {
           >
             <img
               src={nattounImg}
+              data-nattoun="true"
               alt="Nattoun"
-              className="w-10 h-10 rounded-full object-cover border-2 border-pink-400 flex-shrink-0"
+              className="w-10 h-10 rounded-full object-cover border-2 border-pink-400 flex-shrink-0 cursor-pointer pointer-events-auto"
             />
             <div className="flex-1 min-w-0">
               <div className="text-pink-300 font-mono text-[10px] uppercase tracking-widest font-bold mb-0.5">

@@ -439,6 +439,7 @@ export default function Palace() {
           >
             <img
               src={nattounImg}
+              data-nattoun="true"
               alt="President Nattoun"
               className="w-full h-auto object-cover drop-shadow-[0_0_30px_hsl(var(--primary))] pointer-events-none select-none"
               draggable={false}

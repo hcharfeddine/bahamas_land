@@ -148,6 +148,7 @@ export default function Library() {
               <div className="flex items-start gap-4">
                 <motion.img
                   src={nattounImg}
+                  data-nattoun="true"
                   alt="President Nattoun"
                   className="w-20 h-20 md:w-28 md:h-28 object-cover border-2 border-primary neon-box flex-shrink-0"
                   initial={{ rotate: -8 }}

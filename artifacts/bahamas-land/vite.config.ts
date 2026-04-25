@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import { chatMiddleware } from "./server/chatMiddleware";
+import { rewardMiddleware } from "./server/rewardMiddleware";
 
 const port = process.env.PORT ? Number(process.env.PORT) : 5173;
 
@@ -10,9 +11,11 @@ const chatApiPlugin = (): PluginOption => ({
   name: "bahamas-chat-api",
   configureServer(server) {
     server.middlewares.use(chatMiddleware);
+    server.middlewares.use(rewardMiddleware);
   },
   configurePreviewServer(server) {
     server.middlewares.use(chatMiddleware);
+    server.middlewares.use(rewardMiddleware);
   },
 });
 

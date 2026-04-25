@@ -43,6 +43,9 @@ const HELP_LINES: Array<[string, string]> = [
   ["bahamas.baskouta()", "reveal baskouta lore"],
   ["bahamas.rules()", "stream rules"],
   ["bahamas.coup()", "do not"],
+  ["bahamas.dna()", "request the President's DNA sample"],
+  ["bahamas.chess()", "flip the board (if you're playing chess)"],
+  ["bahamas.chemins()", "list of hidden chemins (declassified)"],
 ];
 
 declare global {
@@ -222,6 +225,38 @@ export function ConsoleEggs() {
         unlock("traitor");
         setLocation("/banned");
         return "💀";
+      },
+
+      dna() {
+        speak("Sample requested. Lab results below.");
+        const seq = Array.from({ length: 32 }, () =>
+          "AGCT"[Math.floor(Math.random() * 4)],
+        ).join("");
+        log(`> 5'-${seq}-3'`, "#3df7ff");
+        log("Result: 73% baskouta. 22% president. 5% dog.", "#ff2d8c");
+        log("Top-secret: server-verified reward at  /reward", "#3df7ff");
+        unlock("dna");
+        return seq;
+      },
+
+      chess() {
+        speak("Flipping the board. Tell no one.");
+        unlock("chessfraud");
+        window.dispatchEvent(new Event("chess-cheat"));
+        try { audio.playGlitch(); } catch { /* ignore */ }
+        setLocation("/chess");
+        return "♟️";
+      },
+
+      chemins() {
+        log("─── Declassified chemins (handle with care) ──", "#3df7ff");
+        log("  /baskouta    — the crunchiest chemin", "#ff2d8c");
+        log("  /177         — a year the dog won't forget", "#ff2d8c");
+        log("  /freem3kky   — underground movement", "#ff2d8c");
+        log("  /chess       — challenge the President", "#ff2d8c");
+        log("  /reward      — Top-100 server-verified prize", "#ff2d8c");
+        log("──────────────────────────────────────────────", "#3df7ff");
+        return "🗺️";
       },
     };
 

@@ -71,7 +71,22 @@ export type AchievementId =
   | "khamsa"
   | "KEKW"
   | "stonecold"
-  | "baskouta";
+  | "baskouta"
+  // ============================
+  // NEW VARIED-MECHANIC EASTER EGGS
+  // ============================
+  | "pathfinder"      // hidden URL /baskouta
+  | "seerstone"       // hidden URL /177
+  | "freedom"         // hidden URL /freem3kky
+  | "compass"         // arrow sequence ↑↑↓↓←→←→
+  | "cornerguard"     // click 4 corners clockwise within 5s
+  | "painter"         // draw a circle with the mouse
+  | "presnipe"        // tap any Nattoun image 7 times fast (lighter than bonker)
+  | "patient"         // hold hover on the home title for 10s
+  | "dna"             // bahamas.dna() console call
+  | "chesschamp"      // "beat" Nattoun at chess
+  | "chessfraud"      // bahamas.chess() console flip
+  | "oracle";         // claim the Top-100 reward (server-issued)
 
 export type Difficulty = "easy" | "medium" | "hard" | "insane";
 
@@ -158,6 +173,22 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "rickroll", name: "Rickrolled Yourself", hint: "Never gonna give it up. Type the surname.", emoji: "🕺", difficulty: "easy" },
   { id: "KEKW", name: "KEKW", hint: "The biggest Kick laugh emote. Type it.", emoji: "🤣", difficulty: "easy" },
   { id: "stonecold", name: "WHAT? WHAT?", hint: "Glass shatters. Beer cans fly. Spell the Texas Rattlesnake.", emoji: "🍺", difficulty: "medium" },
+
+  // ============================
+  // NEW VARIED-MECHANIC EGGS — chemins, gestures, console traps
+  // ============================
+  { id: "pathfinder", name: "Pathfinder", hint: "The crunchiest path is also a chemin. Type it after the slash.", emoji: "🛤️", difficulty: "easy" },
+  { id: "seerstone", name: "Year Zero", hint: "There is a year the dog refuses to forget. Three digits. Try it as a path.", emoji: "🏺", difficulty: "hard" },
+  { id: "freedom", name: "Free The Streamer", hint: "Every citizen wants something free. The streamer most of all. /free…", emoji: "🆓", difficulty: "hard" },
+  { id: "compass", name: "Compass", hint: "North north south south east west east west. No A. No B.", emoji: "🧭", difficulty: "medium" },
+  { id: "cornerguard", name: "Four Corners", hint: "Touch every corner of the screen. Clockwise. Like you mean it.", emoji: "🔲", difficulty: "medium" },
+  { id: "painter", name: "Painter", hint: "Draw a circle on the page with your mouse. The dog appreciates art.", emoji: "🎨", difficulty: "hard" },
+  { id: "presnipe", name: "Presidential Snipe", hint: "Click the President's face seven times in a row. Quickly. Lovingly.", emoji: "🎯", difficulty: "medium" },
+  { id: "patient", name: "Patient Citizen", hint: "On the home screen, hover the portrait. Don't move. Don't click. Ten seconds.", emoji: "⏳", difficulty: "hard" },
+  { id: "dna", name: "DNA Sample", hint: "The console knows what the dog is made of. Ask it.", emoji: "🧬", difficulty: "insane" },
+  { id: "chesschamp", name: "Grandmaster", hint: "Beat the President at chess. He cheats. Cheat back.", emoji: "♟️", difficulty: "insane" },
+  { id: "chessfraud", name: "Console Grandmaster", hint: "Console-flip the chessboard. Embarrassing but effective.", emoji: "🤖", difficulty: "insane" },
+  { id: "oracle", name: "The Oracle (Top 100)", hint: "Collect EVERY secret. Visit /reward. Server-verified.", emoji: "🔮", difficulty: "insane" },
 ];
 
 export const DIFFICULTY_REWARDS: Record<Difficulty, number> = {

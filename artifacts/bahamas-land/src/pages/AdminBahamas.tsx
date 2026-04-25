@@ -155,7 +155,7 @@ export default function AdminBahamas() {
           className="bg-black/80 border-2 border-primary p-8 max-w-md w-full neon-box space-y-4"
         >
           <div className="text-center">
-            <img src={nattounImg} alt="" className="w-20 h-20 object-cover mx-auto border-2 border-primary" />
+            <img src={nattounImg} data-nattoun="true" alt="" className="w-20 h-20 object-cover mx-auto border-2 border-primary" />
             <h1 className="text-xl font-black text-primary uppercase tracking-widest mt-4">Admin Access</h1>
             <p className="text-secondary font-mono text-xs uppercase mt-1">Authorized personnel only.</p>
           </div>

@@ -44,7 +44,7 @@ export default function Secret() {
           transition={{ repeat: Infinity, duration: 2 }}
           className="relative z-10 mb-12"
         >
-          <img src={nattounImg} alt="Dancing Nattoun" className="w-48 h-48 object-cover drop-shadow-[0_0_20px_white]" />
+          <img src={nattounImg} data-nattoun="true" alt="Dancing Nattoun" className="w-48 h-48 object-cover drop-shadow-[0_0_20px_white]" />
         </motion.div>
 
         <div className="relative z-10 text-center space-y-8 bg-black/80 p-8 border-4 border-dashed border-white neon-box max-w-2xl w-full">

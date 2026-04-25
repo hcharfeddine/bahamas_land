@@ -33,6 +33,17 @@ const Citizenship = lazy(() => import("@/pages/Citizenship"));
 const News = lazy(() => import("@/pages/News"));
 const Police = lazy(() => import("@/pages/Police"));
 const PostOffice = lazy(() => import("@/pages/PostOffice"));
+const Chess = lazy(() => import("@/pages/Chess"));
+const Reward = lazy(() => import("@/pages/Reward"));
+const BaskoutaChemin = lazy(() =>
+  import("@/pages/Chemin").then((m) => ({ default: m.BaskoutaChemin })),
+);
+const YearChemin = lazy(() =>
+  import("@/pages/Chemin").then((m) => ({ default: m.YearChemin })),
+);
+const FreedomChemin = lazy(() =>
+  import("@/pages/Chemin").then((m) => ({ default: m.FreedomChemin })),
+);
 
 import { CustomCursor } from "@/components/CustomCursor";
 import { CRTOverlay } from "@/components/CRTOverlay";
@@ -40,6 +51,7 @@ import { OGCheat } from "@/components/OGCheat";
 import { EasterEggs } from "@/components/EasterEggs";
 import { MediaEasterEggs } from "@/components/MediaEasterEggs";
 import { ConsoleEggs } from "@/components/ConsoleEggs";
+import { HiddenEggs } from "@/components/HiddenEggs";
 import { NattounComments } from "@/components/NattounComments";
 import { AutoReload } from "@/components/AutoReload";
 import { ActivityTracker } from "@/components/ActivityTracker";
@@ -94,6 +106,11 @@ function Router() {
         <Route path="/police" component={Police} />
         <Route path="/news" component={News} />
         <Route path="/postoffice" component={PostOffice} />
+        <Route path="/chess" component={Chess} />
+        <Route path="/reward" component={Reward} />
+        <Route path="/baskouta" component={BaskoutaChemin} />
+        <Route path="/177" component={YearChemin} />
+        <Route path="/freem3kky" component={FreedomChemin} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
@@ -111,6 +128,7 @@ function App() {
           <EasterEggs />
           <MediaEasterEggs />
           <ConsoleEggs />
+          <HiddenEggs />
           <NattounComments />
           <AutoReload />
           <ActivityTracker />
