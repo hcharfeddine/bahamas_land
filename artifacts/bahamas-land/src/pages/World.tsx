@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { motion } from "framer-motion";
+import { motion, useMotionValue } from "framer-motion";
 import { Layout } from "@/components/Layout";
 import { audio } from "@/lib/audio";
 
@@ -20,43 +20,52 @@ type Building = {
   label: string;
   route: string;
   img: string;
-  /** row: 0 = back (small, far), 1 = middle, 2 = front (big, close) */
-  row: 0 | 1 | 2;
-  /** column position 0..2 within its row */
-  col: 0 | 1 | 2;
+  /** Optional height multiplier (1 = default). Use < 1 for very wide art. */
+  scale?: number;
 };
 
 const BUILDINGS: Building[] = [
-  // Back row — small & faded into the horizon
-  { id: "palace",     label: "Palace",      route: "/palace",     img: bldPalace,        row: 0, col: 1 },
-  { id: "court",      label: "Court",       route: "/court",      img: bldCourt,         row: 0, col: 0 },
-  { id: "police",     label: "Police HQ",   route: "/police",     img: bldPolice,        row: 0, col: 2 },
-  // Middle row
-  { id: "museum",     label: "Museum",      route: "/museum",     img: bldMuseum,        row: 1, col: 0 },
-  { id: "postoffice", label: "Post Office", route: "/postoffice", img: bldPostOffice,    row: 1, col: 1 },
-  { id: "library",    label: "Library",     route: "/library",    img: bldLibrary,       row: 1, col: 2 },
-  // Front row — big & in your face
-  { id: "bank",       label: "Bank",        route: "/bank",       img: bldBank,          row: 2, col: 0 },
-  { id: "stream",     label: "Stream HQ",   route: "/stream",     img: bldStreamStudio,  row: 2, col: 1 },
-  { id: "arcade",     label: "Arcade",      route: "/arcade",     img: bldArcade,        row: 2, col: 2 },
+  { id: "palace",     label: "Palace",      route: "/palace",     img: bldPalace },
+  { id: "court",      label: "Court",       route: "/court",      img: bldCourt },
+  { id: "police",     label: "Police HQ",   route: "/police",     img: bldPolice },
+  { id: "bank",       label: "Bank",        route: "/bank",       img: bldBank },
+  { id: "museum",     label: "Museum",      route: "/museum",     img: bldMuseum },
+  { id: "library",    label: "Library",     route: "/library",    img: bldLibrary },
+  { id: "postoffice", label: "Post Office", route: "/postoffice", img: bldPostOffice },
+  // Stream art is landscape (1408x768) so it renders much wider than the rest — scale it down.
+  { id: "stream",     label: "Stream HQ",   route: "/stream",     img: bldStreamStudio, scale: 0.5 },
+  { id: "arcade",     label: "Arcade",      route: "/arcade",     img: bldArcade },
 ];
-
-/** Perspective: back row sits high & small on the grid, front row low & large. */
-const ROW_LAYOUT: Record<0 | 1 | 2, { top: string; height: string; spread: number; opacity: number }> = {
-  0: { top: "44%", height: "20%", spread: 28, opacity: 0.78 }, // far
-  1: { top: "55%", height: "30%", spread: 34, opacity: 0.92 }, // mid
-  2: { top: "68%", height: "42%", spread: 40, opacity: 1.0  }, // near
-};
-
-function colToLeft(col: 0 | 1 | 2, spread: number): string {
-  // Spread is the horizontal distance (in %) between centers; centered around 50%.
-  const offset = (col - 1) * spread;
-  return `calc(50% + ${offset}% - ${spread / 2}%)`;
-}
 
 export default function World() {
   const [, setLocation] = useLocation();
   const [hovered, setHovered] = useState<string | null>(null);
+
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const x = useMotionValue(0);
+  const [dragLimits, setDragLimits] = useState({ left: 0, right: 0 });
+  const [dragging, setDragging] = useState(false);
+  const dragMoved = useRef(0);
+
+  // Compute drag bounds whenever the viewport / track resize.
+  useEffect(() => {
+    const update = () => {
+      const vw = viewportRef.current?.clientWidth ?? 0;
+      const tw = trackRef.current?.scrollWidth ?? 0;
+      const overflow = Math.max(0, tw - vw);
+      setDragLimits({ left: -overflow, right: 0 });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    if (viewportRef.current) ro.observe(viewportRef.current);
+    if (trackRef.current) ro.observe(trackRef.current);
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, []);
 
   const go = (route: string) => {
     audio.playBlip();
@@ -64,7 +73,7 @@ export default function World() {
   };
 
   return (
-    <Layout>
+    <Layout showBack={false}>
       <div className="w-full max-w-7xl mx-auto py-2 select-none">
         {/* Title */}
         <div className="text-center mb-3">
@@ -76,27 +85,36 @@ export default function World() {
           </p>
         </div>
 
-        {/* Map stage */}
+        {/* How to use — explicit instructions */}
+        <div className="mx-auto mb-3 max-w-2xl rounded-md border-2 border-primary bg-black/70 px-4 py-2 text-center neon-box">
+          <p className="font-mono text-[11px] md:text-sm uppercase tracking-[0.2em] text-primary">
+            ◀ Click &amp; drag the map left or right to explore the city ▶
+          </p>
+          <p className="font-mono text-[10px] md:text-xs uppercase tracking-[0.2em] text-secondary mt-1 opacity-90">
+            Click any building to enter
+          </p>
+        </div>
+
+        {/* Map stage — fixed viewport, draggable horizontal track inside */}
         <div
+          ref={viewportRef}
           className="relative w-full overflow-hidden rounded-md border-2 border-primary"
           style={{
             aspectRatio: "1408 / 768",
             boxShadow: "0 0 40px hsl(var(--primary)/0.45), inset 0 0 80px rgba(0,0,0,0.4)",
           }}
         >
-          {/* Background */}
+          {/* Static background fills the viewport */}
           <img
             src={mapBg}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
             draggable={false}
           />
 
-          {/* Vignette / mood overlay */}
+          {/* Vignette + scanlines */}
           <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent via-transparent to-black/55" />
           <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,_transparent_40%,_rgba(0,0,0,0.55)_100%)]" />
-
-          {/* Scanlines */}
           <div
             className="absolute inset-0 pointer-events-none opacity-[0.07] mix-blend-overlay"
             style={{
@@ -104,83 +122,6 @@ export default function World() {
                 "repeating-linear-gradient(to bottom, rgba(255,255,255,0.6) 0px, rgba(255,255,255,0.6) 1px, transparent 1px, transparent 3px)",
             }}
           />
-
-          {/* Buildings */}
-          {BUILDINGS.map((b) => {
-            const layout = ROW_LAYOUT[b.row];
-            const isHovered = hovered === b.id;
-            const isDimmed = hovered !== null && !isHovered;
-            return (
-              <motion.button
-                key={b.id}
-                onClick={() => go(b.route)}
-                onMouseEnter={() => setHovered(b.id)}
-                onMouseLeave={() => setHovered(null)}
-                onFocus={() => setHovered(b.id)}
-                onBlur={() => setHovered(null)}
-                className="absolute -translate-x-1/2 -translate-y-1/2 group cursor-pointer focus:outline-none"
-                style={{
-                  left: colToLeft(b.col, layout.spread),
-                  top: layout.top,
-                  height: layout.height,
-                  zIndex: 10 + b.row, // closer rows render on top
-                }}
-                initial={{ opacity: 0, y: 24 }}
-                animate={{
-                  opacity: isDimmed ? 0.4 : layout.opacity,
-                  y: 0,
-                }}
-                whileHover={{ scale: 1.18, y: -10 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 240, damping: 20 }}
-                data-testid={`map-building-${b.id}`}
-                aria-label={`Enter ${b.label}`}
-              >
-                {/* Glow disc under the building */}
-                <div
-                  className="absolute left-1/2 -translate-x-1/2 rounded-full pointer-events-none transition-all duration-300"
-                  style={{
-                    bottom: "-4%",
-                    width: "85%",
-                    height: "12%",
-                    background: isHovered
-                      ? "radial-gradient(ellipse at center, hsl(var(--primary)/0.85), transparent 70%)"
-                      : "radial-gradient(ellipse at center, hsl(var(--primary)/0.35), transparent 70%)",
-                    filter: isHovered ? "blur(6px)" : "blur(4px)",
-                  }}
-                />
-
-                {/* Building image */}
-                <img
-                  src={b.img}
-                  alt={b.label}
-                  draggable={false}
-                  className="relative h-full w-auto pointer-events-none transition-[filter] duration-200"
-                  style={{
-                    filter: isHovered
-                      ? "drop-shadow(0 0 18px hsl(var(--primary))) drop-shadow(0 8px 12px rgba(0,0,0,0.7))"
-                      : "drop-shadow(0 6px 10px rgba(0,0,0,0.65))",
-                  }}
-                />
-
-                {/* Neon label — only visible on hover */}
-                <motion.div
-                  className="absolute left-1/2 -translate-x-1/2 pointer-events-none whitespace-nowrap"
-                  style={{ top: "-22px" }}
-                  initial={false}
-                  animate={{
-                    opacity: isHovered ? 1 : 0,
-                    y: isHovered ? 0 : 8,
-                  }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <span className="block px-3 py-1 bg-black/85 border border-primary text-primary font-mono text-[11px] md:text-sm uppercase tracking-[0.25em] neon-box">
-                    {b.label}
-                  </span>
-                </motion.div>
-              </motion.button>
-            );
-          })}
 
           {/* Pulsing horizon glow */}
           <motion.div
@@ -196,10 +137,126 @@ export default function World() {
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           />
 
+          {/* Edge fade hints (so the user senses there's more off-screen) */}
+          <div className="absolute inset-y-0 left-0 w-12 md:w-20 pointer-events-none bg-gradient-to-r from-black/70 to-transparent z-30" />
+          <div className="absolute inset-y-0 right-0 w-12 md:w-20 pointer-events-none bg-gradient-to-l from-black/70 to-transparent z-30" />
+
+          {/* Animated arrow hints */}
+          <motion.div
+            className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 pointer-events-none z-40 text-primary text-2xl md:text-4xl font-black neon-text"
+            animate={{ x: [0, -6, 0], opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+          >
+            ◀
+          </motion.div>
+          <motion.div
+            className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 pointer-events-none z-40 text-primary text-2xl md:text-4xl font-black neon-text"
+            animate={{ x: [0, 6, 0], opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+          >
+            ▶
+          </motion.div>
+
+          {/* Draggable building track — single row */}
+          <motion.div
+            ref={trackRef}
+            drag="x"
+            dragConstraints={dragLimits}
+            dragElastic={0.08}
+            dragMomentum
+            style={{ x }}
+            onDragStart={() => {
+              setDragging(true);
+              dragMoved.current = 0;
+            }}
+            onDrag={(_, info) => {
+              dragMoved.current = Math.max(dragMoved.current, Math.abs(info.offset.x));
+            }}
+            onDragEnd={() => {
+              // brief delay so click handlers can read dragMoved
+              setTimeout(() => setDragging(false), 0);
+            }}
+            className="absolute inset-y-0 left-0 flex items-end gap-6 md:gap-10 px-[10%] cursor-grab active:cursor-grabbing z-20"
+            style={{ x, touchAction: "pan-y" }}
+          >
+            {BUILDINGS.map((b) => {
+              const isHovered = hovered === b.id;
+              const isDimmed = hovered !== null && !isHovered;
+              return (
+                <motion.button
+                  key={b.id}
+                  onClick={() => {
+                    // suppress click if the user actually dragged
+                    if (dragMoved.current > 6) return;
+                    go(b.route);
+                  }}
+                  onMouseEnter={() => !dragging && setHovered(b.id)}
+                  onMouseLeave={() => setHovered(null)}
+                  onFocus={() => setHovered(b.id)}
+                  onBlur={() => setHovered(null)}
+                  className="relative flex-shrink-0 group focus:outline-none flex items-end"
+                  style={{
+                    height: `${70 * (b.scale ?? 1)}%`,
+                    marginBottom: "4%",
+                  }}
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{
+                    opacity: isDimmed ? 0.45 : 1,
+                    y: 0,
+                  }}
+                  whileHover={{ scale: 1.08, y: -8 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: "spring", stiffness: 240, damping: 20 }}
+                  data-testid={`map-building-${b.id}`}
+                  aria-label={`Enter ${b.label}`}
+                  draggable={false}
+                >
+                  {/* Glow disc under the building */}
+                  <div
+                    className="absolute left-1/2 -translate-x-1/2 rounded-full pointer-events-none transition-all duration-300"
+                    style={{
+                      bottom: "-10%",
+                      width: "85%",
+                      height: "14%",
+                      background: isHovered
+                        ? "radial-gradient(ellipse at center, hsl(var(--primary)/0.85), transparent 70%)"
+                        : "radial-gradient(ellipse at center, hsl(var(--primary)/0.4), transparent 70%)",
+                      filter: isHovered ? "blur(6px)" : "blur(4px)",
+                    }}
+                  />
+
+                  {/* Building image */}
+                  <img
+                    src={b.img}
+                    alt={b.label}
+                    draggable={false}
+                    className="relative h-full w-auto pointer-events-none transition-[filter] duration-200"
+                    style={{
+                      filter: isHovered
+                        ? "drop-shadow(0 0 18px hsl(var(--primary))) drop-shadow(0 8px 12px rgba(0,0,0,0.7))"
+                        : "drop-shadow(0 6px 10px rgba(0,0,0,0.65))",
+                    }}
+                  />
+
+                  {/* Always-visible label so users know what each is */}
+                  <div className="absolute left-1/2 -translate-x-1/2 -top-7 md:-top-8 pointer-events-none whitespace-nowrap">
+                    <span
+                      className={`block px-2.5 py-1 bg-black/85 border border-primary font-mono text-[10px] md:text-xs uppercase tracking-[0.25em] transition-colors ${
+                        isHovered ? "bg-primary text-black neon-box" : "text-primary"
+                      }`}
+                    >
+                      {b.label}
+                    </span>
+                  </div>
+                </motion.button>
+              );
+            })}
+          </motion.div>
+
           {/* Footer hint */}
-          <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none">
+          <div className="absolute bottom-2 left-0 right-0 text-center pointer-events-none z-40">
             <p className="text-primary/80 font-mono text-[10px] md:text-xs uppercase tracking-[0.3em] animate-pulse">
-              [ Hover · Click to enter ]
+              [ Drag to explore · Click to enter ]
             </p>
           </div>
         </div>
