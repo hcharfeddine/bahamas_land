@@ -1,16 +1,24 @@
 // =============================================================================
-// players.ts — talks to /__player/* (the playerMiddleware backend) and
-// keeps a tiny session in localStorage so the user stays logged in.
+// players.ts — citizen registry, talks DIRECTLY to Supabase (no /api server).
 //
-// Storage keys:
-//   ogs_v2_setup           "1" once the citizen has registered/logged in.
-//   ogs_v2_username        the canonical username on file.
-//   ogs_v2_pin             the PIN, kept locally so we can re-auth on each
-//                          sync without prompting. (This is a satirical game,
-//                          not a bank — see the joke "card number" field.)
+// Why no API routes? The site is deployed as a static SPA on Vercel/Render,
+// so there is no Node server to host /api/* endpoints. Supabase plays the
+// role of backend for everything else (chat, court, museum) — the player
+// registry now follows the same pattern.
+//
+// PIN security:
+//   - Plaintext PIN never leaves the browser.
+//   - We send sha256(username_lower + ":" + pin) to a SECURITY DEFINER
+//     RPC that compares it against the stored hash.
+//
+// Storage keys (localStorage):
+//   ogs_v2_setup     "1" once the citizen has registered/logged in
+//   ogs_v2_username  the canonical username on file
+//   ogs_v2_pin       the PIN, kept locally so we can re-auth on each sync
 // =============================================================================
 
 import { ACHIEVEMENTS } from "@/lib/achievements";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 export const PLAYER_SETUP_KEY = "ogs_v2_setup";
 export const PLAYER_USERNAME_KEY = "ogs_v2_username";
@@ -30,52 +38,76 @@ export type ApiResult<T> =
   | { ok: true; data: T }
   | { ok: false; reason: string };
 
-function apiBase(): string {
-  const base = (import.meta as any).env?.BASE_URL || "/";
-  return base.endsWith("/") ? base.slice(0, -1) : base;
+// ---------------------------------------------------------------------------
+// PIN hashing — SHA-256(username_lower ":" pin), hex.
+// ---------------------------------------------------------------------------
+async function hashPin(username: string, pin: string): Promise<string> {
+  const data = new TextEncoder().encode(`${username.trim().toLowerCase()}:${pin}`);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
-async function post<T>(path: string, body: unknown): Promise<ApiResult<T>> {
+function normalizePlayer(raw: any): PlayerView {
+  return {
+    username: String(raw?.username ?? ""),
+    secrets: Array.isArray(raw?.secrets) ? raw.secrets.map(String) : [],
+    secretsCount: Number(raw?.secretsCount ?? raw?.secrets_count ?? 0),
+    coins: Number(raw?.coins ?? 0),
+    cardJoke: raw?.cardJoke ?? raw?.card_joke ?? null,
+    createdAt: Number(raw?.createdAt ?? raw?.created_at ?? 0),
+    updatedAt: Number(raw?.updatedAt ?? raw?.updated_at ?? 0),
+  };
+}
+
+async function callRpc<T>(
+  fn: string,
+  args: Record<string, unknown>,
+): Promise<ApiResult<T>> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { ok: false, reason: "no_backend" };
+  }
   try {
-    const res = await fetch(`${apiBase()}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    // 5xx and 4xx (other than the JSON 200 responses below) signal that the
-    // request never reached the playerMiddleware — usually because the tab is
-    // running a stale bundle whose URL points at a path now owned by another
-    // service. Surface a distinct reason so the UI can tell the citizen to
-    // refresh instead of silently retrying forever.
-    if (!res.ok) {
-      return { ok: false, reason: `http_${res.status}` };
-    }
-    let data: any;
-    try {
-      data = await res.json();
-    } catch {
-      return { ok: false, reason: "bad_response" };
-    }
+    const { data, error } = await supabase.rpc(fn, args);
+    if (error) return { ok: false, reason: error.message || "rpc_error" };
     if (data?.ok) return { ok: true, data: (data.player ?? data) as T };
     return { ok: false, reason: data?.reason || "unknown" };
-  } catch (e) {
+  } catch {
     return { ok: false, reason: "network" };
   }
 }
+
+// ---------------------------------------------------------------------------
+// Public API — same signatures as before, so callers don't need to change.
+// ---------------------------------------------------------------------------
 
 export async function registerPlayer(
   username: string,
   pin: string,
   cardJoke?: string,
 ): Promise<ApiResult<PlayerView>> {
-  const result = await post<PlayerView>("/__player/register", {
-    username,
-    pin,
-    cardJoke: cardJoke || undefined,
-    secrets: [],
-    coins: 1000,
+  const cleanName = username.trim();
+  const cleanPinStr = pin.replace(/\D/g, "").slice(0, 6);
+  if (cleanName.length < 2) return { ok: false, reason: "bad_username" };
+  if (cleanPinStr.length < 4) return { ok: false, reason: "bad_pin" };
+
+  const safeJoke =
+    typeof cardJoke === "string" ? cardJoke.replace(/\d/g, "*").slice(0, 24) : "";
+
+  const pin_hash = await hashPin(cleanName, cleanPinStr);
+  const result = await callRpc<PlayerView>("player_register", {
+    p_username: cleanName,
+    p_pin_hash: pin_hash,
+    p_card_joke: safeJoke,
+    p_secrets: [],
+    p_coins: 1000,
   });
-  if (result.ok) saveSession(result.data.username, pin);
+  if (result.ok) {
+    const player = normalizePlayer(result.data);
+    saveSession(player.username, cleanPinStr);
+    return { ok: true, data: player };
+  }
   return result;
 }
 
@@ -83,19 +115,29 @@ export async function loginPlayer(
   username: string,
   pin: string,
 ): Promise<ApiResult<PlayerView>> {
-  const result = await post<PlayerView>("/__player/login", { username, pin });
+  const cleanName = username.trim();
+  const cleanPinStr = pin.replace(/\D/g, "").slice(0, 6);
+  if (cleanName.length < 2) return { ok: false, reason: "bad_username" };
+  if (cleanPinStr.length < 4) return { ok: false, reason: "bad_pin" };
+
+  const pin_hash = await hashPin(cleanName, cleanPinStr);
+  const result = await callRpc<PlayerView>("player_login", {
+    p_username: cleanName,
+    p_pin_hash: pin_hash,
+  });
   if (result.ok) {
-    saveSession(result.data.username, pin);
-    // Pull cloud secrets down into localStorage so the UI shows them.
-    hydrateLocalSecrets(result.data.secrets);
-    if (Number.isFinite(result.data.coins)) {
+    const player = normalizePlayer(result.data);
+    saveSession(player.username, cleanPinStr);
+    hydrateLocalSecrets(player.secrets);
+    if (Number.isFinite(player.coins)) {
       try {
-        localStorage.setItem("ogs_coins", JSON.stringify(result.data.coins));
+        localStorage.setItem("ogs_coins", JSON.stringify(player.coins));
         window.dispatchEvent(new Event("local-storage"));
       } catch {
         /* ignore */
       }
     }
+    return { ok: true, data: player };
   }
   return result;
 }
@@ -121,7 +163,15 @@ export async function syncSecrets(): Promise<ApiResult<PlayerView>> {
     /* ignore */
   }
 
-  return post<PlayerView>("/__player/sync", { username, pin, secrets, coins });
+  const pin_hash = await hashPin(username, pin);
+  const result = await callRpc<PlayerView>("player_sync", {
+    p_username: username,
+    p_pin_hash: pin_hash,
+    p_secrets: secrets,
+    p_coins: coins,
+  });
+  if (result.ok) return { ok: true, data: normalizePlayer(result.data) };
+  return result;
 }
 
 export type LeaderboardRow = {
@@ -136,16 +186,23 @@ export async function fetchLeaderboard(): Promise<{
   total: number;
   ranking: LeaderboardRow[];
 }> {
+  if (!isSupabaseConfigured || !supabase) return { total: 0, ranking: [] };
   try {
-    const res = await fetch(`${apiBase()}/__player/leaderboard`);
-    const data = await res.json();
-    if (data?.ok) {
-      return { total: data.total ?? 0, ranking: data.ranking ?? [] };
-    }
+    const { data, error } = await supabase.rpc("players_leaderboard");
+    if (error || !data?.ok) return { total: 0, ranking: [] };
+    const ranking: LeaderboardRow[] = Array.isArray(data.ranking)
+      ? data.ranking.map((r: any) => ({
+          rank: Number(r.rank ?? 0),
+          username: String(r.username ?? ""),
+          secretsCount: Number(r.secretsCount ?? 0),
+          coins: Number(r.coins ?? 0),
+          joinedAt: Number(r.joinedAt ?? 0),
+        }))
+      : [];
+    return { total: Number(data.total ?? 0), ranking };
   } catch {
-    /* ignore */
+    return { total: 0, ranking: [] };
   }
-  return { total: 0, ranking: [] };
 }
 
 // ---------------------------------------------------------------------------
