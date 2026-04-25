@@ -147,7 +147,7 @@ export function PlayerSetup() {
 
   const triggerTroll = () => {
     setTrollMsg(
-      "Relax, good citizen — nobody was forcing you to type anything.\n\nThe President was only teasing. Bahamas Land does not take card numbers, ever. Your PIN alone is more than enough.\n\nWelcome to the country.",
+      "Nattoun knows you didn't put your real card.\n\nThanks to you, Nattoun couldn't buy baskouta tonight. The President will remember this.\n\nThe country forgives you anyway. Welcome.",
     );
     setShowTrollDialog(true);
   };
