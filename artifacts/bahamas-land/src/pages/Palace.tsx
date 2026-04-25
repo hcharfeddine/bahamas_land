@@ -277,20 +277,49 @@ export default function Palace() {
     pushReaction("BOOOO 🔉");
   };
 
-  const handleThrowTomato = (e: React.MouseEvent) => {
-    const target = e.currentTarget as HTMLElement;
-    const rect = target.getBoundingClientRect();
-    const id = ++tomatoId.current;
-    const x = (e.clientX - rect.left) || rect.width * (0.3 + Math.random() * 0.4);
-    const y = (e.clientY - rect.top) || rect.height * (0.3 + Math.random() * 0.4);
-    setSplats((s) => [...s, { id, x, y, rot: Math.random() * 360 }]);
-    setTomatoes((t: number) => t + 1);
-    setApprovalRating((r) => Math.max(3, r - 3));
-    audio.playGlitch();
-    pushReaction("🍅 SPLAT");
-    setCoins((c) => Math.max(0, c - 1));
+  // Core throw: deducts EXACTLY 1 NC, adds a splat at the given percentage
+  // coordinates (0-100) inside the image wrapper. If no coords given, picks
+  // a random spot ON the image so the tomato actually lands.
+  const fireTomato = (atXPct?: number, atYPct?: number) => {
+    setCoins((c) => {
+      if (c < 1) return c; // not enough NC, refuse
+      const id = ++tomatoId.current;
+      const x = atXPct ?? 30 + Math.random() * 40;
+      const y = atYPct ?? 30 + Math.random() * 40;
+      setSplats((s) => [...s, { id, x, y, rot: Math.random() * 360 }]);
+      setTomatoes((t: number) => t + 1);
+      setApprovalRating((r) => Math.max(3, r - 3));
+      audio.playGlitch();
+      pushReaction("🍅 SPLAT");
+      window.setTimeout(
+        () => setSplats((s) => s.filter((sp) => sp.id !== id)),
+        4500
+      );
+      return c - 1; // exactly -1 NC, atomically
+    });
     if (tomatoes + 1 >= 10) unlock("bonker");
-    window.setTimeout(() => setSplats((s) => s.filter((sp) => sp.id !== id)), 4500);
+  };
+
+  // Click directly on the image: throw at the click point (in % of image size)
+  const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      fireTomato();
+      return;
+    }
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    fireTomato(
+      Math.max(0, Math.min(100, x)),
+      Math.max(0, Math.min(100, y))
+    );
+  };
+
+  // Button below the stage: random throw at the President
+  const handleButtonThrow = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fireTomato();
   };
 
   const ratingColor =
@@ -397,23 +426,26 @@ export default function Palace() {
             )}
           </AnimatePresence>
 
-          {/* Nattoun image — also the tomato target */}
-          <div
+          {/* Nattoun image — also the tomato target.
+              The wrapper bobs so splats stick to the President as he moves.
+              No data-nattoun attr → the global "bonk" easter egg doesn't
+              fire here (we have throw-tomato instead). */}
+          <motion.div
             className="relative z-10 cursor-crosshair w-1/2 max-w-[300px]"
-            onClick={handleThrowTomato}
-            title="Click to throw a tomato"
+            onClick={handleImageClick}
+            title="Click to throw a tomato (-1 NC)"
+            animate={{ y: [0, -10, 0] }}
+            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
           >
-            <motion.img
+            <img
               src={nattounImg}
               alt="President Nattoun"
-              data-nattoun="true"
-              className="w-full h-auto object-cover drop-shadow-[0_0_30px_hsl(var(--primary))]"
-              animate={{ y: [0, -10, 0] }}
-              transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+              className="w-full h-auto object-cover drop-shadow-[0_0_30px_hsl(var(--primary))] pointer-events-none select-none"
               draggable={false}
             />
 
-            {/* Tomato splats stuck to him */}
+            {/* Tomato splats — positioned by % of the wrapper, so they stay
+                attached to the President even as he bobs up and down. */}
             <AnimatePresence>
               {splats.map((s) => (
                 <motion.div
@@ -424,8 +456,8 @@ export default function Palace() {
                   transition={{ type: "spring", stiffness: 320, damping: 18 }}
                   className="absolute pointer-events-none text-3xl select-none"
                   style={{
-                    left: s.x,
-                    top: s.y,
+                    left: `${s.x}%`,
+                    top: `${s.y}%`,
                     transform: "translate(-50%, -50%)",
                     filter: "drop-shadow(0 0 6px rgba(220,38,38,0.8))",
                   }}
@@ -434,7 +466,7 @@ export default function Palace() {
                 </motion.div>
               ))}
             </AnimatePresence>
-          </div>
+          </motion.div>
 
           {/* Podium */}
           <div className="w-2/3 h-16 bg-black border-t-2 border-x-2 border-primary relative z-20 flex items-center justify-center">
@@ -527,16 +559,7 @@ export default function Palace() {
               📢 Boo
             </Button>
             <Button
-              onClick={(e) => {
-                // simulate a tomato throw at a random spot on the image
-                const fakeEvt = {
-                  ...e,
-                  clientX: 0,
-                  clientY: 0,
-                  currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 200, height: 200 }) } as unknown as HTMLElement,
-                } as unknown as React.MouseEvent;
-                handleThrowTomato(fakeEvt);
-              }}
+              onClick={handleButtonThrow}
               className="bg-transparent border-2 border-red-500 text-red-400 hover:bg-red-500 hover:text-black font-bold uppercase tracking-widest px-8 py-5 text-base"
             >
               🍅 Throw Tomato (-1 NC)
