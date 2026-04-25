@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 const BASE = import.meta.env.BASE_URL;
-const VERSION_URL = `${BASE}api/chat/version`;
+const VERSION_URL = `${BASE}__chat/version`;
 const POLL_MS = 15_000;
 const STORAGE_KEY = "bahamas_build_id";
 
