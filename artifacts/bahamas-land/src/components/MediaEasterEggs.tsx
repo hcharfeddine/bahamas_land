@@ -931,7 +931,7 @@ function DrakeOverlay({ onClose }: { onClose: () => void }) {
           YAH YAH YAH
         </motion.div>
         <div className="mt-3 font-black uppercase tracking-[0.3em] text-white text-sm md:text-xl drop-shadow-lg">
-          ☎ HOTLINE BLING · 6 GOD ☎
+          ☎ HOTLINE BLING · yeah yeah yeah ☎
         </div>
       </div>
     </Shell>
