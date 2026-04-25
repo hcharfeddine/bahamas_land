@@ -14,9 +14,9 @@ import { Button } from "@/components/ui/button";
 import { useUsername, useCoins } from "@/lib/store";
 import { useLetters, generateLetter } from "@/lib/inbox";
 
-import m3kkyImg from "@/assets/postoffice/po_m3kky_sprite.png";
-import nattounImg from "@/assets/postoffice/po_nattoun_sprite.png";
-import postOfficeImg from "@/assets/postoffice/bld_postoffice.png";
+import m3kkyImg from "@assets/m3kky_1777028672745.png";
+import nattounImg from "@assets/Nattoun_1777028672745.png";
+import postOfficeImg from "@assets/generated_images/bld_postoffice.png";
 import palaceImg from "@/assets/postoffice/po_palace_building.png";
 import studioImg from "@/assets/postoffice/po_studio_building.png";
 import deadLetterImg from "@/assets/postoffice/po_deadletter_bin.png";
