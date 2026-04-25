@@ -35,6 +35,8 @@ const Police = lazy(() => import("@/pages/Police"));
 const PostOffice = lazy(() => import("@/pages/PostOffice"));
 const Chess = lazy(() => import("@/pages/Chess"));
 const Reward = lazy(() => import("@/pages/Reward"));
+const Wanted = lazy(() => import("@/pages/Wanted"));
+const Decrees = lazy(() => import("@/pages/Decrees"));
 const BaskoutaChemin = lazy(() =>
   import("@/pages/Chemin").then((m) => ({ default: m.BaskoutaChemin })),
 );
@@ -108,6 +110,8 @@ function Router() {
         <Route path="/postoffice" component={PostOffice} />
         <Route path="/chess" component={Chess} />
         <Route path="/reward" component={Reward} />
+        <Route path="/wanted" component={Wanted} />
+        <Route path="/decrees" component={Decrees} />
         <Route path="/baskouta" component={BaskoutaChemin} />
         <Route path="/177" component={YearChemin} />
         <Route path="/freem3kky" component={FreedomChemin} />

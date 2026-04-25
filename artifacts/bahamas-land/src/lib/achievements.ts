@@ -86,6 +86,10 @@ export type AchievementId =
   | "dna"             // bahamas.dna() console call
   | "chesschamp"      // "beat" Nattoun at chess
   | "chessfraud"      // bahamas.chess() console flip
+  | "redacted"        // type "freedom" → REDACTED screen
+  | "jailbird"        // type "prison" → jail bars + exiled
+  | "wanted"          // visit the Most Wanted board
+  | "decreed"         // visit the State Decrees archive
   | "oracle";         // claim the Top-100 reward (server-issued)
 
 export type Difficulty = "easy" | "medium" | "hard" | "insane";
@@ -188,6 +192,10 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "dna", name: "DNA Sample", hint: "The console knows what the dog is made of. Ask it.", emoji: "🧬", difficulty: "insane" },
   { id: "chesschamp", name: "Grandmaster", hint: "Beat the President at chess. He cheats. Cheat back.", emoji: "♟️", difficulty: "insane" },
   { id: "chessfraud", name: "Console Grandmaster", hint: "Console-flip the chessboard. Embarrassing but effective.", emoji: "🤖", difficulty: "insane" },
+  { id: "redacted", name: "REDACTED", hint: "Citizens shouldn't speak that word out loud. Not even in the keyboard.", emoji: "█", difficulty: "medium" },
+  { id: "jailbird", name: "Jailbird", hint: "Mention the bad place. The bad place will mention you back.", emoji: "🪤", difficulty: "medium" },
+  { id: "wanted", name: "On The Board", hint: "Find the State's Most Wanted. They're famous now.", emoji: "🪧", difficulty: "easy" },
+  { id: "decreed", name: "Constitutional Reader", hint: "Read what the President has decreed. There's a lot.", emoji: "📜", difficulty: "easy" },
   { id: "oracle", name: "The Oracle (Top 100)", hint: "Collect EVERY secret. Visit /reward. Server-verified.", emoji: "🔮", difficulty: "insane" },
 ];
 

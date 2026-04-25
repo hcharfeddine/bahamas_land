@@ -269,6 +269,27 @@ export default function World() {
         <div className="text-center mt-3 text-secondary/70 text-xs font-mono uppercase tracking-[0.3em]">
           {BUILDINGS.length} locations · welcome to paradise
         </div>
+
+        {/* State archives — wanted board + decrees */}
+        <div className="mt-4 mb-2 flex flex-wrap items-center justify-center gap-2 md:gap-3">
+          <span className="font-mono text-[10px] md:text-xs uppercase tracking-[0.3em] text-secondary/60 mr-1">
+            ★ State Archives ★
+          </span>
+          <button
+            onClick={() => setLocation("/wanted")}
+            data-testid="link-wanted"
+            className="px-3 py-1.5 text-xs md:text-sm font-mono uppercase tracking-widest border-2 border-amber-500/70 bg-amber-100 text-stone-900 hover:bg-amber-200 transition shadow-md"
+          >
+            🪧 Most Wanted
+          </button>
+          <button
+            onClick={() => setLocation("/decrees")}
+            data-testid="link-decrees"
+            className="px-3 py-1.5 text-xs md:text-sm font-mono uppercase tracking-widest border-2 border-red-700/70 bg-amber-50 text-stone-900 hover:bg-amber-100 transition shadow-md"
+          >
+            📜 State Decrees
+          </button>
+        </div>
       </div>
     </Layout>
   );

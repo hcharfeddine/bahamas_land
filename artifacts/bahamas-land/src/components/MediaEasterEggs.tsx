@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "wouter";
 import { AnimatePresence, motion } from "framer-motion";
 import { unlock } from "@/lib/achievements";
 
@@ -34,7 +35,9 @@ type EggKey =
   | "khamsa"
   | "KEKW"
   | "stonecold"
-  | "baskouta";
+  | "baskouta"
+  | "redacted"
+  | "jail";
 
 // ---------------------------------------------------------------
 // Triggers are intentionally not stored as plain strings. They are
@@ -128,6 +131,10 @@ const TRIGGER_TABLE: ReadonlyArray<readonly [number, number, EggKey]> = [
   [7, 2684545782, "baskouta"],
   [6, 1549893796, "baskouta"],
   [13, 3845407325, "baskouta"],
+  // redacted (typed: "freedom")
+  [7, 1845614551, "redacted"],
+  // jail (typed: "prison")
+  [6, 1876885404, "jail"],
 ];
 
 // Pre-grouped lengths for fast lookup
@@ -151,6 +158,8 @@ const DURATION_MS: Record<EggKey, number> = {
   KEKW: 7000,
   stonecold: 8000,
   baskouta: 7000,
+  redacted: 4500,
+  jail: 5500,
 };
 
 const ACH_FOR: Record<EggKey, string> = {
@@ -169,6 +178,8 @@ const ACH_FOR: Record<EggKey, string> = {
   KEKW: "KEKW",
   stonecold: "stonecold",
   baskouta: "baskouta",
+  redacted: "redacted",
+  jail: "jailbird",
 };
 
 function lookupTrigger(buffer: string): EggKey | null {
@@ -267,6 +278,8 @@ export function MediaEasterEggs() {
       {active === "KEKW" && <KekwOverlay key="kekw" onClose={close} />}
       {active === "stonecold" && <StoneColdOverlay key="sc" onClose={close} />}
       {active === "baskouta" && <BaskoutaOverlay key="bsk" onClose={close} />}
+      {active === "redacted" && <RedactedOverlay key="redacted" onClose={close} />}
+      {active === "jail" && <JailOverlay key="jail" onClose={close} />}
     </AnimatePresence>
   );
 }
