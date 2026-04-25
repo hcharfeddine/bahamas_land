@@ -981,7 +981,7 @@ function GameScene({
       {/* Buildings */}
       <Palace position={TARGET_POSITIONS.nattoun} />
       <Studio position={TARGET_POSITIONS.m3kky} />
-      <DeadLetterBin3D position={TARGET_POSITIONS.bin} />
+ <DeadLetterBin3D position={TARGET_POSITIONS.bin} />
 
       {/* Characters */}
       <Nattoun position={[TARGET_POSITIONS.nattoun[0] + 3, 0, TARGET_POSITIONS.nattoun[2] + 3]} />
