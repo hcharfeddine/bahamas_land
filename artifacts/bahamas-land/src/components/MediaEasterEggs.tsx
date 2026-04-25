@@ -658,28 +658,8 @@ function BarcaOverlay({ onClose }: { onClose: () => void }) {
 function FaddinaOverlay({ onClose }: { onClose: () => void }) {
   return (
     <Shell onClose={onClose} testId="egg-faddina">
-      <motion.div
-        animate={{ background: [
-          "linear-gradient(135deg, #e70013 0%, #ffffff 50%, #e70013 100%)",
-          "linear-gradient(135deg, #ffffff 0%, #e70013 50%, #ffffff 100%)",
-          "linear-gradient(135deg, #e70013 0%, #ffffff 50%, #e70013 100%)",
-        ] }}
-        transition={{ duration: 1.6, repeat: Infinity }}
-        className="absolute inset-0"
-      />
-      {/* Crescent + star (Tunisia flag motif) */}
-      <motion.div
-        animate={{ scale: [1, 1.15, 1], rotate: [0, 8, -8, 0] }}
-        transition={{ duration: 1.4, repeat: Infinity }}
-        className="absolute inset-0 flex items-center justify-center pointer-events-none"
-      >
-        <div
-          className="rounded-full bg-[#e70013] flex items-center justify-center"
-          style={{ width: "min(72vw, 720px)", height: "min(72vw, 720px)", opacity: 0.18 }}
-        >
-          <div className="text-white text-9xl md:text-[14rem]">☪</div>
-        </div>
-      </motion.div>
+      {/* Simple solid background — no fake-flag motif */}
+      <div className="absolute inset-0" style={{ background: "#e70013" }} />
       <HeroGif src={gifFaddina} size="min(45vmin, 380px)" glow="#e70013" alt="tunisia" />
       <FlyingGif gifs={[gifFaddina]} count={12} px={100} glow="#e70013" emojis={["🇹🇳", "🎤", "🔥", "🪕"]} />
       <div className="relative z-10 text-center px-6">
