@@ -470,13 +470,28 @@ export function PlayerSetup() {
               onClick={(e) => e.stopPropagation()}
               className="max-w-md bg-yellow-300 border-4 border-black p-6 shadow-[8px_8px_0_0_rgba(0,0,0,1)]"
             >
-              <div className="text-2xl font-black uppercase tracking-widest text-black mb-3">
-                ✨ Good Citizen
+              <div className="flex flex-col items-center text-center">
+                <motion.img
+                  src={nattounImg}
+                  alt="President Nattoun"
+                  className="w-32 h-32 object-cover border-4 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)]"
+                  animate={{ rotate: [0, -3, 3, 0] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                />
+                <div className="mt-4 text-3xl md:text-4xl font-black uppercase tracking-widest text-black leading-none">
+                  Good Citizen
+                </div>
+                <div
+                  className="mt-1 text-xs italic lowercase text-black/50 font-mono"
+                  data-testid="player-troll-whisper"
+                >
+                  …stupid.
+                </div>
+                <p className="mt-4 text-black font-mono text-xs leading-relaxed whitespace-pre-line">
+                  {trollMsg}
+                </p>
               </div>
-              <p className="text-black font-mono text-sm leading-relaxed whitespace-pre-line">
-                {trollMsg}
-              </p>
-              <div className="mt-5 flex justify-end">
+              <div className="mt-5 flex justify-center">
                 <button
                   className="px-5 py-2 bg-black text-yellow-300 font-black uppercase tracking-widest hover:bg-zinc-800"
                   onClick={() => {
