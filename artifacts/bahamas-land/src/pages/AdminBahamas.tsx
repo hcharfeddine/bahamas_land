@@ -2,9 +2,12 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase, isSupabaseConfigured, ADMIN_EMAIL, RemoteMuseumItem } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured, ADMIN_EMAIL, RemoteMuseumItem, RemoteCourtVerdict } from "@/lib/supabase";
 import nattounImg from "@assets/Nattoun_1777028672745.png";
-import { ShieldCheck, Trash2, Check, LogOut, AlertTriangle } from "lucide-react";
+import { ShieldCheck, Trash2, Check, LogOut, AlertTriangle, Pin, PinOff, Scale, Image as ImageIcon } from "lucide-react";
+
+type Section = "museum" | "court";
+type Filter = "pending" | "approved" | "rejected";
 
 export default function AdminBahamas() {
   const [email, setEmail] = useState("");
@@ -12,8 +15,13 @@ export default function AdminBahamas() {
   const [user, setUser] = useState<{ email?: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState<RemoteMuseumItem[]>([]);
-  const [filter, setFilter] = useState<"pending" | "approved" | "rejected">("pending");
+
+  const [section, setSection] = useState<Section>("museum");
+  const [filter, setFilter] = useState<Filter>("pending");
+
+  const [museumItems, setMuseumItems] = useState<RemoteMuseumItem[]>([]);
+  const [courtItems, setCourtItems] = useState<RemoteCourtVerdict[]>([]);
+  const [pendingCounts, setPendingCounts] = useState<{ museum: number; court: number }>({ museum: 0, court: 0 });
 
   useEffect(() => {
     if (!supabase) return;
@@ -28,24 +36,48 @@ export default function AdminBahamas() {
 
   const isAdmin = !!user?.email && (!ADMIN_EMAIL || user.email.toLowerCase() === ADMIN_EMAIL);
 
+  const fetchPendingCounts = async () => {
+    if (!supabase || !isAdmin) return;
+    const [m, c] = await Promise.all([
+      supabase.from("museum_items").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      supabase.from("court_verdicts").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    ]);
+    setPendingCounts({ museum: m.count ?? 0, court: c.count ?? 0 });
+  };
+
   const fetchItems = async () => {
     if (!supabase || !isAdmin) return;
-    const { data, error } = await supabase
-      .from("museum_items")
-      .select("*")
-      .eq("status", filter)
-      .order("created_at", { ascending: false });
-    if (error) {
-      console.warn("[admin] fetch error", error);
-      return;
+    if (section === "museum") {
+      const { data, error } = await supabase
+        .from("museum_items")
+        .select("*")
+        .eq("status", filter)
+        .order("created_at", { ascending: false });
+      if (error) {
+        console.warn("[admin] museum fetch error", error);
+        return;
+      }
+      setMuseumItems((data || []) as RemoteMuseumItem[]);
+    } else {
+      const { data, error } = await supabase
+        .from("court_verdicts")
+        .select("*")
+        .eq("status", filter)
+        .order("pinned", { ascending: false })
+        .order("created_at", { ascending: false });
+      if (error) {
+        console.warn("[admin] court fetch error", error);
+        return;
+      }
+      setCourtItems((data || []) as RemoteCourtVerdict[]);
     }
-    setPending((data || []) as RemoteMuseumItem[]);
   };
 
   useEffect(() => {
     fetchItems();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, filter]);
+    fetchPendingCounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, section, filter]);
 
   const signIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,17 +95,39 @@ export default function AdminBahamas() {
     setUser(null);
   };
 
-  const setStatus = async (id: string, status: "approved" | "rejected") => {
+  // Museum actions
+  const setMuseumStatus = async (id: string, status: "approved" | "rejected") => {
     if (!supabase) return;
     await supabase.from("museum_items").update({ status }).eq("id", id);
     fetchItems();
+    fetchPendingCounts();
   };
-
-  const remove = async (id: string) => {
+  const removeMuseum = async (id: string) => {
     if (!supabase) return;
     if (!confirm("Permanently delete this item?")) return;
     await supabase.from("museum_items").delete().eq("id", id);
     fetchItems();
+    fetchPendingCounts();
+  };
+
+  // Court actions
+  const setCourtStatus = async (id: string, status: "approved" | "rejected") => {
+    if (!supabase) return;
+    await supabase.from("court_verdicts").update({ status }).eq("id", id);
+    fetchItems();
+    fetchPendingCounts();
+  };
+  const togglePin = async (id: string, pinned: boolean) => {
+    if (!supabase) return;
+    await supabase.from("court_verdicts").update({ pinned: !pinned }).eq("id", id);
+    fetchItems();
+  };
+  const removeCourt = async (id: string) => {
+    if (!supabase) return;
+    if (!confirm("Permanently delete this verdict?")) return;
+    await supabase.from("court_verdicts").delete().eq("id", id);
+    fetchItems();
+    fetchPendingCounts();
   };
 
   if (!isSupabaseConfigured) {
@@ -166,6 +220,43 @@ export default function AdminBahamas() {
           </Button>
         </div>
 
+        {/* Section tabs */}
+        <div className="flex gap-2 border-b border-primary/30 pb-2">
+          <Button
+            onClick={() => setSection("museum")}
+            variant={section === "museum" ? "default" : "outline"}
+            className={
+              section === "museum"
+                ? "bg-primary text-black uppercase font-bold"
+                : "border-primary text-primary hover:bg-primary/20 uppercase"
+            }
+          >
+            <ImageIcon className="w-4 h-4 mr-2" /> Museum
+            {pendingCounts.museum > 0 && (
+              <span className="ml-2 bg-red-500 text-black text-[10px] px-1.5 py-0.5 rounded-full font-black">
+                {pendingCounts.museum}
+              </span>
+            )}
+          </Button>
+          <Button
+            onClick={() => setSection("court")}
+            variant={section === "court" ? "default" : "outline"}
+            className={
+              section === "court"
+                ? "bg-primary text-black uppercase font-bold"
+                : "border-primary text-primary hover:bg-primary/20 uppercase"
+            }
+          >
+            <Scale className="w-4 h-4 mr-2" /> Court
+            {pendingCounts.court > 0 && (
+              <span className="ml-2 bg-red-500 text-black text-[10px] px-1.5 py-0.5 rounded-full font-black">
+                {pendingCounts.court}
+              </span>
+            )}
+          </Button>
+        </div>
+
+        {/* Status filter */}
         <div className="flex gap-2">
           {(["pending", "approved", "rejected"] as const).map((f) => (
             <Button
@@ -183,48 +274,115 @@ export default function AdminBahamas() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <AnimatePresence>
-            {pending.map((it) => (
-              <motion.div
-                key={it.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="bg-black/80 border-2 border-primary p-3 neon-box space-y-2"
-              >
-                {it.image_url ? (
-                  <img src={it.image_url} alt="" className="w-full aspect-square object-cover border border-primary/50" />
-                ) : (
-                  <div className="w-full aspect-square border border-primary/50 bg-primary/5 flex items-center justify-center text-primary/40 font-mono text-xs">[no image]</div>
-                )}
-                <div className="text-primary font-serif italic text-sm">"{it.caption}"</div>
-                <div className="text-secondary/70 font-mono text-[10px] uppercase">By: {it.username}</div>
-                <div className="text-white/40 font-mono text-[10px]">{new Date(it.created_at).toLocaleString()}</div>
-                <div className="flex gap-2 pt-2 border-t border-primary/20">
-                  {filter !== "approved" && (
-                    <Button size="sm" onClick={() => setStatus(it.id, "approved")} className="bg-green-600 hover:bg-green-500 flex-1 uppercase text-xs font-bold">
-                      <Check className="w-3 h-3 mr-1" /> Approve
-                    </Button>
+        {/* MUSEUM SECTION */}
+        {section === "museum" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <AnimatePresence>
+              {museumItems.map((it) => (
+                <motion.div
+                  key={it.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="bg-black/80 border-2 border-primary p-3 neon-box space-y-2"
+                >
+                  {it.image_url ? (
+                    <img src={it.image_url} alt="" className="w-full aspect-square object-cover border border-primary/50" />
+                  ) : (
+                    <div className="w-full aspect-square border border-primary/50 bg-primary/5 flex items-center justify-center text-primary/40 font-mono text-xs">[no image]</div>
                   )}
-                  {filter !== "rejected" && (
-                    <Button size="sm" onClick={() => setStatus(it.id, "rejected")} variant="outline" className="border-yellow-500 text-yellow-400 flex-1 uppercase text-xs">
-                      Reject
+                  <div className="text-primary font-serif italic text-sm">"{it.caption}"</div>
+                  <div className="text-secondary/70 font-mono text-[10px] uppercase">By: {it.username}</div>
+                  <div className="text-white/40 font-mono text-[10px]">{new Date(it.created_at).toLocaleString()}</div>
+                  <div className="flex gap-2 pt-2 border-t border-primary/20">
+                    {filter !== "approved" && (
+                      <Button size="sm" onClick={() => setMuseumStatus(it.id, "approved")} className="bg-green-600 hover:bg-green-500 flex-1 uppercase text-xs font-bold">
+                        <Check className="w-3 h-3 mr-1" /> Approve
+                      </Button>
+                    )}
+                    {filter !== "rejected" && (
+                      <Button size="sm" onClick={() => setMuseumStatus(it.id, "rejected")} variant="outline" className="border-yellow-500 text-yellow-400 flex-1 uppercase text-xs">
+                        Reject
+                      </Button>
+                    )}
+                    <Button size="sm" onClick={() => removeMuseum(it.id)} variant="outline" className="border-red-500 text-red-400 uppercase text-xs">
+                      <Trash2 className="w-3 h-3" />
                     </Button>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+            {museumItems.length === 0 && (
+              <div className="col-span-full text-center text-primary/40 font-mono text-sm py-12 uppercase">
+                No {filter} museum items.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* COURT SECTION */}
+        {section === "court" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <AnimatePresence>
+              {courtItems.map((v) => (
+                <motion.div
+                  key={v.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className={`bg-black/80 border-2 p-4 neon-box space-y-2 relative ${
+                    v.pinned ? "border-yellow-400" : "border-primary"
+                  }`}
+                >
+                  {v.pinned && (
+                    <div className="absolute -top-3 left-3 bg-black border border-yellow-400 text-yellow-400 text-[9px] uppercase font-mono px-2 py-0.5 flex items-center gap-1">
+                      <Pin className="w-3 h-3" /> Pinned
+                    </div>
                   )}
-                  <Button size="sm" onClick={() => remove(it.id)} variant="outline" className="border-red-500 text-red-400 uppercase text-xs">
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-          {pending.length === 0 && (
-            <div className="col-span-full text-center text-primary/40 font-mono text-sm py-12 uppercase">
-              No {filter} items.
-            </div>
-          )}
-        </div>
+                  <div className="text-secondary/70 font-mono text-[10px] uppercase">DEFENDANT: {v.username}</div>
+                  <p className="text-primary font-serif italic break-words">"{v.text}"</p>
+                  <div className="inline-block border border-red-500 text-red-400 font-bold text-[10px] uppercase tracking-widest px-2 py-0.5">
+                    {v.verdict}
+                  </div>
+                  <div className="text-white/40 font-mono text-[10px]">{new Date(v.created_at).toLocaleString()}</div>
+                  <div className="flex gap-2 pt-2 border-t border-primary/20 flex-wrap">
+                    {filter !== "approved" && (
+                      <Button size="sm" onClick={() => setCourtStatus(v.id, "approved")} className="bg-green-600 hover:bg-green-500 uppercase text-xs font-bold">
+                        <Check className="w-3 h-3 mr-1" /> Approve
+                      </Button>
+                    )}
+                    {filter !== "rejected" && (
+                      <Button size="sm" onClick={() => setCourtStatus(v.id, "rejected")} variant="outline" className="border-yellow-500 text-yellow-400 uppercase text-xs">
+                        Reject
+                      </Button>
+                    )}
+                    {filter === "approved" && (
+                      <Button
+                        size="sm"
+                        onClick={() => togglePin(v.id, v.pinned)}
+                        variant="outline"
+                        className={`uppercase text-xs ${
+                          v.pinned ? "border-yellow-400 text-yellow-400" : "border-secondary text-secondary"
+                        }`}
+                      >
+                        {v.pinned ? <PinOff className="w-3 h-3 mr-1" /> : <Pin className="w-3 h-3 mr-1" />}
+                        {v.pinned ? "Unpin" : "Pin"}
+                      </Button>
+                    )}
+                    <Button size="sm" onClick={() => removeCourt(v.id)} variant="outline" className="border-red-500 text-red-400 uppercase text-xs ml-auto">
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+            {courtItems.length === 0 && (
+              <div className="col-span-full text-center text-primary/40 font-mono text-sm py-12 uppercase">
+                No {filter} verdicts.
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

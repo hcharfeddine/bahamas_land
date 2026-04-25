@@ -1,33 +1,38 @@
+import { lazy, Suspense } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 
+// Eager-load Home so the first paint is instant.
 import Home from "@/pages/Home";
-import World from "@/pages/World";
-import Court from "@/pages/Court";
-import Museum from "@/pages/Museum";
-import Library from "@/pages/Library";
-import Bank from "@/pages/Bank";
-import Palace from "@/pages/Palace";
-import Secret from "@/pages/Secret";
-import Passport from "@/pages/Passport";
-import Arcade from "@/pages/Arcade";
-import Wheel from "@/pages/Wheel";
-import TicTacToe from "@/pages/TicTacToe";
-import RPS from "@/pages/RPS";
-import Stream from "@/pages/Stream";
-import Stocks from "@/pages/Stocks";
-import Inbox from "@/pages/Inbox";
-import AdminBahamas from "@/pages/AdminBahamas";
-import Vault from "@/pages/Vault";
-import Banned from "@/pages/Banned";
-import Exile from "@/pages/Exile";
-import Citizenship from "@/pages/Citizenship";
-import News from "@/pages/News";
-import Police from "@/pages/Police";
-import PostOffice from "@/pages/PostOffice";
+
+// Lazy-load every other page so the initial JS bundle is small and
+// navigation stays smooth (each page loads on demand and is then cached).
+const World = lazy(() => import("@/pages/World"));
+const Court = lazy(() => import("@/pages/Court"));
+const Museum = lazy(() => import("@/pages/Museum"));
+const Library = lazy(() => import("@/pages/Library"));
+const Bank = lazy(() => import("@/pages/Bank"));
+const Palace = lazy(() => import("@/pages/Palace"));
+const Secret = lazy(() => import("@/pages/Secret"));
+const Passport = lazy(() => import("@/pages/Passport"));
+const Arcade = lazy(() => import("@/pages/Arcade"));
+const Wheel = lazy(() => import("@/pages/Wheel"));
+const TicTacToe = lazy(() => import("@/pages/TicTacToe"));
+const RPS = lazy(() => import("@/pages/RPS"));
+const Stream = lazy(() => import("@/pages/Stream"));
+const Stocks = lazy(() => import("@/pages/Stocks"));
+const Inbox = lazy(() => import("@/pages/Inbox"));
+const AdminBahamas = lazy(() => import("@/pages/AdminBahamas"));
+const Vault = lazy(() => import("@/pages/Vault"));
+const Banned = lazy(() => import("@/pages/Banned"));
+const Exile = lazy(() => import("@/pages/Exile"));
+const Citizenship = lazy(() => import("@/pages/Citizenship"));
+const News = lazy(() => import("@/pages/News"));
+const Police = lazy(() => import("@/pages/Police"));
+const PostOffice = lazy(() => import("@/pages/PostOffice"));
 
 import { CustomCursor } from "@/components/CustomCursor";
 import { CRTOverlay } from "@/components/CRTOverlay";
@@ -39,38 +44,59 @@ import { NattounComments } from "@/components/NattounComments";
 import { AutoReload } from "@/components/AutoReload";
 import { ActivityTracker } from "@/components/ActivityTracker";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Avoid spamming refetches on focus / mount; keep the UI smooth.
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 30_000,
+    },
+  },
+});
+
+function PageFallback() {
+  return (
+    <div className="min-h-[60vh] w-full flex items-center justify-center">
+      <div className="text-primary font-mono uppercase tracking-widest text-xs animate-pulse">
+        loading…
+      </div>
+    </div>
+  );
+}
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/world" component={World} />
-      <Route path="/court" component={Court} />
-      <Route path="/museum" component={Museum} />
-      <Route path="/library" component={Library} />
-      <Route path="/bank" component={Bank} />
-      <Route path="/palace" component={Palace} />
-      <Route path="/secret" component={Secret} />
-      <Route path="/passport" component={Passport} />
-      <Route path="/arcade" component={Arcade} />
-      <Route path="/wheel" component={Wheel} />
-      <Route path="/tictactoe" component={TicTacToe} />
-      <Route path="/rps" component={RPS} />
-      <Route path="/stream" component={Stream} />
-      <Route path="/stocks" component={Stocks} />
-      <Route path="/inbox" component={Inbox} />
-      <Route path="/adminbahamas" component={AdminBahamas} />
-      <Route path="/AdminBahamas" component={AdminBahamas} />
-      <Route path="/vault" component={Vault} />
-      <Route path="/banned" component={Banned} />
-      <Route path="/exile" component={Exile} />
-      <Route path="/citizenship" component={Citizenship} />
-      <Route path="/police" component={Police} />
-      <Route path="/news" component={News} />
-      <Route path="/postoffice" component={PostOffice} />
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={<PageFallback />}>
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/world" component={World} />
+        <Route path="/court" component={Court} />
+        <Route path="/museum" component={Museum} />
+        <Route path="/library" component={Library} />
+        <Route path="/bank" component={Bank} />
+        <Route path="/palace" component={Palace} />
+        <Route path="/secret" component={Secret} />
+        <Route path="/passport" component={Passport} />
+        <Route path="/arcade" component={Arcade} />
+        <Route path="/wheel" component={Wheel} />
+        <Route path="/tictactoe" component={TicTacToe} />
+        <Route path="/rps" component={RPS} />
+        <Route path="/stream" component={Stream} />
+        <Route path="/stocks" component={Stocks} />
+        <Route path="/inbox" component={Inbox} />
+        <Route path="/adminbahamas" component={AdminBahamas} />
+        <Route path="/AdminBahamas" component={AdminBahamas} />
+        <Route path="/vault" component={Vault} />
+        <Route path="/banned" component={Banned} />
+        <Route path="/exile" component={Exile} />
+        <Route path="/citizenship" component={Citizenship} />
+        <Route path="/police" component={Police} />
+        <Route path="/news" component={News} />
+        <Route path="/postoffice" component={PostOffice} />
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 

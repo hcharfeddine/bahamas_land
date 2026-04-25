@@ -59,4 +59,6 @@ export const useMuseum = () => useLocalStorage<MuseumItem[]>("ogs_museum", []);
 
 export const useSecretVisitors = () => useLocalStorage<number>("ogs_secret_visitors", 0);
 export const useApplause = () => useLocalStorage<number>("ogs_applause", 0);
+export const useTomatoes = () => useLocalStorage<number>("ogs_tomatoes", 0);
+export const useBoos = () => useLocalStorage<number>("ogs_boos", 0);
 export const useFirstVisit = () => useLocalStorage<number>("ogs_first_visit", Date.now());
