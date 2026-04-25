@@ -37,7 +37,7 @@ export function CustomCursor() {
 
   return (
     <motion.div
-      className="fixed top-0 left-0 pointer-events-none z-[100]"
+      className="fixed top-0 left-0 pointer-events-none z-[9999]"
       animate={{
         x: mousePos.x - 12,
         y: mousePos.y - 12,
