@@ -17,7 +17,7 @@ const LYRICS: Line[] = [
   { t: 6,  d: 3, text: "Where the NC flows but never out…" },
   { t: 9,  d: 3, text: "And the baskoutas fall like rain…" },
   { t: 12, d: 3, text: "Glory, glory to PRESIDENT NATTOUN ✦" },
-  { t: 15, d: 3, text: "Glory, glory to the cat (honorary citizen)" },
+  { t: 15, d: 3, text: "Glory, glory to PRESIDENT NATTOUN" },
   { t: 18, d: 3, text: "Long may we ignore all decrees we don't like…" },
   { t: 21, d: 3, text: "Long may The Dog sleep upon our laws…" },
   { t: 24, d: 3, text: "BAHAMAS LAND, BAHAMAS LAND ✦" },
