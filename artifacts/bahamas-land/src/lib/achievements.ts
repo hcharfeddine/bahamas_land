@@ -154,7 +154,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "catjam", name: "CAT JAM", hint: "When the cat vibes, the OGs vibe. Type the meme.", emoji: "🐈", difficulty: "easy" },
   { id: "cena", name: "AND HIS NAME IS…", hint: "Trumpets in your ears. Spell the bald champion.", emoji: "🎺", difficulty: "medium" },
   { id: "ggez", name: "GG EZ", hint: "The two letters that get you reported in any lobby.", emoji: "🎮", difficulty: "easy" },
-  { id: "drake", name: "Hotline Bling", hint: "Hands up, hands down. Spell the 6God.", emoji: "📞", difficulty: "medium" },
+  { id: "drake", name: "Hotline Bling", hint: "Certified", emoji: "📞", difficulty: "medium" },
   { id: "rickroll", name: "Rickrolled Yourself", hint: "Never gonna give it up. Type the surname.", emoji: "🕺", difficulty: "easy" },
   { id: "KEKW", name: "KEKW", hint: "The biggest Kick laugh emote. Type it.", emoji: "🤣", difficulty: "easy" },
   { id: "stonecold", name: "WHAT? WHAT?", hint: "Glass shatters. Beer cans fly. Spell the Texas Rattlesnake.", emoji: "🍺", difficulty: "medium" },
