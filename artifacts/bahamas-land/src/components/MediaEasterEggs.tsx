@@ -2,6 +2,23 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { unlock } from "@/lib/achievements";
 
+// Real meme GIFs (downloaded & bundled). Each one matches its egg subject.
+import gifCatJam from "@assets/meme_gifs/catjam.gif";
+import gifKratos from "@assets/meme_gifs/kratos.gif";
+import gifCena from "@assets/meme_gifs/cena.gif";
+import gifStoneCold from "@assets/meme_gifs/stonecold.gif";
+import gifDrake from "@assets/meme_gifs/drake.gif";
+import gifKhamsa from "@assets/meme_gifs/khamsa.gif";
+import gifSiuuu from "@assets/meme_gifs/siuuu.gif";
+import gifRickroll from "@assets/meme_gifs/rickroll.gif";
+import gifKdot from "@assets/meme_gifs/kdot.gif";
+import gifMadrid from "@assets/meme_gifs/madrid.gif";
+import gifFaddina from "@assets/meme_gifs/faddina.gif";
+import gifGgEz from "@assets/meme_gifs/ggez.gif";
+import gifOmegalul from "@assets/meme_gifs/omegalul.gif";
+import gifBarcaTraitor from "@assets/meme_gifs/treasoncule.gif";
+import gifBaskouta from "@assets/meme_gifs/baskouta.gif";
+
 type EggKey =
   | "kdot"
   | "siuuu"
@@ -322,6 +339,114 @@ function FlyingEmoji({
   );
 }
 
+/**
+ * Flying real GIFs — same swarm pattern as FlyingEmoji but renders animated
+ * meme reaction GIFs instead of emoji symbols. Pass any number of GIF URLs
+ * (and optional emoji fallbacks) to compose a chaotic reaction storm.
+ */
+function FlyingGif({
+  gifs,
+  count = 12,
+  px = 96,
+  glow,
+  emojis,
+}: {
+  gifs: string[];
+  count?: number;
+  px?: number;
+  glow?: string;
+  emojis?: string[];
+}) {
+  return (
+    <>
+      {Array.from({ length: count }).map((_, i) => {
+        const useEmoji = emojis && emojis.length > 0 && i % 3 === 0;
+        const src = gifs[i % gifs.length];
+        return (
+          <motion.div
+            key={i}
+            initial={{ y: -160, x: `${(i * 47) % 100}vw`, rotate: 0, opacity: 0 }}
+            animate={{ y: "115vh", rotate: i % 2 ? 540 : -540, opacity: [0, 1, 1, 0] }}
+            transition={{
+              duration: 5 + (i % 5),
+              repeat: Infinity,
+              delay: i * 0.22,
+              ease: "linear",
+            }}
+            className="absolute pointer-events-none"
+            style={{
+              filter: glow ? `drop-shadow(0 0 14px ${glow})` : undefined,
+            }}
+          >
+            {useEmoji ? (
+              <span style={{ fontSize: px * 0.7 }}>
+                {emojis![i % emojis!.length]}
+              </span>
+            ) : (
+              <img
+                src={src}
+                alt=""
+                draggable={false}
+                style={{
+                  width: px,
+                  height: px,
+                  objectFit: "cover",
+                  borderRadius: 8,
+                  border: "2px solid rgba(255,255,255,0.55)",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.45)",
+                }}
+              />
+            )}
+          </motion.div>
+        );
+      })}
+    </>
+  );
+}
+
+/**
+ * A single, BIG centerpiece GIF used as a hero element in an egg overlay.
+ * Sits behind the headline text but in front of the background.
+ */
+function HeroGif({
+  src,
+  size = "min(60vmin, 540px)",
+  glow,
+  rotate = false,
+  alt = "",
+}: {
+  src: string;
+  size?: string;
+  glow?: string;
+  rotate?: boolean;
+  alt?: string;
+}) {
+  return (
+    <motion.img
+      src={src}
+      alt={alt}
+      draggable={false}
+      animate={
+        rotate
+          ? { rotate: [-4, 4, -4], scale: [1, 1.04, 1] }
+          : { scale: [1, 1.04, 1] }
+      }
+      transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+      className="absolute pointer-events-none object-contain"
+      style={{
+        width: size,
+        height: size,
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        filter: glow ? `drop-shadow(0 0 30px ${glow})` : undefined,
+        opacity: 0.85,
+        borderRadius: 14,
+      }}
+    />
+  );
+}
+
 // ============================================================
 // 1) KDot — Kendrick "Not Like Us" with REAL YT music
 // ============================================================
@@ -334,7 +459,8 @@ function KDotOverlay({ onClose }: { onClose: () => void }) {
         className="absolute inset-0"
       />
       <div className="absolute inset-0 bg-black/30" />
-      <FlyingEmoji symbols={["👑", "🎤", "🦉"]} count={20} glow="#fff" />
+      <HeroGif src={gifKdot} size="min(55vmin, 480px)" glow="#dc2626" alt="kendrick" />
+      <FlyingGif gifs={[gifKdot]} count={10} px={110} glow="#fff" emojis={["👑", "🎤", "🦉"]} />
       <div className="relative z-10 text-center px-6">
         <motion.div
           animate={{ scale: [1, 1.08, 1], rotate: [-2, 2, -2] }}
@@ -373,6 +499,8 @@ function SiuOverlay({ onClose }: { onClose: () => void }) {
       testId="egg-siu"
       background="linear-gradient(135deg, #006400 0%, #006400 35%, #ffd700 35%, #ffd700 50%, #ce1126 50%, #ce1126 100%)"
     >
+      <HeroGif src={gifSiuuu} size="min(55vmin, 460px)" glow="#fff" alt="ronaldo" />
+      <FlyingGif gifs={[gifSiuuu]} count={10} px={110} glow="#fff" emojis={["🇵🇹", "⚽", "🏆"]} />
       <motion.div
         animate={{ y: [40, -120, 40], rotate: [-8, 4, -8] }}
         transition={{ duration: 1.1, repeat: Infinity, ease: "easeOut" }}
@@ -408,7 +536,8 @@ function KratosOverlay({ onClose }: { onClose: () => void }) {
       testId="egg-kratos"
       background="radial-gradient(ellipse at center, #5b0000 0%, #1a0000 60%, #000 100%)"
     >
-      <FlyingEmoji symbols={["🪓", "⚔️"]} count={14} size="text-6xl" glow="#ff2d2d" />
+      <HeroGif src={gifKratos} size="min(55vmin, 480px)" glow="#ff2d2d" alt="kratos" />
+      <FlyingGif gifs={[gifKratos]} count={10} px={110} glow="#ff2d2d" emojis={["🪓", "⚔️"]} />
       <div className="relative z-10 text-center px-6">
         <motion.div
           initial={{ scale: 8, opacity: 0, rotate: -10 }}
@@ -448,7 +577,8 @@ function MadridOverlay({ onClose }: { onClose: () => void }) {
       testId="egg-madrid"
       background="radial-gradient(ellipse at center, #ffffff 0%, #f0e6c8 50%, #d4af37 100%)"
     >
-      <FlyingEmoji symbols={["👑", "⚽", "🏆", "🤍"]} count={22} glow="#d4af37" />
+      <HeroGif src={gifMadrid} size="min(55vmin, 460px)" glow="#d4af37" alt="madrid" />
+      <FlyingGif gifs={[gifMadrid]} count={10} px={110} glow="#d4af37" emojis={["👑", "⚽", "🏆", "🤍"]} />
       <div className="relative z-10 text-center px-6">
         <motion.div
           animate={{ scale: [1, 1.06, 1] }}
@@ -499,6 +629,8 @@ function BarcaOverlay({ onClose }: { onClose: () => void }) {
         style={{ background: "repeating-linear-gradient(0deg, #8b0000 0 4px, #000 4px 8px)" }}
       />
       <div className="absolute inset-0 bg-black/55" />
+      <HeroGif src={gifBarcaTraitor} size="min(50vmin, 420px)" glow="#ff0000" alt="traitor" />
+      <FlyingGif gifs={[gifBarcaTraitor]} count={8} px={100} glow="#ff0000" emojis={["🚫", "🔻"]} />
       <div className="relative z-10 text-center px-6">
         <div className="text-6xl md:text-8xl mb-4">🚫</div>
         <div
@@ -550,7 +682,8 @@ function FaddinaOverlay({ onClose }: { onClose: () => void }) {
           <div className="text-white text-9xl md:text-[14rem]">☪</div>
         </div>
       </motion.div>
-      <FlyingEmoji symbols={["🇹🇳", "🎤", "🔥", "🪕"]} count={24} glow="#e70013" />
+      <HeroGif src={gifFaddina} size="min(45vmin, 380px)" glow="#e70013" alt="tunisia" />
+      <FlyingGif gifs={[gifFaddina]} count={12} px={100} glow="#e70013" emojis={["🇹🇳", "🎤", "🔥", "🪕"]} />
       <div className="relative z-10 text-center px-6">
         <motion.div
           animate={{ y: [0, -14, 0], rotate: [-2, 2, -2] }}
@@ -613,18 +746,25 @@ function CatJamOverlay({ onClose }: { onClose: () => void }) {
         transition={{ duration: 1.2, repeat: Infinity }}
         className="absolute inset-0"
       />
-      <FlyingEmoji symbols={["🎵", "🎶", "🎧", "🎤"]} count={26} glow="#ff00ff" />
+      <FlyingGif gifs={[gifCatJam]} count={14} px={120} glow="#ff00ff" emojis={["🎵", "🎶", "🎧", "🎤"]} />
       <div className="relative z-10 text-center">
-        <motion.div
-          animate={{ rotate: [-15, 15, -15], y: [0, -30, 0] }}
+        <motion.img
+          src={gifCatJam}
+          alt="cat jam"
+          draggable={false}
+          animate={{ rotate: [-10, 10, -10], y: [0, -22, 0] }}
           transition={{ duration: 0.45, repeat: Infinity, ease: "easeInOut" }}
           style={{
-            fontSize: "clamp(10rem, 38vw, 28rem)",
+            width: "min(60vmin, 480px)",
+            height: "min(60vmin, 480px)",
+            objectFit: "cover",
+            borderRadius: 22,
+            border: "6px solid #fff",
             filter: "drop-shadow(0 0 30px #ff00ff)",
+            margin: "0 auto",
+            display: "block",
           }}
-        >
-          🐈
-        </motion.div>
+        />
         <motion.div
           animate={{ scale: [1, 1.1, 1] }}
           transition={{ duration: 0.5, repeat: Infinity }}
@@ -657,7 +797,8 @@ function CenaOverlay({ onClose }: { onClose: () => void }) {
       testId="egg-cena"
       background="linear-gradient(180deg, #001f3f 0%, #b22234 50%, #f4d03f 100%)"
     >
-      <FlyingEmoji symbols={["🎺", "🇺🇸", "✋"]} count={20} size="text-6xl" glow="#fff" />
+      <HeroGif src={gifCena} size="min(55vmin, 460px)" glow="#f4d03f" alt="cena" />
+      <FlyingGif gifs={[gifCena]} count={10} px={110} glow="#fff" emojis={["🎺", "🇺🇸", "✋"]} />
       <div className="relative z-10 text-center px-6">
         <motion.div
           initial={{ scale: 0.2, opacity: 0 }}
@@ -717,7 +858,8 @@ function GgEzOverlay({ onClose }: { onClose: () => void }) {
         className="absolute inset-0"
         style={{ background: "repeating-linear-gradient(45deg, rgba(255,0,0,0.1) 0 12px, transparent 12px 24px)" }}
       />
-      <FlyingEmoji symbols={["🎮", "💥", "🔥", "💢"]} count={22} size="text-5xl" glow="#ff3030" />
+      <HeroGif src={gifGgEz} size="min(55vmin, 480px)" glow="#ff3030" alt="rage" />
+      <FlyingGif gifs={[gifGgEz]} count={10} px={110} glow="#ff3030" emojis={["🎮", "💥", "🔥", "💢"]} />
       <div className="relative z-10 text-center px-6">
         <motion.div
           animate={{ rotate: [-3, 3, -3], scale: [1, 1.05, 1] }}
@@ -757,19 +899,26 @@ function DrakeOverlay({ onClose }: { onClose: () => void }) {
       testId="egg-drake"
       background="linear-gradient(180deg, #ff6ad5 0%, #c779d0 50%, #4bc0c8 100%)"
     >
-      <FlyingEmoji symbols={["📞", "🎵", "💃", "🦉"]} count={18} glow="#fff" />
+      <FlyingGif gifs={[gifDrake]} count={9} px={120} glow="#fff" emojis={["📞", "🎵", "💃", "🦉"]} />
       <div className="relative z-10 text-center px-6">
-        {/* "Drake silhouette" — animated waving hand */}
-        <motion.div
-          animate={{ rotate: [-25, 25, -25], y: [0, -10, 0] }}
-          transition={{ duration: 0.6, repeat: Infinity }}
+        {/* Drake hotline-bling GIF as the centerpiece */}
+        <motion.img
+          src={gifDrake}
+          alt="drake"
+          draggable={false}
+          animate={{ rotate: [-6, 6, -6], y: [0, -10, 0] }}
+          transition={{ duration: 0.7, repeat: Infinity }}
           style={{
-            fontSize: "clamp(8rem, 28vw, 22rem)",
+            width: "min(55vmin, 460px)",
+            height: "min(55vmin, 460px)",
+            objectFit: "cover",
+            borderRadius: 22,
+            border: "6px solid #fff",
             filter: "drop-shadow(0 0 25px #fff)",
+            margin: "0 auto",
+            display: "block",
           }}
-        >
-          👋
-        </motion.div>
+        />
         <motion.div
           animate={{ scale: [1, 1.07, 1] }}
           transition={{ duration: 0.4, repeat: Infinity }}
@@ -801,15 +950,25 @@ function RickrollOverlay({ onClose }: { onClose: () => void }) {
       testId="egg-rickroll"
       background="radial-gradient(ellipse at center, #1a1a3a 0%, #000 100%)"
     >
-      <FlyingEmoji symbols={["🕺", "🎤", "❤️"]} count={16} glow="#ff00ff" />
+      <FlyingGif gifs={[gifRickroll]} count={9} px={120} glow="#ff00ff" emojis={["🕺", "🎤", "❤️"]} />
       <div className="relative z-10 text-center px-6">
-        <motion.div
-          animate={{ rotate: [-10, 10, -10] }}
+        <motion.img
+          src={gifRickroll}
+          alt="rick astley"
+          draggable={false}
+          animate={{ rotate: [-4, 4, -4] }}
           transition={{ duration: 0.5, repeat: Infinity }}
-          style={{ fontSize: "clamp(7rem, 22vw, 18rem)", filter: "drop-shadow(0 0 25px #fff)" }}
-        >
-          🕺
-        </motion.div>
+          style={{
+            width: "min(55vmin, 460px)",
+            height: "min(55vmin, 460px)",
+            objectFit: "cover",
+            borderRadius: 22,
+            border: "6px solid #ff00ff",
+            filter: "drop-shadow(0 0 25px #fff)",
+            margin: "0 auto",
+            display: "block",
+          }}
+        />
         <motion.div
           animate={{ scale: [1, 1.05, 1] }}
           transition={{ duration: 0.6, repeat: Infinity }}
@@ -849,15 +1008,23 @@ function KhamsaOverlay({ onClose }: { onClose: () => void }) {
       testId="egg-khamsa"
       background="radial-gradient(ellipse at center, #1a3a8a 0%, #050514 100%)"
     >
-      <FlyingEmoji symbols={["🧿", "✨", "🌙"]} count={22} glow="#5599ff" />
+      <FlyingGif gifs={[gifKhamsa]} count={14} px={100} glow="#5599ff" emojis={["🧿", "✨", "🌙"]} />
       <div className="relative z-10 text-center px-6">
-        <motion.div
+        <motion.img
+          src={gifKhamsa}
+          alt="evil eye"
+          draggable={false}
           animate={{ rotate: [0, 360], scale: [1, 1.1, 1] }}
           transition={{ rotate: { duration: 3, repeat: Infinity, ease: "linear" }, scale: { duration: 0.6, repeat: Infinity } }}
-          style={{ fontSize: "clamp(10rem, 35vw, 26rem)", filter: "drop-shadow(0 0 30px gold)" }}
-        >
-          🖐
-        </motion.div>
+          style={{
+            width: "min(50vmin, 380px)",
+            height: "min(50vmin, 380px)",
+            objectFit: "contain",
+            filter: "drop-shadow(0 0 30px gold)",
+            margin: "0 auto",
+            display: "block",
+          }}
+        />
         <motion.div
           animate={{ scale: [1, 1.07, 1] }}
           transition={{ duration: 0.5, repeat: Infinity }}
@@ -889,7 +1056,8 @@ function OmegaLulOverlay({ onClose }: { onClose: () => void }) {
       testId="egg-omegalul"
       background="linear-gradient(135deg, #4a1d96 0%, #9333ea 50%, #4a1d96 100%)"
     >
-      {Array.from({ length: 36 }).map((_, i) => (
+      <HeroGif src={gifOmegalul} size="min(55vmin, 460px)" glow="#9333ea" alt="lol" />
+      {Array.from({ length: 24 }).map((_, i) => (
         <motion.div
           key={i}
           initial={{
@@ -908,9 +1076,25 @@ function OmegaLulOverlay({ onClose }: { onClose: () => void }) {
             delay: (i * 0.05) % 1.5,
           }}
           className="absolute pointer-events-none"
-          style={{ fontSize: "clamp(2rem, 6vw, 5rem)" }}
         >
-          {i % 3 === 0 ? "🤣" : i % 3 === 1 ? "😂" : "💀"}
+          {i % 4 === 0 ? (
+            <img
+              src={gifOmegalul}
+              alt=""
+              style={{
+                width: 90,
+                height: 90,
+                objectFit: "cover",
+                borderRadius: 8,
+                border: "2px solid #fff",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.45)",
+              }}
+            />
+          ) : (
+            <span style={{ fontSize: "clamp(2rem, 6vw, 5rem)" }}>
+              {i % 3 === 0 ? "🤣" : i % 3 === 1 ? "😂" : "💀"}
+            </span>
+          )}
         </motion.div>
       ))}
       <div className="relative z-10 text-center px-6">
@@ -970,7 +1154,8 @@ function StoneColdOverlay({ onClose }: { onClose: () => void }) {
           />
         );
       })}
-      <FlyingEmoji symbols={["🍺", "🤘", "🐍"]} count={16} glow="#fff" />
+      <HeroGif src={gifStoneCold} size="min(55vmin, 460px)" glow="#fff" alt="stone cold" />
+      <FlyingGif gifs={[gifStoneCold]} count={9} px={110} glow="#fff" emojis={["🍺", "🤘", "🐍"]} />
       <div className="relative z-10 text-center px-6">
         <motion.div
           animate={{ scale: [1, 1.08, 1] }}
@@ -1017,29 +1202,25 @@ function BaskoutaOverlay({ onClose }: { onClose: () => void }) {
       testId="egg-baskouta"
       background="radial-gradient(ellipse at center, #d4a574 0%, #4a2511 100%)"
     >
-      {Array.from({ length: 28 }).map((_, i) => (
-        <motion.div
-          key={i}
-          initial={{ y: -100, x: `${(i * 41) % 100}vw`, rotate: 0, opacity: 0 }}
-          animate={{ y: "115vh", rotate: 540, opacity: [0, 1, 1, 0.5] }}
-          transition={{ duration: 3 + (i % 4), repeat: Infinity, delay: i * 0.12, ease: "linear" }}
-          className="absolute pointer-events-none"
-          style={{ fontSize: "clamp(2rem, 5vw, 4rem)" }}
-        >
-          {i % 2 === 0 ? "🍪" : "🥖"}
-        </motion.div>
-      ))}
+      <FlyingGif gifs={[gifBaskouta]} count={12} px={100} glow="#ffd700" emojis={["🍪", "🥖"]} />
       <div className="relative z-10 text-center px-6">
-        <motion.div
-          animate={{ rotate: [-20, 20, -20], scale: [1, 1.15, 1] }}
+        <motion.img
+          src={gifBaskouta}
+          alt="baskouta"
+          draggable={false}
+          animate={{ rotate: [-8, 8, -8], scale: [1, 1.06, 1] }}
           transition={{ duration: 0.5, repeat: Infinity }}
           style={{
-            fontSize: "clamp(10rem, 36vw, 28rem)",
+            width: "min(55vmin, 460px)",
+            height: "min(55vmin, 460px)",
+            objectFit: "cover",
+            borderRadius: 22,
+            border: "6px solid #ffd700",
             filter: "drop-shadow(0 0 25px #ffd700)",
+            margin: "0 auto",
+            display: "block",
           }}
-        >
-          🍪
-        </motion.div>
+        />
         <motion.div
           animate={{ y: [0, -10, 0] }}
           transition={{ duration: 0.4, repeat: Infinity }}

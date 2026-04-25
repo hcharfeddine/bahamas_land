@@ -1,146 +1,103 @@
-import { useEffect, useState, type ComponentType } from "react";
+import { Switch, Route, Router as WouterRouter } from "wouter";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import NotFound from "@/pages/not-found";
 
-import { modules as discoveredModules } from "./.generated/mockup-components";
+import Home from "@/pages/Home";
+import World from "@/pages/World";
+import Court from "@/pages/Court";
+import Museum from "@/pages/Museum";
+import Library from "@/pages/Library";
+import Bank from "@/pages/Bank";
+import Palace from "@/pages/Palace";
+import Secret from "@/pages/Secret";
+import Passport from "@/pages/Passport";
+import Arcade from "@/pages/Arcade";
+import Wheel from "@/pages/Wheel";
+import TicTacToe from "@/pages/TicTacToe";
+import RPS from "@/pages/RPS";
+import Stream from "@/pages/Stream";
+import Stocks from "@/pages/Stocks";
+import Inbox from "@/pages/Inbox";
+import AdminBahamas from "@/pages/AdminBahamas";
+import Vault from "@/pages/Vault";
+import Banned from "@/pages/Banned";
+import Exile from "@/pages/Exile";
+import Citizenship from "@/pages/Citizenship";
+import News from "@/pages/News";
+import Police from "@/pages/Police";
+import PostOffice from "@/pages/PostOffice";
 
-type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
+import { CustomCursor } from "@/components/CustomCursor";
+import { CRTOverlay } from "@/components/CRTOverlay";
+import { OGCheat } from "@/components/OGCheat";
+import { EasterEggs } from "@/components/EasterEggs";
+import { MediaEasterEggs } from "@/components/MediaEasterEggs";
+import { ConsoleEggs } from "@/components/ConsoleEggs";
+import { NattounComments } from "@/components/NattounComments";
+import { IdleNotifications } from "@/components/IdleNotifications";
+import { PresidentBroadcast } from "@/components/PresidentBroadcast";
+import { AutoReload } from "@/components/AutoReload";
+import { ActivityTracker } from "@/components/ActivityTracker";
 
-function _resolveComponent(
-  mod: Record<string, unknown>,
-  name: string,
-): ComponentType | undefined {
-  const fns = Object.values(mod).filter(
-    (v) => typeof v === "function",
-  ) as ComponentType[];
+const queryClient = new QueryClient();
+
+function Router() {
   return (
-    (mod.default as ComponentType) ||
-    (mod.Preview as ComponentType) ||
-    (mod[name] as ComponentType) ||
-    fns[fns.length - 1]
+    <Switch>
+      <Route path="/" component={Home} />
+      <Route path="/world" component={World} />
+      <Route path="/court" component={Court} />
+      <Route path="/museum" component={Museum} />
+      <Route path="/library" component={Library} />
+      <Route path="/bank" component={Bank} />
+      <Route path="/palace" component={Palace} />
+      <Route path="/secret" component={Secret} />
+      <Route path="/passport" component={Passport} />
+      <Route path="/arcade" component={Arcade} />
+      <Route path="/wheel" component={Wheel} />
+      <Route path="/tictactoe" component={TicTacToe} />
+      <Route path="/rps" component={RPS} />
+      <Route path="/stream" component={Stream} />
+      <Route path="/stocks" component={Stocks} />
+      <Route path="/inbox" component={Inbox} />
+      <Route path="/adminbahamas" component={AdminBahamas} />
+      <Route path="/AdminBahamas" component={AdminBahamas} />
+      <Route path="/vault" component={Vault} />
+      <Route path="/banned" component={Banned} />
+      <Route path="/exile" component={Exile} />
+      <Route path="/citizenship" component={Citizenship} />
+      <Route path="/police" component={Police} />
+      <Route path="/news" component={News} />
+      <Route path="/postoffice" component={PostOffice} />
+      <Route component={NotFound} />
+    </Switch>
   );
-}
-
-function PreviewRenderer({
-  componentPath,
-  modules,
-}: {
-  componentPath: string;
-  modules: ModuleMap;
-}) {
-  const [Component, setComponent] = useState<ComponentType | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    setComponent(null);
-    setError(null);
-
-    async function loadComponent(): Promise<void> {
-      const key = `./components/mockups/${componentPath}.tsx`;
-      const loader = modules[key];
-      if (!loader) {
-        setError(`No component found at ${componentPath}.tsx`);
-        return;
-      }
-
-      try {
-        const mod = await loader();
-        if (cancelled) {
-          return;
-        }
-        const name = componentPath.split("/").pop()!;
-        const comp = _resolveComponent(mod, name);
-        if (!comp) {
-          setError(
-            `No exported React component found in ${componentPath}.tsx\n\nMake sure the file has at least one exported function component.`,
-          );
-          return;
-        }
-        setComponent(() => comp);
-      } catch (e) {
-        if (cancelled) {
-          return;
-        }
-
-        const message = e instanceof Error ? e.message : String(e);
-        setError(`Failed to load preview.\n${message}`);
-      }
-    }
-
-    void loadComponent();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [componentPath, modules]);
-
-  if (error) {
-    return (
-      <pre style={{ color: "red", padding: "2rem", fontFamily: "system-ui" }}>
-        {error}
-      </pre>
-    );
-  }
-
-  if (!Component) return null;
-
-  return <Component />;
-}
-
-function getBasePath(): string {
-  return import.meta.env.BASE_URL.replace(/\/$/, "");
-}
-
-function getPreviewExamplePath(): string {
-  const basePath = getBasePath();
-  return `${basePath}/preview/ComponentName`;
-}
-
-function Gallery() {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
-      <div className="text-center max-w-md">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-3">
-          Component Preview Server
-        </h1>
-        <p className="text-gray-500 mb-4">
-          This server renders individual components for the workspace canvas.
-        </p>
-        <p className="text-sm text-gray-400">
-          Access component previews at{" "}
-          <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
-            {getPreviewExamplePath()}
-          </code>
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function getPreviewPath(): string | null {
-  const basePath = getBasePath();
-  const { pathname } = window.location;
-  const local =
-    basePath && pathname.startsWith(basePath)
-      ? pathname.slice(basePath.length) || "/"
-      : pathname;
-  const match = local.match(/^\/preview\/(.+)$/);
-  return match ? match[1] : null;
 }
 
 function App() {
-  const previewPath = getPreviewPath();
-
-  if (previewPath) {
-    return (
-      <PreviewRenderer
-        componentPath={previewPath}
-        modules={discoveredModules}
-      />
-    );
-  }
-
-  return <Gallery />;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <CustomCursor />
+          <CRTOverlay />
+          <OGCheat />
+          <EasterEggs />
+          <MediaEasterEggs />
+          <ConsoleEggs />
+          <NattounComments />
+          <IdleNotifications />
+          <PresidentBroadcast />
+          <AutoReload />
+          <ActivityTracker />
+          <Router />
+        </WouterRouter>
+        <Toaster />
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
 }
 
 export default App;

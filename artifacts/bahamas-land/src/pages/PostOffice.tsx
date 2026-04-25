@@ -80,6 +80,97 @@ function randomTarget(): TargetId {
 }
 
 /* ------------------------------------------------------------------ */
+/*  TROLLING — sarcastic flavor lines for delivery / idle / banter    */
+/* ------------------------------------------------------------------ */
+
+const PICKUP_LINES: Record<TargetId, string[]> = {
+  nattoun: [
+    "📨 TO: PRESIDENT NATTOUN — fan mail (probably a lawsuit)",
+    "📨 TO: PALACE — 'why did you ban me' (47th time)",
+    "📨 TO: NATTOUN — bone delivery. dog will allow it.",
+    "📨 TO: PALACE — anonymous love letter to the dog",
+    "📨 TO: NATTOUN — tax audit (LMAO good luck)",
+    "📨 TO: PALACE — return of seized passport (DENIED)",
+  ],
+  m3kky: [
+    "📨 TO: M3KKY — viewer DM (please reply, it's been 4 years)",
+    "📨 TO: STUDIO — kick stream copyright strike",
+    "📨 TO: M3KKY — donation receipt: 0.50 NC",
+    "📨 TO: STUDIO — 'do faddina again pls' x14",
+    "📨 TO: M3KKY — your mom called, again",
+    "📨 TO: STUDIO — fan art (it's awful)",
+  ],
+  bin: [
+    "📨 TO: ??? — addressed to YOUR EX (burn it)",
+    "📨 TO: ??? — chain letter from 2007",
+    "📨 TO: ??? — tax man. bin it. immediately.",
+    "📨 TO: ??? — unpaid parking ticket. dump.",
+    "📨 TO: ??? — wedding invite from someone you don't know",
+    "📨 TO: ??? — spam: 'YOU WON 1,000,000 NC!!!'",
+  ],
+};
+
+const SUCCESS_LINES = [
+  "FINE. ACCEPTABLE.",
+  "ABOUT TIME.",
+  "THE DOG NODS, BARELY.",
+  "M3KKY DIDN'T RAGE. WIN.",
+  "BARELY ON TIME.",
+  "CITIZEN DOES THE BARE MINIMUM.",
+  "+1 SOCIAL CREDIT (you needed it)",
+];
+
+const COMBO_HYPE = [
+  "STREAK IS COOKING",
+  "DOG IS IMPRESSED??",
+  "M3KKY MIGHT FOLLOW BACK",
+  "PROMOTION INCOMING",
+  "MID-LEVEL EMPLOYEE STATUS",
+];
+
+const WRONG_LINES = [
+  "WRONG DOOR. EMBARRASSING.",
+  "THE DOG IS DISAPPOINTED.",
+  "M3KKY LAUGHED ON STREAM.",
+  "DEMOTION PENDING.",
+  "HR HAS BEEN NOTIFIED.",
+  "PRESIDENT NATTOUN UNFOLLOWED YOU.",
+];
+
+const COMBO_BREAK_LINES = [
+  "STREAK BROKEN. SHAMEFUL.",
+  "ALL THAT HARD WORK. GONE.",
+  "THE PALACE WILL HEAR ABOUT THIS.",
+];
+
+const DROP_LINES = [
+  "DROPPED THE LETTER. CLASSIC.",
+  "BUTTERFINGERS. -2 NC.",
+  "WHY DID YOU DO THAT.",
+];
+
+const IDLE_TAUNTS = [
+  "🐕 NATTOUN: bark. bark. (move.)",
+  "📺 M3KKY: 'this guy AFK on stream lol'",
+  "👮 INSPECTOR: 'are you on break? you don't get a break.'",
+  "🚨 MAILROOM ALERT: 'WHY ARE YOU JUST STANDING THERE'",
+  "📦 BACKLOG: +9999 letters. The dog stares.",
+];
+
+const NPC_BANTER = [
+  "🐕 NATTOUN: 'where is my mail. WHERE.'",
+  "📺 M3KKY: 'chat is this the new mailman? he's MID'",
+  "👑 NATTOUN: 'i could deliver these faster. and i'm a dog.'",
+  "📺 M3KKY: 'bro pick up the pace, my donations need their burn letters'",
+  "🐶 NATTOUN: 'one more wrong delivery and you're EXILED'",
+  "📺 M3KKY: '...he's still walking. WHY IS HE STILL WALKING'",
+];
+
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/* ------------------------------------------------------------------ */
 /*  Hand-drawn / sketchy material helpers                             */
 /* ------------------------------------------------------------------ */
 
@@ -968,6 +1059,15 @@ export default function PostOffice() {
   const playerRef = useRef<PlayerHandle | null>(null);
   const finalizedRef = useRef(false);
   const [carryingTarget, setCarryingTarget] = useState<TargetId | null>(null);
+  const [pickupLine, setPickupLine] = useState<string | null>(null);
+  const [banter, setBanter] = useState<string | null>(null);
+  const lastMoveRef = useRef<number>(Date.now());
+  const idleTauntedRef = useRef<number>(0);
+
+  const showBanter = (text: string, ms = 3500) => {
+    setBanter(text);
+    window.setTimeout(() => setBanter((b) => (b === text ? null : b)), ms);
+  };
 
   const start = () => {
     setScore(0);
@@ -1033,7 +1133,10 @@ export default function PostOffice() {
 
   const handlePickup = (l: Letter3D) => {
     setCarryingTarget(l.target);
-    showToast(`Picked up: TO ${l.target.toUpperCase()}`, "#3df7ff");
+    const line = pick(PICKUP_LINES[l.target]);
+    setPickupLine(line);
+    window.setTimeout(() => setPickupLine((p) => (p === line ? null : p)), 4500);
+    showToast(`PICKED UP — ${l.target.toUpperCase()}`, "#3df7ff");
   };
 
   const handleDeliver = (l: Letter3D, target: TargetId) => {
@@ -1047,24 +1150,70 @@ export default function PostOffice() {
       setCombo((c) => {
         const nc = c + 1;
         setBestCombo((b) => Math.max(b, nc));
+        // sarcastic praise on milestone combos
+        if (nc === 3 || nc === 5 || nc === 8) {
+          showBanter(pick(COMBO_HYPE), 2500);
+        }
         return nc;
       });
-      showToast(`+${gain}${bonus ? ` (x${combo + 1})` : ""}`, "#33ff66");
+      // every other delivery gets a sarcastic toast instead of just "+gain"
+      if (Math.random() < 0.5) {
+        showToast(`+${gain} · ${pick(SUCCESS_LINES)}`, "#33ff66");
+      } else {
+        showToast(`+${gain}${bonus ? ` (x${combo + 1})` : ""}`, "#33ff66");
+      }
     } else {
       setScore((s) => Math.max(0, s - 5));
       setMisses((n) => n + 1);
+      // shame the player on every wrong door
+      const hadCombo = combo;
       setCombo(0);
-      showToast(`WRONG DOOR -5`, "#ff3355");
+      showToast(`-5 · ${pick(WRONG_LINES)}`, "#ff3355");
+      if (hadCombo >= 3) showBanter(pick(COMBO_BREAK_LINES), 2800);
     }
     setCarryingTarget(null);
+    setPickupLine(null);
   };
 
   const handleMissPress = () => {
     setScore((s) => Math.max(0, s - 2));
     setCombo(0);
-    showToast("DROPPED -2", "#aaaa55");
+    showToast(`-2 · ${pick(DROP_LINES)}`, "#aaaa55");
     setCarryingTarget(null);
+    setPickupLine(null);
   };
+
+  /* --------------------------------------------------------------- */
+  /*  Trolling — NPC banter loop + idle-stand-still taunt            */
+  /* --------------------------------------------------------------- */
+  useEffect(() => {
+    if (status !== "playing") return;
+    // periodic banter from Nattoun / M3kky
+    const banterId = window.setInterval(() => {
+      if (Math.random() < 0.55) showBanter(pick(NPC_BANTER), 3200);
+    }, 7500);
+    // idle watcher: if the player stops moving for >5s, taunt them
+    const idleId = window.setInterval(() => {
+      const moving = playerRef.current?.isMoving ?? false;
+      const now = Date.now();
+      if (moving) {
+        lastMoveRef.current = now;
+        return;
+      }
+      const stillFor = now - lastMoveRef.current;
+      if (
+        stillFor > 5000 &&
+        now - idleTauntedRef.current > 6500
+      ) {
+        idleTauntedRef.current = now;
+        showBanter(pick(IDLE_TAUNTS), 2800);
+      }
+    }, 800);
+    return () => {
+      window.clearInterval(banterId);
+      window.clearInterval(idleId);
+    };
+  }, [status]);
 
   return (
     <Layout>
@@ -1122,7 +1271,7 @@ export default function PostOffice() {
 
           {/* Carrying badge */}
           {status === "playing" && (
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 pointer-events-none">
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-1.5">
               {carryingTarget ? (
                 <div className="bg-black/70 border border-primary px-4 py-1.5 font-mono text-sm uppercase tracking-widest text-primary">
                   📨 carrying: TO {carryingTarget} · press SPACE near the right door
@@ -1132,6 +1281,23 @@ export default function PostOffice() {
                   walk over a glowing letter & press SPACE to grab it
                 </div>
               )}
+              {pickupLine && (
+                <div className="bg-yellow-900/85 border border-yellow-300 px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-yellow-100 animate-pulse max-w-[90vw] text-center">
+                  {pickupLine}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Banter banner — top center */}
+          {status === "playing" && banter && (
+            <div className="absolute top-16 left-1/2 -translate-x-1/2 pointer-events-none z-20 max-w-[90vw]">
+              <div
+                className="bg-black/85 border-2 border-pink-500 px-4 py-1.5 font-mono text-xs md:text-sm uppercase tracking-wider text-pink-300 text-center"
+                style={{ textShadow: "0 0 8px rgba(255,45,140,0.8)" }}
+              >
+                {banter}
+              </div>
             </div>
           )}
 

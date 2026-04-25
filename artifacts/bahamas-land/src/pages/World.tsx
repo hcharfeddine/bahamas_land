@@ -13,7 +13,6 @@ import bldLibrary from "@assets/generated_images/bld_library.png";
 import bldMuseum from "@assets/generated_images/bld_museum.png";
 import bldPolice from "@assets/generated_images/bld_police.png";
 import bldPostOffice from "@assets/generated_images/bld_postoffice.png";
-import bldStreamStudio from "@assets/generated_images/bld_stream_studio.png";
 
 type Building = {
   id: string;
@@ -32,8 +31,6 @@ const BUILDINGS: Building[] = [
   { id: "museum",     label: "Museum",      route: "/museum",     img: bldMuseum },
   { id: "library",    label: "Library",     route: "/library",    img: bldLibrary },
   { id: "postoffice", label: "Post Office", route: "/postoffice", img: bldPostOffice },
-  // Stream art is landscape (1408x768) so it renders much wider than the rest — scale it down.
-  { id: "stream",     label: "Stream HQ",   route: "/stream",     img: bldStreamStudio, scale: 0.5 },
   { id: "arcade",     label: "Arcade",      route: "/arcade",     img: bldArcade },
 ];
 
@@ -164,7 +161,6 @@ export default function World() {
             dragConstraints={dragLimits}
             dragElastic={0.08}
             dragMomentum
-            style={{ x }}
             onDragStart={() => {
               setDragging(true);
               dragMoved.current = 0;
@@ -173,8 +169,13 @@ export default function World() {
               dragMoved.current = Math.max(dragMoved.current, Math.abs(info.offset.x));
             }}
             onDragEnd={() => {
-              // brief delay so click handlers can read dragMoved
-              setTimeout(() => setDragging(false), 0);
+              // Let the synthetic click that fires right after release read dragMoved
+              // (so a real drag doesn't accidentally enter a building), then clear it
+              // so the *next* clean click on a building works.
+              window.setTimeout(() => {
+                setDragging(false);
+                dragMoved.current = 0;
+              }, 120);
             }}
             className="absolute inset-y-0 left-0 flex items-end gap-6 md:gap-10 px-[10%] cursor-grab active:cursor-grabbing z-20"
             style={{ x, touchAction: "pan-y" }}
@@ -186,8 +187,12 @@ export default function World() {
                 <motion.button
                   key={b.id}
                   onClick={() => {
-                    // suppress click if the user actually dragged
-                    if (dragMoved.current > 6) return;
+                    // suppress click if the user actually dragged, then clear
+                    // the flag so the very next plain click works.
+                    if (dragMoved.current > 6) {
+                      dragMoved.current = 0;
+                      return;
+                    }
                     go(b.route);
                   }}
                   onMouseEnter={() => !dragging && setHovered(b.id)}
