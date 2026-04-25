@@ -1,5 +1,5 @@
 // =============================================================================
-// players.ts — talks to /api/player/* (the playerMiddleware backend) and
+// players.ts — talks to /__player/* (the playerMiddleware backend) and
 // keeps a tiny session in localStorage so the user stays logged in.
 //
 // Storage keys:
@@ -42,7 +42,20 @@ async function post<T>(path: string, body: unknown): Promise<ApiResult<T>> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const data = await res.json();
+    // 5xx and 4xx (other than the JSON 200 responses below) signal that the
+    // request never reached the playerMiddleware — usually because the tab is
+    // running a stale bundle whose URL points at a path now owned by another
+    // service. Surface a distinct reason so the UI can tell the citizen to
+    // refresh instead of silently retrying forever.
+    if (!res.ok) {
+      return { ok: false, reason: `http_${res.status}` };
+    }
+    let data: any;
+    try {
+      data = await res.json();
+    } catch {
+      return { ok: false, reason: "bad_response" };
+    }
     if (data?.ok) return { ok: true, data: (data.player ?? data) as T };
     return { ok: false, reason: data?.reason || "unknown" };
   } catch (e) {
@@ -55,7 +68,7 @@ export async function registerPlayer(
   pin: string,
   cardJoke?: string,
 ): Promise<ApiResult<PlayerView>> {
-  const result = await post<PlayerView>("/api/player/register", {
+  const result = await post<PlayerView>("/__player/register", {
     username,
     pin,
     cardJoke: cardJoke || undefined,
@@ -70,7 +83,7 @@ export async function loginPlayer(
   username: string,
   pin: string,
 ): Promise<ApiResult<PlayerView>> {
-  const result = await post<PlayerView>("/api/player/login", { username, pin });
+  const result = await post<PlayerView>("/__player/login", { username, pin });
   if (result.ok) {
     saveSession(result.data.username, pin);
     // Pull cloud secrets down into localStorage so the UI shows them.
@@ -108,7 +121,7 @@ export async function syncSecrets(): Promise<ApiResult<PlayerView>> {
     /* ignore */
   }
 
-  return post<PlayerView>("/api/player/sync", { username, pin, secrets, coins });
+  return post<PlayerView>("/__player/sync", { username, pin, secrets, coins });
 }
 
 export type LeaderboardRow = {
@@ -124,7 +137,7 @@ export async function fetchLeaderboard(): Promise<{
   ranking: LeaderboardRow[];
 }> {
   try {
-    const res = await fetch(`${apiBase()}/api/player/leaderboard`);
+    const res = await fetch(`${apiBase()}/__player/leaderboard`);
     const data = await res.json();
     if (data?.ok) {
       return { total: data.total ?? 0, ranking: data.ranking ?? [] };

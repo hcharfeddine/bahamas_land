@@ -109,6 +109,12 @@ export function PlayerSetup() {
       setError("Could not reach the President's office. Check your connection and try again.");
       return;
     }
+    if (res.reason?.startsWith("http_")) {
+      // Almost always a stale tab pointing at the old route — force a reload.
+      setError("Bahamas Land was just updated. Refreshing your passport now…");
+      setTimeout(() => window.location.reload(), 1200);
+      return;
+    }
     setError("Something went wrong. Try a different name or PIN.");
   };
 
@@ -129,6 +135,11 @@ export function PlayerSetup() {
     if (res.reason === "not_found") {
       setError("No citizen with that name. Pick a new one.");
       setStep("name");
+      return;
+    }
+    if (res.reason?.startsWith("http_")) {
+      setError("Bahamas Land was just updated. Refreshing your passport now…");
+      setTimeout(() => window.location.reload(), 1200);
       return;
     }
     setError("Could not log you in. Try again.");
