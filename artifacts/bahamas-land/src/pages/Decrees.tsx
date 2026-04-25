@@ -38,11 +38,11 @@ const DECREES: Decree[] = [
   },
   {
     no: 42,
-    title: "On The Eviction Of Cats",
+    title: "On The Mass Deportation Of Cats",
     date: "Year 0001 of the Reign",
     body:
-      "All cats currently within the borders of Bahamas Land are hereby STRIPPED of citizenship, residency, dignity, and any future right to lounge in sunbeams that legally belong to The President.\n\nThe creature known as THE CAT is declared Public Enemy No. 1 and permanently banned from every room of the country, including the rooms it has not yet entered.",
-    notes: "THE CAT did not respond to the eviction notice. This is considered an act of treason.",
+      "Cats are NOT citizens of Bahamas Land. Cats shall NEVER be granted citizenship, the right to vote, the right to own property, or the right to be addressed by name.\n\nBy order of His Excellency, ALL cats currently within the borders of Bahamas Land are to be DEPORTED — without exception, without appeal, without a goodbye snack. The creature known as THE CAT heads the deportation list and is declared Public Enemy No. 1.",
+    notes: "Citizens harboring a cat will be deported alongside the cat. The President considers this fair.",
   },
   {
     no: 77,
