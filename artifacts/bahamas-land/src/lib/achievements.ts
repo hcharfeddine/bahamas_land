@@ -90,6 +90,9 @@ export type AchievementId =
   | "jailbird"        // type "prison" → jail bars + exiled
   | "wanted"          // visit the Most Wanted board
   | "decreed"         // visit the State Decrees archive
+  | "weather"         // visit the National Weather page
+  | "anthem"          // visit the Anthem hall page
+  | "rigged"          // play coin flip and lose 5 in a row
   | "oracle";         // claim the Top-100 reward (server-issued)
 
 export type Difficulty = "easy" | "medium" | "hard" | "insane";
@@ -196,6 +199,9 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "jailbird", name: "Jailbird", hint: "Mention the bad place. The bad place will mention you back.", emoji: "🪤", difficulty: "medium" },
   { id: "wanted", name: "On The Board", hint: "Find the State's Most Wanted. They're famous now.", emoji: "🪧", difficulty: "easy" },
   { id: "decreed", name: "Constitutional Reader", hint: "Read what the President has decreed. There's a lot.", emoji: "📜", difficulty: "easy" },
+  { id: "weather", name: "Storm Watcher", hint: "Check today's weather report. The forecast: same as yesterday.", emoji: "⛈️", difficulty: "easy" },
+  { id: "anthem", name: "Patriotic Ear", hint: "Listen to the National Anthem. Stand up. Or don't. Both are treason.", emoji: "🎺", difficulty: "easy" },
+  { id: "rigged", name: "It's Rigged", hint: "Lose at the coin flip 5 times in a row. The coin is honest. You are not.", emoji: "🪙", difficulty: "medium" },
   { id: "oracle", name: "The Oracle (Top 100)", hint: "Collect EVERY secret. Visit /reward. Server-verified.", emoji: "🔮", difficulty: "insane" },
 ];
 

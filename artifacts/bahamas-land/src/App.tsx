@@ -37,6 +37,9 @@ const Chess = lazy(() => import("@/pages/Chess"));
 const Reward = lazy(() => import("@/pages/Reward"));
 const Wanted = lazy(() => import("@/pages/Wanted"));
 const Decrees = lazy(() => import("@/pages/Decrees"));
+const Weather = lazy(() => import("@/pages/Weather"));
+const Anthem = lazy(() => import("@/pages/Anthem"));
+const CoinFlip = lazy(() => import("@/pages/CoinFlip"));
 const BaskoutaChemin = lazy(() =>
   import("@/pages/Chemin").then((m) => ({ default: m.BaskoutaChemin })),
 );
@@ -112,6 +115,9 @@ function Router() {
         <Route path="/reward" component={Reward} />
         <Route path="/wanted" component={Wanted} />
         <Route path="/decrees" component={Decrees} />
+        <Route path="/weather" component={Weather} />
+        <Route path="/anthem" component={Anthem} />
+        <Route path="/coinflip" component={CoinFlip} />
         <Route path="/baskouta" component={BaskoutaChemin} />
         <Route path="/177" component={YearChemin} />
         <Route path="/freem3kky" component={FreedomChemin} />

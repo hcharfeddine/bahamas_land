@@ -13,6 +13,8 @@ import bldLibrary from "@assets/generated_images/bld_library.png";
 import bldMuseum from "@assets/generated_images/bld_museum.png";
 import bldPolice from "@assets/generated_images/bld_police.png";
 import bldPostOffice from "@assets/generated_images/bld_postoffice.png";
+import bldWeather from "@assets/generated_images/bld_weather.png";
+import bldAnthem from "@assets/generated_images/bld_anthem.png";
 
 type Building = {
   id: string;
@@ -31,6 +33,8 @@ const BUILDINGS: Building[] = [
   { id: "museum",     label: "Museum",      route: "/museum",     img: bldMuseum },
   { id: "library",    label: "Library",     route: "/library",    img: bldLibrary },
   { id: "postoffice", label: "Post Office", route: "/postoffice", img: bldPostOffice },
+  { id: "weather",    label: "Weather",     route: "/weather",    img: bldWeather },
+  { id: "anthem",     label: "Anthem Hall", route: "/anthem",     img: bldAnthem },
   { id: "arcade",     label: "Arcade",      route: "/arcade",     img: bldArcade },
 ];
 

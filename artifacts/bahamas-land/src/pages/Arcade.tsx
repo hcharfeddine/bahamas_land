@@ -1,10 +1,11 @@
 import { Link } from "wouter";
 import { Layout } from "@/components/Layout";
 import { motion } from "framer-motion";
-import { Gamepad2, Dices, TrendingUp, Hash, Scissors, Radio } from "lucide-react";
+import { Gamepad2, Dices, TrendingUp, Hash, Scissors, Radio, Coins } from "lucide-react";
 
 const GAMES = [
   { path: "/wheel", title: "Wheel of Verdicts", desc: "Spin the wheel. Receive justice.", icon: Dices, color: "hsl(320 100% 60%)" },
+  { path: "/coinflip", title: "Presidential Coin Flip", desc: "50/50. Both sides are Nattoun.", icon: Coins, color: "hsl(40 100% 55%)" },
   { path: "/stocks", title: "Nattoun Coin Exchange", desc: "Real fake money. Real emotional damage.", icon: TrendingUp, color: "hsl(140 100% 55%)" },
   { path: "/tictactoe", title: "Tic-Tac-Toe vs Nattoun", desc: "He cheats. He still wins.", icon: Hash, color: "hsl(190 100% 60%)" },
   { path: "/rps", title: "Rock · Paper · Scissors", desc: "He guesses your moves. He guesses correctly.", icon: Scissors, color: "hsl(48 100% 60%)" },
