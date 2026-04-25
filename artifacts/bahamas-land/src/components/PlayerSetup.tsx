@@ -136,7 +136,7 @@ export function PlayerSetup() {
 
   const triggerTroll = () => {
     setTrollMsg(
-      "PSYCH! The President was joking. We don't take cards. Your PIN is enough.\n\n(Anything you typed has been redacted into stars.)",
+      "Relax, good citizen — nobody was forcing you to type anything.\n\nThe President was only teasing. Bahamas Land does not take card numbers, ever. Your PIN alone is more than enough.\n\nWelcome to the country.",
     );
     setShowTrollDialog(true);
   };
@@ -427,7 +427,7 @@ export function PlayerSetup() {
               className="max-w-md bg-yellow-300 border-4 border-black p-6 shadow-[8px_8px_0_0_rgba(0,0,0,1)]"
             >
               <div className="text-2xl font-black uppercase tracking-widest text-black mb-3">
-                😂 GOTCHA
+                ✨ Good Citizen
               </div>
               <p className="text-black font-mono text-sm leading-relaxed whitespace-pre-line">
                 {trollMsg}
