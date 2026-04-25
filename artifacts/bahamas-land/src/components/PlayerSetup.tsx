@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import nattounImg from "@assets/Nattoun_1777028672745.png";
 import {
@@ -8,6 +9,11 @@ import {
   runMigrationIfNeeded,
 } from "@/lib/players";
 import { unlock } from "@/lib/achievements";
+
+// Routes where the registry modal should NEVER appear — the user explicitly
+// wanted the home portrait (`/`) to stay clean, plus we don't want to block
+// the secret hidden-URL chemins.
+const SKIP_ROUTES = new Set<string>(["/", "/baskouta", "/177", "/freem3kky"]);
 
 // =============================================================================
 // PlayerSetup — first-visit modal that gates the entire app.
@@ -25,6 +31,7 @@ import { unlock } from "@/lib/achievements";
 type Step = "intro" | "name" | "pin" | "card" | "login" | "done";
 
 export function PlayerSetup() {
+  const [location] = useLocation();
   const [needSetup, setNeedSetup] = useState<boolean>(false);
   const [step, setStep] = useState<Step>("intro");
   const [name, setName] = useState("");
@@ -36,12 +43,22 @@ export function PlayerSetup() {
   const [showTrollDialog, setShowTrollDialog] = useState(false);
   const ranOnce = useRef(false);
 
+  // Always run the migration once (even on /) so the wipe happens, but only
+  // show the modal once the citizen reaches an actual room of the country.
   useEffect(() => {
     if (ranOnce.current) return;
     ranOnce.current = true;
     runMigrationIfNeeded();
-    setNeedSetup(!isSetupComplete());
   }, []);
+
+  // Re-evaluate on every route change.
+  useEffect(() => {
+    if (SKIP_ROUTES.has(location)) {
+      setNeedSetup(false);
+      return;
+    }
+    setNeedSetup(!isSetupComplete());
+  }, [location]);
 
   if (!needSetup) return null;
 

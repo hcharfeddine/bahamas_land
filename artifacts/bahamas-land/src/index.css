@@ -89,6 +89,15 @@ body {
   cursor: none; /* Hide default cursor for custom one */
 }
 
+/* `cursor` is normally inherited, but the browser UA stylesheet sets explicit
+ * cursors on inputs (text), textareas (text), buttons (pointer), and links
+ * (pointer). Those win over the `body { cursor: none }` rule and leak the OS
+ * cursor through every form control. We have a paw cursor that handles every
+ * hover state on its own, so force-hide the system cursor everywhere. */
+*, *::before, *::after {
+  cursor: none !important;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 12px;
