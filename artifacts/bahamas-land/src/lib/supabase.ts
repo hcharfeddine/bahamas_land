@@ -29,3 +29,21 @@ export type RemoteMuseumItem = {
   status: "pending" | "approved" | "rejected";
   created_at: string;
 };
+
+export type RemoteCourtVerdict = {
+  id: string;
+  username: string;
+  text: string;
+  verdict: string;
+  status: "pending" | "approved" | "rejected";
+  pinned: boolean;
+  created_at: string;
+};
+
+export type RemoteChatMessage = {
+  id: number;
+  username: string;
+  text: string;
+  is_mod: boolean;
+  created_at: string;
+};

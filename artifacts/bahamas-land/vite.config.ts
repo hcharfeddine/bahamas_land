@@ -36,24 +36,12 @@ export default defineConfig({
     target: "es2020",
     cssCodeSplit: true,
     sourcemap: false,
-    chunkSizeWarningLimit: 900,
-    rollupOptions: {
-      output: {
-        // Split heavy vendor libs into their own cached chunks so the
-        // first load is small and route navigations stay smooth.
-        manualChunks(id) {
-          if (!id.includes("node_modules")) return undefined;
-          if (id.includes("framer-motion")) return "vendor-motion";
-          if (id.includes("@supabase")) return "vendor-supabase";
-          if (id.includes("react-dom") || id.includes("/react/") || id.includes("scheduler")) return "vendor-react";
-          if (id.includes("@tanstack")) return "vendor-query";
-          if (id.includes("@radix-ui")) return "vendor-radix";
-          if (id.includes("lucide-react")) return "vendor-icons";
-          if (id.includes("wouter")) return "vendor-router";
-          return "vendor";
-        },
-      },
-    },
+    chunkSizeWarningLimit: 1500,
+    // NOTE: do NOT add a custom `manualChunks` here. Splitting React /
+    // react-dom / @tanstack / wouter into separate chunks can cause a
+    // circular-init / TDZ failure on production builds and renders the
+    // entire app blank. Vite + Rollup auto-split per dynamic import
+    // (which we already use via React.lazy) is enough.
   },
   server: {
     port,

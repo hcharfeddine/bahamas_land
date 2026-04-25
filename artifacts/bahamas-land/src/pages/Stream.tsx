@@ -16,7 +16,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { unlock } from "@/lib/achievements";
-import { useStreamChat, type ChatMsg as ServerChatMsg } from "@/lib/streamChat";
+import { useSharedChat, type ChatMsg as ServerChatMsg } from "@/lib/sharedChat";
 import {
   getStreamStatus,
   formatSlot,
@@ -295,7 +295,7 @@ export default function Stream() {
     viewers,
     connected,
     send,
-  } = useStreamChat(true);
+  } = useSharedChat(true);
 
   const activeQuotes = useMemo(() => {
     if (!revealed) return MYSTERY_QUOTES;
