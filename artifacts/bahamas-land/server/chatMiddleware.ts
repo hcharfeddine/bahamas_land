@@ -522,13 +522,13 @@ export function chatMiddleware(
   next: (err?: unknown) => void,
 ) {
   const url = req.url || "";
-  if (!url.startsWith("/api/chat/")) return next();
+  if (!url.startsWith("/__chat/")) return next();
 
-  if (url.startsWith("/api/chat/stream")) return handleStream(req, res);
-  if (url.startsWith("/api/chat/send")) return handleSend(req, res);
-  if (url.startsWith("/api/chat/state")) return handleState(req, res);
-  if (url.startsWith("/api/chat/ping")) return handlePing(req, res);
-  if (url.startsWith("/api/chat/version")) return handleVersion(req, res);
+  if (url.startsWith("/__chat/stream")) return handleStream(req, res);
+  if (url.startsWith("/__chat/send")) return handleSend(req, res);
+  if (url.startsWith("/__chat/state")) return handleState(req, res);
+  if (url.startsWith("/__chat/ping")) return handlePing(req, res);
+  if (url.startsWith("/__chat/version")) return handleVersion(req, res);
 
   sendJson(res, 404, { error: "not_found" });
 }
