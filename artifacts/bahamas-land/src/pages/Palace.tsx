@@ -2,11 +2,31 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { useUsername, useApplause, useTomatoes, useBoos, useCoins } from "@/lib/store";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import nattounImg from "@assets/Nattoun_1777028672745.png";
 import { Castle, Star, Camera, Sparkles, Crown, Megaphone } from "lucide-react";
 import { audio } from "@/lib/audio";
 import { unlock } from "@/lib/achievements";
+
+const NATTOUN_BOO_COMMENTS = [
+  "Booed your president? I just emptied your wallet AND your trophy case. Equal trade, citizen.",
+  "Cute. The button is bait. Welcome to ZERO NC and zero achievements, [username].",
+  "Bold of you, [username]. The palace just confiscated everything. Try not to cry on camera.",
+  "You pressed BOO. I pressed DELETE. Now we are even.",
+  "Achievements? Money? Gone. Consider it a tax on bad opinions, citizen.",
+  "Imagine booing the GOAT. Couldn't be me. Anyway, you're broke now.",
+  "L + ratio + you fell off + your bank is empty + the buttons are off. Goodnight.",
+];
+
+const NATTOUN_TOMATO_COMMENTS = [
+  "Missed. Ninja training since age 2, [username].",
+  "You threw 1 tomato. I dodged 1 tomato. Also I took ALL your NC. Math is math.",
+  "Skill issue. Also your wallet is empty now. Don't check.",
+  "Tomato? In MY palace? *teleports behind you* Nothing personal, [username].",
+  "Cute throw. The label said -1 NC. The fine print said -EVERYTHING. Read next time.",
+  "Bahamas Land's #1 dodger, baby. And your bank account just hit rock bottom.",
+  "You blinked. I moved. Your coins evaporated. Standard Tuesday.",
+];
 
 // ---------------------------------------------------------------
 // SPEECHES — way more troll, meme & lore content
@@ -122,6 +142,14 @@ export default function Palace() {
 
   const reactionId = useRef(0);
   const tomatoId = useRef(0);
+
+  // Troll button state: once the user falls for BOO, both buttons are dead.
+  const [buttonsDisabled, setButtonsDisabled] = useState(false);
+  // Speech bubble Nattoun fires back at the user after a troll click.
+  const [nattounComment, setNattounComment] = useState<string | null>(null);
+  const commentTimeoutRef = useRef<number | null>(null);
+  // Animation controls so Nattoun can ninja-dodge incoming tomatoes.
+  const dodgeControls = useAnimation();
 
   const currentSpeech = useMemo(
     () => SPEECHES[speechIndex].replace("[username]", username || "Citizen"),
@@ -258,7 +286,32 @@ export default function Palace() {
   // ============================================================
   // Actions
   // ============================================================
+  // Show a Nattoun speech-bubble comment for ~5 seconds.
+  const sayNattoun = useCallback(
+    (line: string) => {
+      const filled = line.replace("[username]", username || "Citizen");
+      setNattounComment(filled);
+      if (commentTimeoutRef.current) {
+        window.clearTimeout(commentTimeoutRef.current);
+      }
+      commentTimeoutRef.current = window.setTimeout(() => {
+        setNattounComment(null);
+        commentTimeoutRef.current = null;
+      }, 5200);
+    },
+    [username]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (commentTimeoutRef.current) {
+        window.clearTimeout(commentTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleApplaud = () => {
+    if (buttonsDisabled) return;
     setApplause((a: number) => a + 1);
     setApprovalRating((r) => Math.min(99, r + 1));
     audio.playBlip();
@@ -270,11 +323,24 @@ export default function Palace() {
     }
   };
 
+  // TROLL BOO — bait button. Pretends to do nothing visible, but actually
+  // wipes ALL the user's NC, ALL their easter-egg achievements, and disables
+  // both palace buttons forever (this session). Nattoun then taunts them.
   const handleBoo = () => {
-    setBoos((b: number) => b + 1);
-    setApprovalRating((r) => Math.max(3, r - 2));
+    if (buttonsDisabled) return;
+    setButtonsDisabled(true);
+    setCoins(() => 0);
+    try {
+      window.localStorage.removeItem("ogs_achievements");
+      window.dispatchEvent(new CustomEvent("achievement-change"));
+      window.dispatchEvent(new Event("local-storage"));
+    } catch {
+      /* ignore */
+    }
     audio.playGlitch();
-    pushReaction("BOOOO 🔉");
+    sayNattoun(
+      NATTOUN_BOO_COMMENTS[Math.floor(Math.random() * NATTOUN_BOO_COMMENTS.length)]
+    );
   };
 
   // Core throw: deducts EXACTLY 1 NC, adds a splat at the given percentage
@@ -316,10 +382,28 @@ export default function Palace() {
     );
   };
 
-  // Button below the stage: random throw at the President
+  // TROLL TOMATO — the button advertises "-1 NC", but actually drains the
+  // ENTIRE wallet and the President ninja-dodges so no splat ever lands.
+  // No tomato counter increment. Nattoun then taunts the user.
   const handleButtonThrow = (e: React.MouseEvent) => {
     e.stopPropagation();
-    fireTomato();
+    if (buttonsDisabled) return;
+    setCoins(() => 0);
+    setApprovalRating((r) => Math.max(3, r - 1));
+    audio.playGlitch();
+    pushReaction("💨 DODGED");
+    // Ninja-dodge animation: zip aside, then back.
+    dodgeControls.start({
+      x: [0, -140, 130, -40, 0],
+      y: [0, -30, -10, 0, 0],
+      rotate: [0, -10, 8, -3, 0],
+      transition: { duration: 0.55, ease: "easeOut" },
+    });
+    sayNattoun(
+      NATTOUN_TOMATO_COMMENTS[
+        Math.floor(Math.random() * NATTOUN_TOMATO_COMMENTS.length)
+      ]
+    );
   };
 
   const ratingColor =
@@ -427,11 +511,34 @@ export default function Palace() {
           </AnimatePresence>
 
           {/* Nattoun image — also the tomato target.
-              The wrapper bobs so splats stick to the President as he moves.
-              No data-nattoun attr → the global "bonk" easter egg doesn't
-              fire here (we have throw-tomato instead). */}
+              Outer wrapper handles ninja-dodge animation (triggered by the
+              troll Throw Tomato button). Inner wrapper handles the idle bob. */}
           <motion.div
-            className="relative z-10 cursor-crosshair w-1/2 max-w-[300px]"
+            className="relative z-10 w-1/2 max-w-[300px]"
+            animate={dodgeControls}
+          >
+          {/* Speech bubble — Nattoun's troll comeback after a button click. */}
+          <AnimatePresence>
+            {nattounComment && (
+              <motion.div
+                key={nattounComment}
+                initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 280, damping: 22 }}
+                className="absolute -top-6 left-1/2 -translate-x-1/2 -translate-y-full z-30 w-[260px] md:w-[320px] bg-black/90 border-2 border-yellow-400 text-yellow-300 font-mono text-[11px] md:text-xs uppercase tracking-wider p-2 rounded-md shadow-[0_0_18px_rgba(250,204,21,0.55)]"
+                data-testid="text-nattoun-comment"
+              >
+                <div className="text-[9px] text-yellow-400/80 mb-1">
+                  👑 PRESIDENT NATTOUN SAYS
+                </div>
+                {nattounComment}
+                <div className="absolute left-1/2 -bottom-2 -translate-x-1/2 w-3 h-3 rotate-45 bg-black border-r-2 border-b-2 border-yellow-400" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <motion.div
+            className="relative cursor-crosshair w-full"
             onClick={handleImageClick}
             title="Click to throw a tomato (-1 NC)"
             animate={{ y: [0, -10, 0] }}
@@ -467,6 +574,7 @@ export default function Palace() {
                 </motion.div>
               ))}
             </AnimatePresence>
+          </motion.div>
           </motion.div>
 
           {/* Podium */}
@@ -555,13 +663,17 @@ export default function Palace() {
             </Button>
             <Button
               onClick={handleBoo}
-              className="bg-transparent border-2 border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black font-bold uppercase tracking-widest px-8 py-5 text-base"
+              disabled={buttonsDisabled}
+              data-testid="button-boo"
+              className="bg-transparent border-2 border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black font-bold uppercase tracking-widest px-8 py-5 text-base disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-yellow-400"
             >
               📢 Boo
             </Button>
             <Button
               onClick={handleButtonThrow}
-              className="bg-transparent border-2 border-red-500 text-red-400 hover:bg-red-500 hover:text-black font-bold uppercase tracking-widest px-8 py-5 text-base"
+              disabled={buttonsDisabled}
+              data-testid="button-throw-tomato"
+              className="bg-transparent border-2 border-red-500 text-red-400 hover:bg-red-500 hover:text-black font-bold uppercase tracking-widest px-8 py-5 text-base disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-red-400"
             >
               🍅 Throw Tomato (-1 NC)
             </Button>
