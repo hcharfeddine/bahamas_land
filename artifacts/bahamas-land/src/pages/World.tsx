@@ -293,6 +293,13 @@ export default function World() {
           >
             📜 State Decrees
           </button>
+          <button
+            onClick={() => setLocation("/ranking")}
+            data-testid="link-ranking"
+            className="px-3 py-1.5 text-xs md:text-sm font-mono uppercase tracking-widest border-2 border-yellow-400 bg-black text-yellow-300 hover:bg-yellow-400 hover:text-black transition shadow-md neon-box"
+          >
+            🏆 Citizens Ranking
+          </button>
         </div>
       </div>
     </Layout>

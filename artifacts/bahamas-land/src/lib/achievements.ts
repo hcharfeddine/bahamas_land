@@ -268,8 +268,27 @@ export function unlock(id: AchievementId) {
     } catch {
       /* ignore */
     }
+    // Push the unlock up to the State ledger (debounced, fire-and-forget).
+    schedulePlayerSync();
   }
   return true;
+}
+
+// Debounced background sync to /api/player/sync so the citizen's secrets
+// are persisted server-side and the leaderboard stays current. We dynamic-
+// import to avoid a circular dependency with players.ts.
+let _syncTimer: number | null = null;
+function schedulePlayerSync() {
+  if (typeof window === "undefined") return;
+  if (_syncTimer) window.clearTimeout(_syncTimer);
+  _syncTimer = window.setTimeout(() => {
+    _syncTimer = null;
+    import("@/lib/players")
+      .then((m) => m.syncSecrets())
+      .catch(() => {
+        /* ignore */
+      });
+  }, 800);
 }
 
 export function isUnlocked(id: AchievementId): boolean {

@@ -40,6 +40,7 @@ const Decrees = lazy(() => import("@/pages/Decrees"));
 const Weather = lazy(() => import("@/pages/Weather"));
 const Anthem = lazy(() => import("@/pages/Anthem"));
 const CoinFlip = lazy(() => import("@/pages/CoinFlip"));
+const Ranking = lazy(() => import("@/pages/Ranking"));
 const BaskoutaChemin = lazy(() =>
   import("@/pages/Chemin").then((m) => ({ default: m.BaskoutaChemin })),
 );
@@ -60,6 +61,7 @@ import { HiddenEggs } from "@/components/HiddenEggs";
 import { NattounComments } from "@/components/NattounComments";
 import { AutoReload } from "@/components/AutoReload";
 import { ActivityTracker } from "@/components/ActivityTracker";
+import { PlayerSetup } from "@/components/PlayerSetup";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -118,6 +120,7 @@ function Router() {
         <Route path="/weather" component={Weather} />
         <Route path="/anthem" component={Anthem} />
         <Route path="/coinflip" component={CoinFlip} />
+        <Route path="/ranking" component={Ranking} />
         <Route path="/baskouta" component={BaskoutaChemin} />
         <Route path="/177" component={YearChemin} />
         <Route path="/freem3kky" component={FreedomChemin} />
@@ -142,6 +145,7 @@ function App() {
           <NattounComments />
           <AutoReload />
           <ActivityTracker />
+          <PlayerSetup />
           <Router />
         </WouterRouter>
         <Toaster />
