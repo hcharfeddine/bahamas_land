@@ -16,7 +16,7 @@ import { useLetters, generateLetter } from "@/lib/inbox";
 
 import m3kkyImg from "@/assets/postoffice/po_m3kky_sprite.png";
 import nattounImg from "@/assets/postoffice/po_nattoun_sprite.png";
-import postOfficeImg from "@/assets/postoffice/bd_postoffice.png";
+import postOfficeImg from "@/assets/postoffice/bld_postoffice.png";
 import palaceImg from "@/assets/postoffice/po_palace_building.png";
 import studioImg from "@/assets/postoffice/po_studio_building.png";
 import deadLetterImg from "@/assets/postoffice/po_deadletter_bin.png";
