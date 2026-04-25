@@ -220,7 +220,19 @@ export function PlayerSetup() {
               <p className="text-[11px] uppercase tracking-widest text-primary/70 pt-2">
                 ▸ All previous "citizens" have been redacted. Everyone starts at zero. ◂
               </p>
-              <div className="flex justify-end pt-2">
+              <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 pt-2">
+                <button
+                  onClick={() => {
+                    setError(null);
+                    setName("");
+                    setPin("");
+                    setStep("login");
+                  }}
+                  className={btnGhost}
+                  data-testid="player-setup-go-login"
+                >
+                  Already a citizen? Log in →
+                </button>
                 <button onClick={goName} className={btnPrimary} data-testid="player-setup-begin">
                   Begin Registration
                 </button>
@@ -361,31 +373,52 @@ export function PlayerSetup() {
           {step === "login" && (
             <div className="space-y-4">
               <div className="text-secondary text-sm">
-                The name <span className="text-primary font-black">{name}</span> is
-                already registered. Enter your PIN to claim it.
+                Welcome back, citizen. Enter your name and PIN to log in.
               </div>
-              <input
-                autoFocus
-                type="password"
-                inputMode="numeric"
-                className={`${inputCls} text-center text-3xl tracking-[0.6em]`}
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                onKeyDown={(e) => e.key === "Enter" && tryLogin()}
-                placeholder="••••"
-                maxLength={6}
-                data-testid="player-login-pin-input"
-              />
+              <div>
+                <label className="block text-xs text-secondary uppercase tracking-widest mb-2">
+                  Citizen Name
+                </label>
+                <input
+                  autoFocus={!name}
+                  className={inputCls}
+                  value={name}
+                  onChange={(e) =>
+                    setName(e.target.value.replace(/[^\p{L}\p{N}_\- ]/gu, "").slice(0, 24))
+                  }
+                  placeholder="e.g. M3KKY"
+                  maxLength={24}
+                  data-testid="player-login-name-input"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-secondary uppercase tracking-widest mb-2">
+                  Secret PIN
+                </label>
+                <input
+                  autoFocus={!!name}
+                  type="password"
+                  inputMode="numeric"
+                  className={`${inputCls} text-center text-3xl tracking-[0.6em]`}
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  onKeyDown={(e) => e.key === "Enter" && tryLogin()}
+                  placeholder="••••"
+                  maxLength={6}
+                  data-testid="player-login-pin-input"
+                />
+              </div>
               {error && <ErrorBox text={error} />}
-              <div className="flex justify-between items-center pt-2">
+              <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 pt-2">
                 <button
                   onClick={() => {
-                    setStep("name");
+                    setStep("intro");
                     setError(null);
                   }}
                   className={btnGhost}
+                  data-testid="player-login-back-register"
                 >
-                  ← Use a different name
+                  ← Don't have an account? Register
                 </button>
                 <button
                   onClick={tryLogin}

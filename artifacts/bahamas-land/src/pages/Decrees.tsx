@@ -38,11 +38,11 @@ const DECREES: Decree[] = [
   },
   {
     no: 42,
-    title: "On The Citizenship Of Cats",
+    title: "On The Eviction Of Cats",
     date: "Year 0001 of the Reign",
     body:
-      "All cats currently within the borders of Bahamas Land are granted full citizenship, including the right to vote, the right to own property, and the right to ignore both.\n\nThe Cat known as THE CAT is appointed Honorary Minister of Vibes.",
-    notes: "The Cat declined to attend the swearing-in ceremony. This is considered acceptance.",
+      "All cats currently within the borders of Bahamas Land are hereby STRIPPED of citizenship, residency, dignity, and any future right to lounge in sunbeams that legally belong to The President.\n\nThe creature known as THE CAT is declared Public Enemy No. 1 and permanently banned from every room of the country, including the rooms it has not yet entered.",
+    notes: "THE CAT did not respond to the eviction notice. This is considered an act of treason.",
   },
   {
     no: 77,
