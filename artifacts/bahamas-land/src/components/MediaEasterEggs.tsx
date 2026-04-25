@@ -15,7 +15,7 @@ import gifKdot from "@assets/meme_gifs/kdot.gif";
 import gifMadrid from "@assets/meme_gifs/madrid.gif";
 import gifFaddina from "@assets/meme_gifs/faddina.gif";
 import gifGgEz from "@assets/meme_gifs/ggez.gif";
-import gifOmegalul from "@assets/meme_gifs/omegalul.gif";
+import gifKekw from "@assets/meme_gifs/KEKW.gif";
 import gifBarcaTraitor from "@assets/meme_gifs/treasoncule.gif";
 import gifBaskouta from "@assets/meme_gifs/baskouta.gif";
 
@@ -32,7 +32,7 @@ type EggKey =
   | "drake"
   | "rickroll"
   | "khamsa"
-  | "omegalul"
+  | "KEKW"
   | "stonecold"
   | "baskouta";
 
@@ -115,11 +115,9 @@ const TRIGGER_TABLE: ReadonlyArray<readonly [number, number, EggKey]> = [
   [5, 185972343, "khamsa"],
   [8, 3901447429, "khamsa"],
   [7, 4172944206, "khamsa"],
-  // omegalul
-  [8, 994961809, "omegalul"],
-  [3, 193413744, "omegalul"],
-  [4, 2088046935, "omegalul"],
-  [6, 1545046600, "omegalul"],
+  // KEKW
+  [4, 2088046935, "KEKW"],
+  [6, 1545046600, "KEKW"],
   // stonecold
   [6, 1320948465, "stonecold"],
   [9, 1368998178, "stonecold"],
@@ -150,7 +148,7 @@ const DURATION_MS: Record<EggKey, number> = {
   drake: 9000,
   rickroll: 22000,
   khamsa: 7000,
-  omegalul: 7000,
+  KEKW: 7000,
   stonecold: 8000,
   baskouta: 7000,
 };
@@ -168,7 +166,7 @@ const ACH_FOR: Record<EggKey, string> = {
   drake: "drake",
   rickroll: "rickroll",
   khamsa: "khamsa",
-  omegalul: "omegalul",
+  KEKW: "KEKW",
   stonecold: "stonecold",
   baskouta: "baskouta",
 };
@@ -266,7 +264,7 @@ export function MediaEasterEggs() {
       {active === "drake" && <DrakeOverlay key="drake" onClose={close} />}
       {active === "rickroll" && <RickrollOverlay key="rick" onClose={close} />}
       {active === "khamsa" && <KhamsaOverlay key="khamsa" onClose={close} />}
-      {active === "omegalul" && <OmegaLulOverlay key="lul" onClose={close} />}
+      {active === "KEKW" && <KekwOverlay key="kekw" onClose={close} />}
       {active === "stonecold" && <StoneColdOverlay key="sc" onClose={close} />}
       {active === "baskouta" && <BaskoutaOverlay key="bsk" onClose={close} />}
     </AnimatePresence>
@@ -1047,16 +1045,16 @@ function KhamsaOverlay({ onClose }: { onClose: () => void }) {
 }
 
 // ============================================================
-// 13) OMEGALUL — Massive laugh emote spam
+// 13) KEKW — Massive laugh emote spam
 // ============================================================
-function OmegaLulOverlay({ onClose }: { onClose: () => void }) {
+function KekwOverlay({ onClose }: { onClose: () => void }) {
   return (
     <Shell
       onClose={onClose}
-      testId="egg-omegalul"
+      testId="egg-KEKW"
       background="linear-gradient(135deg, #4a1d96 0%, #9333ea 50%, #4a1d96 100%)"
     >
-      <HeroGif src={gifOmegalul} size="min(55vmin, 460px)" glow="#9333ea" alt="lol" />
+      <HeroGif src={gifKekw} size="min(55vmin, 460px)" glow="#9333ea" alt="lol" />
       {Array.from({ length: 24 }).map((_, i) => (
         <motion.div
           key={i}
@@ -1079,7 +1077,7 @@ function OmegaLulOverlay({ onClose }: { onClose: () => void }) {
         >
           {i % 4 === 0 ? (
             <img
-              src={gifOmegalul}
+              src={gifKekw}
               alt=""
               style={{
                 width: 90,
@@ -1109,7 +1107,7 @@ function OmegaLulOverlay({ onClose }: { onClose: () => void }) {
             WebkitTextStroke: "4px #000",
           }}
         >
-          OMEGALUL
+          KEKW
         </motion.div>
         <div className="mt-3 font-mono uppercase tracking-[0.3em] text-purple-100 text-sm md:text-xl">
           KEKW · COPIUM · CHAT IS DEAD

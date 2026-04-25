@@ -82,7 +82,7 @@ const CATEGORY_QUOTES: Record<Exclude<SlotCategory, "t5athel">, string[]> = {
     "Reminder: anything you say in chat is canon.",
   ],
   kick: [
-    "We are LIVE on Kick today. Watch only me. Twitch is a rumor.",
+    "We are LIVE on Kick today. Watch only me. kick is a rumor.",
     "Kick.com/m3kky in the description. Click it. Loyalty audit at the end.",
     "Multistreaming? We do not know her. Kick exclusive for the day.",
     "[username], the Kick chat is faster. The President is jealous.",

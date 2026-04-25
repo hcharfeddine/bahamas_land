@@ -69,7 +69,7 @@ export type AchievementId =
   | "drake"
   | "rickroll"
   | "khamsa"
-  | "omegalul"
+  | "KEKW"
   | "stonecold"
   | "baskouta";
 
@@ -156,7 +156,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "ggez", name: "GG EZ", hint: "The two letters that get you reported in any lobby.", emoji: "🎮", difficulty: "easy" },
   { id: "drake", name: "Hotline Bling", hint: "Hands up, hands down. Spell the 6God.", emoji: "📞", difficulty: "medium" },
   { id: "rickroll", name: "Rickrolled Yourself", hint: "Never gonna give it up. Type the surname.", emoji: "🕺", difficulty: "easy" },
-  { id: "omegalul", name: "OMEGALUL", hint: "The biggest Twitch laugh emote. Type it.", emoji: "🤣", difficulty: "easy" },
+  { id: "KEKW", name: "KEKW", hint: "The biggest Kick laugh emote. Type it.", emoji: "🤣", difficulty: "easy" },
   { id: "stonecold", name: "WHAT? WHAT?", hint: "Glass shatters. Beer cans fly. Spell the Texas Rattlesnake.", emoji: "🍺", difficulty: "medium" },
 ];
 

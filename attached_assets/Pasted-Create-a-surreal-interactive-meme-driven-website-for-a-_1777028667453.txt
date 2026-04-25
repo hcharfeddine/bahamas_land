@@ -68,10 +68,10 @@ MAP LOCATIONS (CLICKABLE AREAS):
 
 3. LIBRARY (TROLL VERSION):
 
-* Shows social media links (Twitch, TikTok, etc.)
+* Shows social media links (Kick, TikTok, etc.)
 * Labels should be misleading for humor:
 
-  * “Forbidden Knowledge” → Twitch
+  * “Forbidden Knowledge” → Kick
   * “Do Not Click” → Instagram
 
 4. BANK:
