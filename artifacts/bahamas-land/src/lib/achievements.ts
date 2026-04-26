@@ -114,6 +114,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "newshound", name: "Newshound", hint: "Read the state press.", emoji: "📰", difficulty: "easy" },
   { id: "konami", name: "Baskouta Code", hint: "An ancient code, with extra crumbs at the end.", emoji: "🎮", difficulty: "insane" },
   { id: "gambler", name: "Lil' Gambler", hint: "Bet a single coin and survive the consequences.", emoji: "🎲", difficulty: "easy" },
+  { id: "scholar", name: "Scholar", hint: "Read every book in the library.", emoji: "📜", difficulty: "easy" },
 
   // MEDIUM TIER — mild effort required
   { id: "spy", name: "Spy", hint: "Some doors don't have handles.", emoji: "👁️", difficulty: "medium" },
@@ -130,7 +131,6 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "reactor", name: "Reaction Watcher", hint: "Catch the President reacting to a video.", emoji: "🎥", difficulty: "medium" },
 
   // HARD TIER — needs a real visit pattern or mini-skill
-  { id: "scholar", name: "Scholar", hint: "Read every book in the library.", emoji: "📜", difficulty: "hard" },
   { id: "nightowl", name: "Night Owl", hint: "Visit when the world sleeps.", emoji: "🌙", difficulty: "hard" },
   { id: "suspect", name: "Suspect", hint: "Get banned (sort of).", emoji: "🚫", difficulty: "hard" },
   { id: "bankrupt", name: "Bankrupt", hint: "Lose everything at the bank.", emoji: "💸", difficulty: "hard" },
