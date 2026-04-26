@@ -92,6 +92,9 @@ export type AchievementId =
   | "decreed"         // visit the State Decrees archive
   | "weather"         // visit the National Weather page
   | "anthem"          // visit the Anthem hall page
+  | "rhythmist"       // beat rhythm-game level 10
+  | "rhythmmaster"    // beat rhythm-game level 50
+  | "rhythmgod"       // beat rhythm-game level 100
   | "rigged"          // play coin flip and lose 5 in a row
   | "oracle";         // claim the Top-100 reward (server-issued)
 
@@ -201,6 +204,9 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "decreed", name: "Constitutional Reader", hint: "Read what the President has decreed. There's a lot.", emoji: "📜", difficulty: "easy" },
   { id: "weather", name: "Storm Watcher", hint: "Check today's weather report. The forecast: same as yesterday.", emoji: "⛈️", difficulty: "easy" },
   { id: "anthem", name: "Patriotic Ear", hint: "Listen to the National Anthem. Stand up. Or don't. Both are treason.", emoji: "🎺", difficulty: "easy" },
+  { id: "rhythmist", name: "Rhythmist", hint: "Survive Nattoun's arrows past level 10. He throws hard.", emoji: "🎸", difficulty: "medium" },
+  { id: "rhythmmaster", name: "Rhythm Master", hint: "Clear level 50 of Nattoun's metal gauntlet.", emoji: "🥁", difficulty: "hard" },
+  { id: "rhythmgod", name: "Rhythm God", hint: "Beat level 100. The dog cries. Nattoun retires.", emoji: "🤘", difficulty: "insane" },
   { id: "rigged", name: "It's Rigged", hint: "Lose at the coin flip 5 times in a row. The coin is honest. You are not.", emoji: "🪙", difficulty: "medium" },
   { id: "oracle", name: "The Oracle (Top 100)", hint: "Collect EVERY secret. Visit /reward. Server-verified.", emoji: "🔮", difficulty: "insane" },
 ];

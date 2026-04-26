@@ -3,6 +3,7 @@ import { Layout } from "@/components/Layout";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { unlock } from "@/lib/achievements";
+import { RhythmGame } from "@/components/RhythmGame";
 
 type Line = {
   t: number; // start second
@@ -239,9 +240,12 @@ function playAnthem(audioCtx: AudioContext, onTick: (t: number) => void): () => 
   };
 }
 
+type Tab = "anthem" | "rhythm";
+
 export default function Anthem() {
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
+  const [tab, setTab] = useState<Tab>("anthem");
   const ctxRef = useRef<AudioContext | null>(null);
   const stopRef = useRef<(() => void) | null>(null);
 
@@ -252,6 +256,16 @@ export default function Anthem() {
       try { ctxRef.current?.close(); } catch {}
     };
   }, []);
+
+  // If user switches away from the anthem tab while it's playing, stop it
+  // so the two audio sources don't overlap with the rhythm game's music.
+  useEffect(() => {
+    if (tab !== "anthem" && playing) {
+      stopRef.current?.();
+      stopRef.current = null;
+      setPlaying(false);
+    }
+  }, [tab, playing]);
 
   const start = () => {
     if (playing) return;
@@ -308,6 +322,36 @@ export default function Anthem() {
             </div>
           </div>
 
+          {/* Tabs: sing the anthem · play the rhythm challenge */}
+          <div className="flex justify-center gap-2">
+            <button
+              onClick={() => setTab("anthem")}
+              data-testid="tab-anthem"
+              className={`font-mono uppercase tracking-widest text-xs md:text-sm px-4 py-2 border-2 transition-colors ${
+                tab === "anthem"
+                  ? "bg-amber-500 text-black border-amber-300 neon-box"
+                  : "bg-black/60 text-amber-200 border-amber-500/40 hover:bg-amber-500/10"
+              }`}
+            >
+              🎤 SING ANTHEM
+            </button>
+            <button
+              onClick={() => setTab("rhythm")}
+              data-testid="tab-rhythm"
+              className={`font-mono uppercase tracking-widest text-xs md:text-sm px-4 py-2 border-2 transition-colors ${
+                tab === "rhythm"
+                  ? "bg-amber-500 text-black border-amber-300 neon-box"
+                  : "bg-black/60 text-amber-200 border-amber-500/40 hover:bg-amber-500/10"
+              }`}
+            >
+              🎸 RHYTHM CHALLENGE
+            </button>
+          </div>
+
+          {tab === "rhythm" && <RhythmGame />}
+
+          {tab === "anthem" && (
+          <>
           {/* Player card */}
           <div className="bg-black/70 border-4 border-amber-500/70 rounded-md neon-box p-5 md:p-7 space-y-5">
             {/* Bahamas flag-ish flag waving */}
@@ -414,6 +458,8 @@ export default function Anthem() {
               <li>Applaud The Dog at the end. The Dog applauds back, eventually.</li>
             </ol>
           </div>
+          </>
+          )}
         </div>
       </div>
     </Layout>
