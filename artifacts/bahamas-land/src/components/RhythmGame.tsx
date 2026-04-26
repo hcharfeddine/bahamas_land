@@ -129,9 +129,15 @@ function generateNotesFromSong(
       candidates.push({ spawnAt: barStart + pos16 * sixteenth, lane: perm[1], isHold: false, holdMs: 0, priority: 2, isLead: false });
     });
 
-    // ── Hi-hat (priority 1) with per-level thinning ──────────────────────
+    // ── Hi-hat (priority 1) — gated by level so beginners only see kick+snare ──
+    // Level 1-2: no hi-hats. Level 3-9: sparse. Level 10+: normal thinning.
+    const hihatGate =
+      song.level < 3 ? 1.0           // skip all
+      : song.level < 10 ? 0.55 + (10 - song.level) * 0.05  // 0.60→0.55 steps
+      : hihatSkip;                   // level-unique probability (10–45%)
+
     drums.hihat.forEach((pos16) => {
-      if (rng() < hihatSkip) return; // skip varies per level → unique density
+      if (rng() < hihatGate) return;
       const isOnBeat = pos16 % 4 === 0;
       candidates.push({ spawnAt: barStart + pos16 * sixteenth, lane: isOnBeat ? perm[2] : perm[3], isHold: false, holdMs: 0, priority: 1, isLead: false });
     });
@@ -161,8 +167,12 @@ function generateNotesFromSong(
   candidates.sort((a, b) => a.spawnAt - b.spawnAt || b.priority - a.priority);
 
   // Density filter: enforce min gap per lane + global min gap.
-  const minLaneGap = Math.max(p.noteSpawnMs * 0.6, 90);
-  const minGlobalGap = Math.max(p.noteSpawnMs * 0.22, 40);
+  // Early levels get a much stricter gap so beginners aren't overwhelmed.
+  const densityT = (song.level - 1) / 99; // 0 at lv1 → 1 at lv100
+  const laneGapMul  = 1.5 - densityT * 0.9;  // 1.5 at lv1 → 0.6 at lv100
+  const globalGapMul = 0.55 - densityT * 0.33; // 0.55 at lv1 → 0.22 at lv100
+  const minLaneGap   = Math.max(p.noteSpawnMs * laneGapMul, 90);
+  const minGlobalGap = Math.max(p.noteSpawnMs * globalGapMul, 40);
   const lastPerLane: Record<LaneKey, number> = { ArrowLeft: -Infinity, ArrowDown: -Infinity, ArrowUp: -Infinity, ArrowRight: -Infinity };
   let lastAny = -Infinity;
 
