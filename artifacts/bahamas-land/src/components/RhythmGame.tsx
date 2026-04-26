@@ -5,7 +5,7 @@ import nattounImg from "@assets/Nattoun_1777028672745.png";
 import { useLocalStorage } from "@/lib/store";
 import { unlock } from "@/lib/achievements";
 import { playRockLoop } from "@/lib/rockLoop";
-import { getTrackForLevel } from "@/lib/rhythmTracks";
+import { getSongForLevel } from "@/lib/rhythmSong";
 
 // ---------------------------------------------------------------
 // LANES + CONSTANTS
@@ -198,9 +198,13 @@ export function RhythmGame() {
       if (ctx.state === "suspended") void ctx.resume();
       audioCtxRef.current = ctx;
       stopMusicRef.current?.();
+      const song = getSongForLevel(
+        selectedLevel,
+        p.bpm,
+        p.durationMs + 1500,
+      );
       stopMusicRef.current = playRockLoop(ctx, {
-        track: getTrackForLevel(selectedLevel),
-        bpm: p.bpm,
+        song,
         durationMs: p.durationMs + 1500,
         onBeat: (b) => setMusicBeat(b),
       });
@@ -527,7 +531,7 @@ export function RhythmGame() {
             <div className="bg-black/70 border-2 border-amber-500/70 px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-amber-300 flex items-center justify-between gap-2">
               <span>♪ NOW PLAYING:</span>
               <span className="text-amber-100 font-black truncate">
-                {getTrackForLevel(selectedLevel).name}
+                "{getSongForLevel(selectedLevel, params.bpm, params.durationMs).songName}"
               </span>
               <span className="text-amber-200/70">{params.bpm} BPM</span>
             </div>
@@ -649,21 +653,51 @@ function RhythmMenu({
         </div>
       </div>
 
-      {/* Track preview */}
+      {/* Song preview */}
       {(() => {
-        const track = getTrackForLevel(selectedLevel);
-        const tierStart = Math.floor((selectedLevel - 1) / 10) * 10 + 1;
-        const tierEnd = Math.min(MAX_LEVEL, tierStart + 9);
+        const previewParams = getLevelParams(selectedLevel);
+        const song = getSongForLevel(
+          selectedLevel,
+          previewParams.bpm,
+          previewParams.durationMs,
+        );
+        // Build a compact section roadmap to preview the song shape.
+        const roadmap: { type: string; bars: number }[] = [];
+        song.bars.forEach((b) => {
+          const last = roadmap[roadmap.length - 1];
+          if (last && last.type === b.section) last.bars += 1;
+          else roadmap.push({ type: b.section, bars: 1 });
+        });
         return (
-          <div className="bg-gradient-to-r from-pink-900/40 via-amber-900/30 to-cyan-900/40 border-2 border-amber-500/60 p-3 text-center">
+          <div className="bg-gradient-to-r from-pink-900/40 via-amber-900/30 to-cyan-900/40 border-2 border-amber-500/60 p-3 text-center space-y-1">
             <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-amber-300">
-              ♪ TRACK {Math.floor((selectedLevel - 1) / 10) + 1} / 10 · LEVELS {tierStart}–{tierEnd}
+              ♪ {song.genre.name} · LV {selectedLevel} / {MAX_LEVEL}
             </div>
-            <div className="font-display text-xl md:text-2xl font-black text-amber-100 neon-text tracking-widest mt-1">
-              {track.name}
+            <div className="font-display text-xl md:text-2xl font-black text-amber-100 neon-text tracking-widest">
+              "{song.songName}"
             </div>
-            <div className="font-mono text-[11px] text-amber-200/80 italic mt-1">
-              {track.vibe}
+            <div className="font-mono text-[11px] text-amber-200/80 italic">
+              {song.vibe}
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-1 pt-1">
+              {roadmap.map((s, i) => (
+                <span
+                  key={i}
+                  className={`font-mono text-[9px] uppercase tracking-widest px-1.5 py-0.5 border ${
+                    s.type === "chorus"
+                      ? "bg-pink-600/30 border-pink-400/60 text-pink-200"
+                      : s.type === "verse"
+                      ? "bg-amber-600/20 border-amber-400/50 text-amber-200"
+                      : s.type === "bridge"
+                      ? "bg-cyan-600/20 border-cyan-400/50 text-cyan-200"
+                      : s.type === "breakdown"
+                      ? "bg-red-600/20 border-red-400/50 text-red-200"
+                      : "bg-white/10 border-white/30 text-white/70"
+                  }`}
+                >
+                  {s.type}·{s.bars}
+                </span>
+              ))}
             </div>
           </div>
         );
