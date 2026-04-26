@@ -55,10 +55,6 @@ function pick<T>(rng: () => number, arr: T[]): T {
   return arr[Math.floor(rng() * arr.length)];
 }
 
-function pickIdx(rng: () => number, len: number): number {
-  return Math.floor(rng() * len);
-}
-
 // ---------------------------------------------------------------
 // Build a power chord from a root frequency.
 // ---------------------------------------------------------------
@@ -70,6 +66,56 @@ function powerChord(rootHz: number): number[] {
 // Apply a semitone offset (positive or negative) to a frequency.
 function transpose(rootHz: number, semitones: number): number {
   return rootHz * Math.pow(2, semitones / 12);
+}
+
+// ---------------------------------------------------------------
+// Procedural music generators — every level gets unique values.
+// ---------------------------------------------------------------
+
+// Generate a root frequency from a chromatic grid spanning the genre's
+// register ± 5 semitones.  With ~15 possible semitone values this gives
+// far more variety than the 4-key pool while staying in the genre's range.
+function genRootHz(rng: () => number, genreKeys: number[]): number {
+  const A0 = 27.5; // reference: A0
+  const semis = genreKeys.map((hz) => Math.round(Math.log2(hz / A0) * 12));
+  const lo = Math.min(...semis) - 3;
+  const hi = Math.max(...semis) + 5;
+  const chosen = lo + Math.floor(rng() * (hi - lo + 1));
+  return A0 * Math.pow(2, chosen / 12);
+}
+
+// Extract all unique chord offset values from the genre's progression pool.
+// These are the "valid" semitone offsets for this genre's harmonic language.
+function extractVocab(pool: number[][]): number[] {
+  const set = new Set<number>();
+  pool.forEach((prog) => prog.forEach((o) => set.add(o)));
+  return Array.from(set);
+}
+
+// Build a unique chord progression from the genre's vocabulary.
+// Length varies between 3 and 6 chords for maximum variety.
+function genProgression(rng: () => number, vocab: number[]): number[] {
+  const len = 3 + Math.floor(rng() * 4); // 3..6 chords
+  const prog: number[] = [0]; // root chord always first
+  for (let i = 1; i < len; i++) {
+    prog.push(vocab[Math.floor(rng() * vocab.length)]);
+  }
+  return prog;
+}
+
+// Build a unique lead phrase from the genre's scale.
+// Produces 2–7 note events with varying positions, degrees, and durations.
+function genLeadPhrase(rng: () => number, scaleLen: number): LeadPhrase {
+  const count = 2 + Math.floor(rng() * 6); // 2..7 notes
+  const phrase: LeadPhrase = [];
+  let pos = 0;
+  for (let i = 0; i < count && pos < 13; i++) {
+    const len = 1 + Math.floor(rng() * 5);      // 1..5 sixteenths long
+    const deg = Math.floor(rng() * Math.min(scaleLen, 11)); // scale degree
+    phrase.push({ pos, deg, len });
+    pos += len + 1 + Math.floor(rng() * 3);     // gap 1..3 sixteenths
+  }
+  return phrase;
 }
 
 // ---------------------------------------------------------------
@@ -148,24 +194,26 @@ export function getSongForLevel(
   const genre = getGenreForLevel(level);
   const rng = mulberry32(level * 9301 + 49297);
 
-  // Pick song-shape ingredients deterministically.
-  const rootHz = pick(rng, genre.keys);
+  // ── Procedural music generation: every level is unique ──────────────────
+  // Root key: pick from chromatic grid spanning genre's register ± 5 semitones.
+  // This gives ~15 distinct pitches per genre instead of the 4-key pool.
+  const rootHz = genRootHz(rng, genre.keys);
+
+  // Song name: cycle through genre's curated names (already 1 per level in a tier).
   const songName = genre.songNames[(level - 1) % genre.songNames.length];
 
-  // Pick three different progressions where possible.
-  const pool = genre.progressionPool;
-  const i1 = pickIdx(rng, pool.length);
-  let i2 = pickIdx(rng, pool.length);
-  if (pool.length > 1 && i2 === i1) i2 = (i2 + 1) % pool.length;
-  let i3 = pickIdx(rng, pool.length);
-  if (pool.length > 2 && (i3 === i1 || i3 === i2)) {
-    i3 = (Math.max(i1, i2) + 1) % pool.length;
-  }
-  const verseProg = pool[i1];
-  const chorusProg = pool[i2];
-  const bridgeProg = pool[i3];
+  // Chord progressions: generate unique sequences from the genre's chord vocabulary
+  // rather than picking from 3–4 fixed patterns.  With 6–8 vocab offsets and
+  // sequences of length 3–6, there are thousands of unique progressions per genre.
+  const vocab = extractVocab(genre.progressionPool);
+  const verseProg = genProgression(rng, vocab);
+  const chorusProg = genProgression(rng, vocab);
+  const bridgeProg = genProgression(rng, vocab);
 
-  const leadPhrase = pick(rng, genre.leadPhrases);
+  // Lead melody: procedurally generated from the genre's scale.
+  // 2–7 notes with unique positions, scale degrees, and durations per level.
+  const leadPhrase = genLeadPhrase(rng, genre.scale.length);
+
   const template = pick(rng, genre.songTemplates);
 
   // Compute total bars from duration & bpm.
