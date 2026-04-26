@@ -1,12 +1,22 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { useUsername, useApplause, useTomatoes, useBoos, useCoins } from "@/lib/store";
+import { useUsername, useApplause, useTomatoes, useBoos, useCoins, useLocalStorage } from "@/lib/store";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import nattounImg from "@assets/Nattoun_1777028672745.png";
 import { Castle, Star, Camera, Sparkles, Crown, Megaphone } from "lucide-react";
 import { audio } from "@/lib/audio";
 import { unlock } from "@/lib/achievements";
+
+const REDEMPTION_GOAL = 500;
+
+const NATTOUN_REDEMPTION_COMMENTS = [
+  "I... I cannot believe it. 500 claps. The trophies are yours again, [username].",
+  "FINE. You earned it back. Don't get cocky.",
+  "Reluctant respect, [username]. The vault is reopened.",
+  "500 claps later, the palace forgives. This time.",
+  "Achievements: returned. Coins: returned. Dignity: still yours to find.",
+];
 
 const NATTOUN_BOO_COMMENTS = [
   "Booed your president? I just emptied your wallet AND your trophy case. Equal trade, citizen.",
@@ -143,8 +153,27 @@ export default function Palace() {
   const reactionId = useRef(0);
   const tomatoId = useRef(0);
 
-  // Troll button state: once the user falls for BOO, both buttons are dead.
-  const [buttonsDisabled, setButtonsDisabled] = useState(false);
+  // Persisted "punishment" state. When the user falls for BOO, we stash a
+  // backup of their achievements + coins and lock the troll buttons until
+  // they applaud REDEMPTION_GOAL times to earn it all back.
+  const [achievementBackup, setAchievementBackup] = useLocalStorage<string | null>(
+    "ogs_achievements_backup",
+    null,
+  );
+  const [coinsBackup, setCoinsBackup] = useLocalStorage<number | null>(
+    "ogs_coins_backup",
+    null,
+  );
+  const [redemptionBaseline, setRedemptionBaseline] = useLocalStorage<number | null>(
+    "ogs_redemption_baseline",
+    null,
+  );
+
+  const inRedemption = achievementBackup !== null;
+  const buttonsDisabled = inRedemption;
+  const redemptionProgress = inRedemption && redemptionBaseline != null
+    ? Math.min(REDEMPTION_GOAL, Math.max(0, applause - redemptionBaseline))
+    : 0;
   // Speech bubble Nattoun fires back at the user after a troll click.
   const [nattounComment, setNattounComment] = useState<string | null>(null);
   const commentTimeoutRef = useRef<number | null>(null);
@@ -310,26 +339,69 @@ export default function Palace() {
     };
   }, []);
 
+  // Applauding always works — even mid-redemption — because clapping is
+  // exactly how the citizen earns their stuff back.
   const handleApplaud = () => {
-    if (buttonsDisabled) return;
-    setApplause((a: number) => a + 1);
+    const nextApplause = applause + 1;
+    setApplause(() => nextApplause);
     setApprovalRating((r) => Math.min(99, r + 1));
     audio.playBlip();
     pushReaction("👏👏👏");
-    if (((applause + 1) % 25) === 0) {
+    if ((nextApplause % 25) === 0) {
       setMegaCheers(true);
       window.setTimeout(() => setMegaCheers(false), 2200);
       unlock("loyal");
     }
+
+    // Redemption check: hit REDEMPTION_GOAL claps after the wipe → restore.
+    if (inRedemption && redemptionBaseline != null) {
+      const progress = nextApplause - redemptionBaseline;
+      if (progress >= REDEMPTION_GOAL) {
+        try {
+          if (achievementBackup) {
+            window.localStorage.setItem("ogs_achievements", achievementBackup);
+          }
+          if (coinsBackup != null) {
+            window.localStorage.setItem("ogs_coins", JSON.stringify(coinsBackup));
+          }
+          window.dispatchEvent(new CustomEvent("achievement-change"));
+          window.dispatchEvent(new Event("local-storage"));
+        } catch {
+          /* ignore */
+        }
+        setAchievementBackup(() => null);
+        setCoinsBackup(() => null);
+        setRedemptionBaseline(() => null);
+        setMegaCheers(true);
+        window.setTimeout(() => setMegaCheers(false), 3500);
+        audio.playCoin();
+        sayNattoun(
+          NATTOUN_REDEMPTION_COMMENTS[
+            Math.floor(Math.random() * NATTOUN_REDEMPTION_COMMENTS.length)
+          ],
+        );
+      }
+    }
   };
 
-  // TROLL BOO — bait button. Pretends to do nothing visible, but actually
-  // wipes ALL the user's NC, ALL their easter-egg achievements, and disables
-  // both palace buttons forever (this session). Nattoun then taunts them.
-  const handleBoo = () => {
-    if (buttonsDisabled) return;
-    setButtonsDisabled(true);
-    setCoins(() => 0);
+  // Shared "wipe everything but stash a backup" routine used by both the
+  // BOO bait button and the TROLL TOMATO button. The redemption arc then
+  // lets the citizen earn it all back by applauding REDEMPTION_GOAL times.
+  const wipeWithBackup = () => {
+    let achievementsSnapshot = "{}";
+    try {
+      achievementsSnapshot =
+        window.localStorage.getItem("ogs_achievements") ?? "{}";
+    } catch {
+      /* ignore */
+    }
+    setAchievementBackup(() => achievementsSnapshot);
+    setCoins((c) => {
+      setCoinsBackup(() => c);
+      return 0;
+    });
+    setRedemptionBaseline(() => applause);
+
     try {
       window.localStorage.removeItem("ogs_achievements");
       window.dispatchEvent(new CustomEvent("achievement-change"));
@@ -337,6 +409,13 @@ export default function Palace() {
     } catch {
       /* ignore */
     }
+  };
+
+  // TROLL BOO — bait button.
+  const handleBoo = () => {
+    if (buttonsDisabled) return;
+    setBoos((b: number) => b + 1);
+    wipeWithBackup();
     audio.playGlitch();
     sayNattoun(
       NATTOUN_BOO_COMMENTS[Math.floor(Math.random() * NATTOUN_BOO_COMMENTS.length)]
@@ -383,12 +462,12 @@ export default function Palace() {
   };
 
   // TROLL TOMATO — the button advertises "-1 NC", but actually drains the
-  // ENTIRE wallet and the President ninja-dodges so no splat ever lands.
-  // No tomato counter increment. Nattoun then taunts the user.
+  // ENTIRE wallet AND wipes the trophy case (with backup), and the President
+  // ninja-dodges so no splat ever lands. Nattoun then taunts the user.
   const handleButtonThrow = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (buttonsDisabled) return;
-    setCoins(() => 0);
+    wipeWithBackup();
     setApprovalRating((r) => Math.max(3, r - 1));
     audio.playGlitch();
     pushReaction("💨 DODGED");
@@ -695,6 +774,38 @@ export default function Palace() {
           <div className="text-primary/40 font-mono text-[10px] uppercase tracking-widest">
             press <span className="text-primary">K</span> to crown the president · click his image to throw a tomato
           </div>
+
+          {/* Redemption arc — shown when the citizen has been wiped */}
+          {inRedemption && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-4 inline-block bg-black/80 border-2 border-yellow-400 px-4 py-3 text-left max-w-md mx-auto neon-box-cyan"
+              data-testid="redemption-banner"
+            >
+              <div className="flex items-center justify-between gap-3 text-yellow-400 font-mono text-[10px] uppercase tracking-widest mb-2">
+                <span className="flex items-center gap-1">
+                  <Crown className="w-3 h-3" /> REDEMPTION ARC
+                </span>
+                <span className="font-bold" data-testid="text-redemption-progress">
+                  {redemptionProgress} / {REDEMPTION_GOAL} CLAPS
+                </span>
+              </div>
+              <div className="w-full h-2 bg-yellow-400/10 border border-yellow-400/40 overflow-hidden mb-2">
+                <motion.div
+                  className="h-full bg-yellow-400"
+                  animate={{ width: `${(redemptionProgress / REDEMPTION_GOAL) * 100}%` }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
+              <p className="text-yellow-200/80 font-mono text-[11px] leading-snug">
+                Applaud {REDEMPTION_GOAL - redemptionProgress} more time
+                {REDEMPTION_GOAL - redemptionProgress === 1 ? "" : "s"} to
+                restore your achievements <span className="text-yellow-300">and</span> your{" "}
+                {coinsBackup ?? 0} NC. Boo and Tomato are locked until then.
+              </p>
+            </motion.div>
+          )}
 
           {applause >= 100 && (
             <motion.div

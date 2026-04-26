@@ -26,6 +26,28 @@ function checkWinner(b: Cell[]): { winner: Cell; line: number[] | null } {
   return { winner: null, line: null };
 }
 
+// Find a "correct" cheat: the minimal set of X cells to flip to O so that
+// (a) some line becomes a real 3-in-a-row for O (Nattoun wins legitimately
+// on that line), and (b) every existing X-winning line gets broken.
+// Returns null if no such cheat exists on the current board.
+function findCheat(b: Cell[]): { flips: number[]; line: number[] } | null {
+  const xWinLines = WINS.filter((line) => line.every((i) => b[i] === "X"));
+
+  const candidates = WINS.map((line) => {
+    const flips = line.filter((i) => b[i] === "X");
+    const hasNull = line.some((i) => b[i] === null);
+    return { line, flips, hasNull };
+  })
+    .filter((c) => !c.hasNull && c.flips.length > 0)
+    .filter((c) =>
+      xWinLines.every((xLine) => xLine.some((i) => c.flips.includes(i))),
+    )
+    .sort((a, b) => a.flips.length - b.flips.length);
+
+  if (candidates.length === 0) return null;
+  return { flips: candidates[0].flips, line: candidates[0].line };
+}
+
 function bestMove(b: Cell[]): number {
   for (const line of WINS) {
     const cells = line.map((i) => b[i]);
@@ -62,7 +84,7 @@ export default function TicTacToe() {
   const [turn, setTurn] = useState<"X" | "O">("X");
   const [taunt, setTaunt] = useState(`Pay ${COST_PER_GAME} NC. Then we play.`);
   const [score, setScore] = useState({ you: 0, dog: 0, draws: 0 });
-  const [cheated, setCheated] = useState<number | null>(null);
+  const [cheated, setCheated] = useState<number[] | null>(null);
 
   const result = checkWinner(board);
   const isFull = board.every((c) => c !== null);
@@ -84,14 +106,20 @@ export default function TicTacToe() {
   useEffect(() => {
     if (!paid || !gameOver) return;
     if (result.winner === "X") {
+      const cheat = findCheat(board);
       const xs = board.map((c, i) => (c === "X" ? i : -1)).filter((i) => i >= 0);
-      const flip = xs[Math.floor(Math.random() * xs.length)];
+      // Prefer a real cheat that gives O an actual winning line.
+      // Fall back to flipping any X on the player's winning line so at
+      // least the win gets erased.
+      const flips = cheat?.flips ?? [
+        result.line?.[0] ?? xs[0],
+      ];
       window.setTimeout(() => {
-        setCheated(flip);
+        setCheated(flips);
         setTaunt("INVALID MOVE. Reviewing tape... Nattoun wins.");
         window.setTimeout(() => {
           const newBoard = [...board];
-          newBoard[flip] = "O";
+          for (const i of flips) newBoard[i] = "O";
           setBoard(newBoard);
           setScore((s) => ({ ...s, dog: s.dog + 1 }));
           setCheated(null);
@@ -103,22 +131,15 @@ export default function TicTacToe() {
       setScore((s) => ({ ...s, dog: s.dog + 1 }));
       setPaid(false);
     } else {
+      const cheat = findCheat(board);
       const xs = board.map((c, i) => (c === "X" ? i : -1)).filter((i) => i >= 0);
-      let flip = xs[0];
-      for (const idx of xs) {
-        const trial = [...board];
-        trial[idx] = "O";
-        if (checkWinner(trial).winner === "O") {
-          flip = idx;
-          break;
-        }
-      }
+      const flips = cheat?.flips ?? [xs[0]];
       window.setTimeout(() => {
-        setCheated(flip);
+        setCheated(flips);
         setTaunt("Draw? IMPOSSIBLE. Recounting... Nattoun wins.");
         window.setTimeout(() => {
           const newBoard = [...board];
-          newBoard[flip] = "O";
+          for (const i of flips) newBoard[i] = "O";
           setBoard(newBoard);
           setScore((s) => ({ ...s, dog: s.dog + 1 }));
           setCheated(null);
@@ -148,7 +169,7 @@ export default function TicTacToe() {
   }, [turn, board, gameOver, paid]);
 
   const handleClick = (i: number) => {
-    if (!paid || board[i] || gameOver || turn !== "X" || cheated !== null) return;
+    if (!paid || board[i] || gameOver || turn !== "X" || cheated) return;
     const next = [...board];
     next[i] = "X";
     setBoard(next);
@@ -191,7 +212,7 @@ export default function TicTacToe() {
               whileTap={!c && !gameOver && turn === "X" && paid ? { scale: 0.95 } : {}}
               className={`w-20 h-20 md:w-24 md:h-24 bg-black border border-primary/50 text-4xl md:text-5xl font-black flex items-center justify-center transition-colors clickable ${
                 !paid ? "opacity-40 cursor-not-allowed" : ""
-              } ${cheated === i ? "border-secondary" : ""} ${result.line?.includes(i) ? "bg-primary/20" : ""}`}
+              } ${cheated?.includes(i) ? "border-secondary" : ""} ${result.line?.includes(i) ? "bg-primary/20" : ""}`}
               style={{
                 color: c === "X" ? "hsl(var(--secondary))" : "hsl(var(--primary))",
                 textShadow: c ? `0 0 8px ${c === "X" ? "hsl(var(--secondary))" : "hsl(var(--primary))"}` : undefined,
