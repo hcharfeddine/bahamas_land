@@ -5,7 +5,7 @@ import nattounImg from "@assets/Nattoun_1777028672745.png";
 import { useLocalStorage } from "@/lib/store";
 import { unlock } from "@/lib/achievements";
 import { playRockLoop } from "@/lib/rockLoop";
-import { getSongForLevel } from "@/lib/rhythmSong";
+import { getSongForLevel, type SongPlan } from "@/lib/rhythmSong";
 
 // ---------------------------------------------------------------
 // LANES + CONSTANTS
@@ -32,6 +32,135 @@ const LANE_COLOR: Record<LaneKey, string> = {
 };
 
 const SYMBOL_NOTES = ["⚡", "✦", "💀", "🔥", "👁"];
+
+// ---------------------------------------------------------------
+// MUSIC-DRIVEN NOTE GENERATOR
+// Converts a SongPlan's drum/lead patterns into Note objects so
+// each level has a unique, genre-accurate note sequence.
+// ---------------------------------------------------------------
+
+function generateNotesFromSong(
+  song: SongPlan,
+  p: LevelParams,
+  bpm: number,
+): Note[] {
+  // Seeded RNG so same level always produces the same notes.
+  let rngState = (song.level * 7919 + 49297) >>> 0;
+  const rng = () => {
+    rngState = (rngState + 0x6d2b79f5) >>> 0;
+    let t = rngState;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+
+  const beat = 60000 / bpm;
+  const sixteenth = beat / 4;
+  const barMs = sixteenth * 16;
+  const leadIn = 600;
+
+  type Candidate = {
+    spawnAt: number;
+    lane: LaneKey;
+    isHold: boolean;
+    holdMs: number;
+    priority: number;
+    isLead: boolean;
+  };
+  const candidates: Candidate[] = [];
+
+  const genre = song.genre;
+  // Type-safe accessor for section sounds on GenreTemplate.
+  type SecSound = { drums: { kick: number[]; snare: number[]; hihat: number[] }; chug: number[] };
+  const secSound = (section: string): SecSound =>
+    (genre as unknown as Record<string, SecSound>)[section];
+
+  song.bars.forEach((bar) => {
+    const barStart = bar.index * barMs + leadIn;
+    const isFill = bar.isLastInSection;
+    const sec = secSound(bar.section);
+    const drums = isFill ? genre.fill : sec.drums;
+    const chug = sec.chug;
+
+    // Kick → ArrowDown  (priority 3)
+    drums.kick.forEach((pos16) => {
+      candidates.push({ spawnAt: barStart + pos16 * sixteenth, lane: "ArrowDown", isHold: false, holdMs: 0, priority: 3, isLead: false });
+    });
+
+    // Snare → ArrowUp  (priority 2)
+    drums.snare.forEach((pos16) => {
+      candidates.push({ spawnAt: barStart + pos16 * sixteenth, lane: "ArrowUp", isHold: false, holdMs: 0, priority: 2, isLead: false });
+    });
+
+    // Hi-hat: on-beat (pos%4===0) → ArrowLeft, off-beat → ArrowRight  (priority 1)
+    drums.hihat.forEach((pos16) => {
+      const lane: LaneKey = pos16 % 4 === 0 ? "ArrowLeft" : "ArrowRight";
+      candidates.push({ spawnAt: barStart + pos16 * sixteenth, lane, isHold: false, holdMs: 0, priority: 1, isLead: false });
+    });
+
+    // Long-sustain chug genres (doom/stadium): add hold notes on strong beats
+    if (genre.chugTailMul >= 5.0 && p.holdChance > 0) {
+      chug.forEach((pos16) => {
+        if (pos16 % 8 !== 0) return;
+        const lane: LaneKey = (pos16 / 8) % 2 === 0 ? "ArrowLeft" : "ArrowRight";
+        const holdDur = Math.min(sixteenth * 8, 1000);
+        candidates.push({ spawnAt: barStart + pos16 * sixteenth, lane, isHold: true, holdMs: holdDur, priority: 2, isLead: false });
+      });
+    }
+
+    // Lead melody → lane mapped by scale degree
+    if (bar.hasLead && !isFill && song.leadPhrase.length > 0) {
+      song.leadPhrase.forEach((ev) => {
+        const spawnAt = barStart + ev.pos * sixteenth;
+        const deg = ev.deg % 12;
+        let lane: LaneKey;
+        if (deg <= 2) lane = "ArrowLeft";
+        else if (deg <= 5) lane = "ArrowDown";
+        else if (deg <= 8) lane = "ArrowUp";
+        else lane = "ArrowRight";
+        candidates.push({ spawnAt, lane, isHold: ev.len >= 8, holdMs: ev.len * sixteenth, priority: 3, isLead: true });
+      });
+    }
+  });
+
+  // Sort by time; break ties so higher-priority events go first.
+  candidates.sort((a, b) => a.spawnAt - b.spawnAt || b.priority - a.priority);
+
+  // Density filter: enforce a minimum gap per lane and a global gap.
+  const minLaneGap = Math.max(p.noteSpawnMs * 0.6, 90);
+  const minGlobalGap = Math.max(p.noteSpawnMs * 0.22, 40);
+  const lastPerLane: Record<LaneKey, number> = { ArrowLeft: -Infinity, ArrowDown: -Infinity, ArrowUp: -Infinity, ArrowRight: -Infinity };
+  let lastAny = -Infinity;
+
+  const notes: Note[] = [];
+  let idCursor = 0;
+
+  candidates.forEach((c) => {
+    if (c.spawnAt - lastPerLane[c.lane] < minLaneGap) return;
+    if (c.priority < 2 && c.spawnAt - lastAny < minGlobalGap) return;
+
+    lastPerLane[c.lane] = c.spawnAt;
+    lastAny = c.spawnAt;
+
+    const addSymbol = c.isLead && p.symbolChance > 0 ? true : rng() < p.symbolChance;
+    const symbol = addSymbol ? SYMBOL_NOTES[Math.floor(rng() * SYMBOL_NOTES.length)] : undefined;
+
+    const doHold = c.isHold && p.holdChance > 0;
+    notes.push({
+      id: ++idCursor,
+      lane: c.lane,
+      spawnAt: c.spawnAt,
+      hitAt: c.spawnAt + p.travelMs,
+      travelMs: p.travelMs,
+      type: doHold ? "hold" : "tap",
+      holdMs: doHold ? c.holdMs : 0,
+      symbol,
+      status: "pending",
+    });
+  });
+
+  return notes;
+}
 
 const MAX_LEVEL = 100;
 const HIT_ZONE_PCT = 0.85; // hit line at 85% of canvas height
@@ -166,11 +295,15 @@ export function RhythmGame() {
 
   const startLevel = useCallback(() => {
     const p = getLevelParams(selectedLevel);
+    // Build the song plan first — it's used for both note generation and audio.
+    const song = getSongForLevel(selectedLevel, p.bpm, p.durationMs + 1500);
+    // Pre-generate the full note sequence from the song's musical structure.
+    const preNotes = generateNotesFromSong(song, p, p.bpm);
     stateRef.current = {
       startedAt: performance.now(),
-      notes: [],
-      spawnCursor: 600, // small lead-in before first note
-      noteIdCursor: 0,
+      notes: preNotes,
+      spawnCursor: Infinity, // disabled — notes are pre-generated
+      noteIdCursor: preNotes.length,
       score: 0,
       combo: 0,
       bestCombo: 0,
@@ -198,11 +331,6 @@ export function RhythmGame() {
       if (ctx.state === "suspended") void ctx.resume();
       audioCtxRef.current = ctx;
       stopMusicRef.current?.();
-      const song = getSongForLevel(
-        selectedLevel,
-        p.bpm,
-        p.durationMs + 1500,
-      );
       stopMusicRef.current = playRockLoop(ctx, {
         song,
         durationMs: p.durationMs + 1500,
@@ -246,52 +374,6 @@ export function RhythmGame() {
     if (mode !== "playing") return;
     const p = getLevelParams(selectedLevel);
 
-    const spawnNote = (now: number) => {
-      const s = stateRef.current;
-      // Pick a lane (avoid spamming the same lane repeatedly).
-      const lastLane = s.notes[s.notes.length - 1]?.lane;
-      let lane = LANES[Math.floor(Math.random() * LANES.length)];
-      if (lane === lastLane && Math.random() < 0.6) {
-        lane = LANES[(LANES.indexOf(lane) + 1 + Math.floor(Math.random() * 3)) % LANES.length];
-      }
-      const isHold = Math.random() < p.holdChance;
-      const symbol =
-        Math.random() < p.symbolChance
-          ? SYMBOL_NOTES[Math.floor(Math.random() * SYMBOL_NOTES.length)]
-          : undefined;
-      const holdMs = isHold ? Math.round(lerp(350, 1100, Math.random())) : 0;
-
-      s.notes.push({
-        id: ++s.noteIdCursor,
-        lane,
-        spawnAt: now,
-        hitAt: now + p.travelMs,
-        travelMs: p.travelMs,
-        type: isHold ? "hold" : "tap",
-        holdMs,
-        symbol,
-        status: "pending",
-      });
-
-      // Multi-note: occasionally spawn a second note in another lane.
-      if (Math.random() < p.multiChance) {
-        const otherLane = LANES.filter((l) => l !== lane)[
-          Math.floor(Math.random() * 3)
-        ];
-        s.notes.push({
-          id: ++s.noteIdCursor,
-          lane: otherLane,
-          spawnAt: now,
-          hitAt: now + p.travelMs,
-          travelMs: p.travelMs,
-          type: "tap",
-          holdMs: 0,
-          symbol: undefined,
-          status: "pending",
-        });
-      }
-    };
-
     const checkExpired = (nowMs: number) => {
       const s = stateRef.current;
       for (const n of s.notes) {
@@ -315,13 +397,6 @@ export function RhythmGame() {
     const loop = () => {
       const s = stateRef.current;
       const nowMs = performance.now() - s.startedAt;
-
-      // Spawn notes up to current time.
-      while (s.spawnCursor <= nowMs && s.spawnCursor <= p.durationMs) {
-        spawnNote(s.spawnCursor);
-        const jitter = 0.85 + Math.random() * 0.3;
-        s.spawnCursor += p.noteSpawnMs * jitter;
-      }
 
       checkExpired(nowMs);
 
