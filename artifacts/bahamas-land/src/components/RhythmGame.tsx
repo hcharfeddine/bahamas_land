@@ -44,7 +44,7 @@ function generateNotesFromSong(
   p: LevelParams,
   bpm: number,
 ): Note[] {
-  // Seeded RNG so same level always produces the same notes.
+  // Seeded RNG — same level always produces the same notes.
   let rngState = (song.level * 7919 + 49297) >>> 0;
   const rng = () => {
     rngState = (rngState + 0x6d2b79f5) >>> 0;
@@ -58,6 +58,33 @@ function generateNotesFromSong(
   const sixteenth = beat / 4;
   const barMs = sixteenth * 16;
   const leadIn = 600;
+  const genre = song.genre;
+
+  // ── Level-unique lane permutation ────────────────────────────────────────
+  // Each level gets its own shuffle of the 4 lanes.  This means:
+  //   level 1: kick → ▶, snare → ▲, hihat-on → ◀, hihat-off → ▼  (example)
+  //   level 2: kick → ▲, snare → ◀, hihat-on → ▶, hihat-off → ▼  (different)
+  // The 4 "roles" are: [kickRole, snareRole, hihatOnRole, hihatOffRole].
+  const basePerm = [...LANES] as LaneKey[];
+  for (let i = 3; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [basePerm[i], basePerm[j]] = [basePerm[j], basePerm[i]];
+  }
+
+  // Per-section twist: rotate the permutation differently for each section
+  // so verse ≠ chorus ≠ bridge even within the same level.
+  const SECTION_TWIST: Record<string, number> = {
+    intro: 0,
+    verse: Math.floor(rng() * 4),
+    chorus: Math.floor(rng() * 4),
+    bridge: Math.floor(rng() * 4),
+    breakdown: Math.floor(rng() * 4),
+    outro: 0,
+  };
+
+  // Per-level hihat thinning probability: some levels are denser than others
+  // even within the same tier. Range: skip 10% – 45% of hihat hits.
+  const hihatSkip = 0.10 + rng() * 0.35;
 
   type Candidate = {
     spawnAt: number;
@@ -69,11 +96,15 @@ function generateNotesFromSong(
   };
   const candidates: Candidate[] = [];
 
-  const genre = song.genre;
-  // Type-safe accessor for section sounds on GenreTemplate.
   type SecSound = { drums: { kick: number[]; snare: number[]; hihat: number[] }; chug: number[] };
   const secSound = (section: string): SecSound =>
     (genre as unknown as Record<string, SecSound>)[section];
+
+  // Helper: apply a rotation to the base permutation for a given section.
+  const permForSection = (section: string): LaneKey[] => {
+    const twist = SECTION_TWIST[section] ?? 0;
+    return basePerm.map((_, i) => basePerm[(i + twist) % 4]);
+  };
 
   song.bars.forEach((bar) => {
     const barStart = bar.index * barMs + leadIn;
@@ -81,52 +112,55 @@ function generateNotesFromSong(
     const sec = secSound(bar.section);
     const drums = isFill ? genre.fill : sec.drums;
     const chug = sec.chug;
+    const perm = permForSection(bar.section);
 
-    // Kick → ArrowDown  (priority 3)
+    // perm[0] = lane for kick-like beats (strong downbeats)
+    // perm[1] = lane for snare-like beats (backbeats)
+    // perm[2] = lane for on-beat hi-hats
+    // perm[3] = lane for off-beat hi-hats
+
+    // ── Kick (priority 3) ────────────────────────────────────────────────
     drums.kick.forEach((pos16) => {
-      candidates.push({ spawnAt: barStart + pos16 * sixteenth, lane: "ArrowDown", isHold: false, holdMs: 0, priority: 3, isLead: false });
+      candidates.push({ spawnAt: barStart + pos16 * sixteenth, lane: perm[0], isHold: false, holdMs: 0, priority: 3, isLead: false });
     });
 
-    // Snare → ArrowUp  (priority 2)
+    // ── Snare (priority 2) ───────────────────────────────────────────────
     drums.snare.forEach((pos16) => {
-      candidates.push({ spawnAt: barStart + pos16 * sixteenth, lane: "ArrowUp", isHold: false, holdMs: 0, priority: 2, isLead: false });
+      candidates.push({ spawnAt: barStart + pos16 * sixteenth, lane: perm[1], isHold: false, holdMs: 0, priority: 2, isLead: false });
     });
 
-    // Hi-hat: on-beat (pos%4===0) → ArrowLeft, off-beat → ArrowRight  (priority 1)
+    // ── Hi-hat (priority 1) with per-level thinning ──────────────────────
     drums.hihat.forEach((pos16) => {
-      const lane: LaneKey = pos16 % 4 === 0 ? "ArrowLeft" : "ArrowRight";
-      candidates.push({ spawnAt: barStart + pos16 * sixteenth, lane, isHold: false, holdMs: 0, priority: 1, isLead: false });
+      if (rng() < hihatSkip) return; // skip varies per level → unique density
+      const isOnBeat = pos16 % 4 === 0;
+      candidates.push({ spawnAt: barStart + pos16 * sixteenth, lane: isOnBeat ? perm[2] : perm[3], isHold: false, holdMs: 0, priority: 1, isLead: false });
     });
 
-    // Long-sustain chug genres (doom/stadium): add hold notes on strong beats
+    // ── Long-sustain holds for doom/stadium genres ───────────────────────
     if (genre.chugTailMul >= 5.0 && p.holdChance > 0) {
       chug.forEach((pos16) => {
         if (pos16 % 8 !== 0) return;
-        const lane: LaneKey = (pos16 / 8) % 2 === 0 ? "ArrowLeft" : "ArrowRight";
         const holdDur = Math.min(sixteenth * 8, 1000);
-        candidates.push({ spawnAt: barStart + pos16 * sixteenth, lane, isHold: true, holdMs: holdDur, priority: 2, isLead: false });
+        candidates.push({ spawnAt: barStart + pos16 * sixteenth, lane: (pos16 / 8) % 2 === 0 ? perm[2] : perm[3], isHold: true, holdMs: holdDur, priority: 2, isLead: false });
       });
     }
 
-    // Lead melody → lane mapped by scale degree
+    // ── Lead melody (already unique per level via song.leadPhrase) ────────
     if (bar.hasLead && !isFill && song.leadPhrase.length > 0) {
       song.leadPhrase.forEach((ev) => {
         const spawnAt = barStart + ev.pos * sixteenth;
         const deg = ev.deg % 12;
-        let lane: LaneKey;
-        if (deg <= 2) lane = "ArrowLeft";
-        else if (deg <= 5) lane = "ArrowDown";
-        else if (deg <= 8) lane = "ArrowUp";
-        else lane = "ArrowRight";
+        // Map scale degree to lane: low→Left, mid-low→Down, mid-high→Up, high→Right
+        const lane: LaneKey = deg <= 2 ? "ArrowLeft" : deg <= 5 ? "ArrowDown" : deg <= 8 ? "ArrowUp" : "ArrowRight";
         candidates.push({ spawnAt, lane, isHold: ev.len >= 8, holdMs: ev.len * sixteenth, priority: 3, isLead: true });
       });
     }
   });
 
-  // Sort by time; break ties so higher-priority events go first.
+  // Sort by time; ties resolved by priority (higher = keep).
   candidates.sort((a, b) => a.spawnAt - b.spawnAt || b.priority - a.priority);
 
-  // Density filter: enforce a minimum gap per lane and a global gap.
+  // Density filter: enforce min gap per lane + global min gap.
   const minLaneGap = Math.max(p.noteSpawnMs * 0.6, 90);
   const minGlobalGap = Math.max(p.noteSpawnMs * 0.22, 40);
   const lastPerLane: Record<LaneKey, number> = { ArrowLeft: -Infinity, ArrowDown: -Infinity, ArrowUp: -Infinity, ArrowRight: -Infinity };
@@ -138,14 +172,13 @@ function generateNotesFromSong(
   candidates.forEach((c) => {
     if (c.spawnAt - lastPerLane[c.lane] < minLaneGap) return;
     if (c.priority < 2 && c.spawnAt - lastAny < minGlobalGap) return;
-
     lastPerLane[c.lane] = c.spawnAt;
     lastAny = c.spawnAt;
 
-    const addSymbol = c.isLead && p.symbolChance > 0 ? true : rng() < p.symbolChance;
+    const addSymbol = (c.isLead && p.symbolChance > 0) || rng() < p.symbolChance;
     const symbol = addSymbol ? SYMBOL_NOTES[Math.floor(rng() * SYMBOL_NOTES.length)] : undefined;
-
     const doHold = c.isHold && p.holdChance > 0;
+
     notes.push({
       id: ++idCursor,
       lane: c.lane,
