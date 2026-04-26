@@ -6,12 +6,14 @@ import { audio } from "@/lib/audio";
 import { unlock } from "@/lib/achievements";
 
 const PATIENT_MS = 10_000;
+const VIP_MS = 180_000; // 3 minutes on the home screen
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const [isZooming, setIsZooming] = useState(false);
   const patientTimer = useRef<number | null>(null);
   const patientLastMove = useRef(0);
+  const vipTimer = useRef<number | null>(null);
 
   const handleClick = () => {
     if (isZooming) return;
@@ -83,6 +85,21 @@ export default function Home() {
       if (patientTimer.current) window.clearTimeout(patientTimer.current);
     };
   }, [isZooming]);
+
+  // VIP egg: stay on the home screen for 3 minutes without entering
+  useEffect(() => {
+    vipTimer.current = window.setTimeout(() => {
+      unlock("vip");
+      window.dispatchEvent(
+        new CustomEvent("egg-flash", {
+          detail: { text: "⭐ VIP CITIZEN", sub: "3 minutes. Still at the door." },
+        }),
+      );
+    }, VIP_MS);
+    return () => {
+      if (vipTimer.current) window.clearTimeout(vipTimer.current);
+    };
+  }, []);
 
   return (
     <div 

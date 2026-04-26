@@ -50,6 +50,18 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+export function generateChainLetter(username: string): Letter {
+  const u = username || "Citizen";
+  return {
+    id: "chainletter-special",
+    subject: "DO NOT OPEN THIS LETTER",
+    body: `${u},\n\nIf you are reading this, you already made a mistake.\n\nThis letter has been passed through 47 citizens. Each one was told not to open it. You are the 48th.\n\nBy opening this letter, you have accepted:\n  1. One (1) moderate curse\n  2. A slight reduction in luck for the next 3 business epochs\n  3. Permanent membership in the Presidential Chain Letter List\n\nForward this to 5 friends. We have no friends here so this is impossible.\n\nYou are stuck.\n\n— Ministry of Cursed Mail`,
+    timestamp: Date.now() - 1000 * 60 * 60 * 24 * 3,
+    read: false,
+    stamp: "DO NOT OPEN",
+  };
+}
+
 export function generateLetter(username: string): Letter {
   const u = username || "Citizen";
   const body = pick(BODIES)(u);

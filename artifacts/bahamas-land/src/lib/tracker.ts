@@ -13,6 +13,9 @@ const VISITED_KEY = "ogs_visited_paths";
 const CLICKS_KEY = "ogs_total_clicks";
 const PEAK_COINS_KEY = "ogs_peak_coins";
 const SPENT_KEY = "ogs_total_spent";
+const HIDDEN_VISITED_KEY = "ogs_hidden_paths";
+
+const HIDDEN_PATHS = ["/vault", "/banned", "/exile", "/baskouta", "/177", "/freem3kky"];
 
 const PUBLIC_ROOMS = [
   "/",
@@ -69,6 +72,14 @@ function writeNum(key: string, n: number) {
   }
 }
 
+function trackHiddenVisit(pathname: string) {
+  if (!HIDDEN_PATHS.includes(pathname)) return;
+  const set = readSet(HIDDEN_VISITED_KEY);
+  set.add(pathname);
+  writeSet(HIDDEN_VISITED_KEY, set);
+  if (HIDDEN_PATHS.every((p) => set.has(p))) unlock("loremaster");
+}
+
 export function trackVisit(pathname: string) {
   const set = readSet(VISITED_KEY);
   set.add(pathname);
@@ -76,6 +87,7 @@ export function trackVisit(pathname: string) {
   if (set.size >= 3) unlock("tourist");
   const allVisited = PUBLIC_ROOMS.every((p) => set.has(p));
   if (allVisited) unlock("loyaltour");
+  trackHiddenVisit(pathname);
 }
 
 export function trackClick() {

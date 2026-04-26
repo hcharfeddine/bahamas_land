@@ -265,10 +265,12 @@ export default function Stream() {
     "ogs_stream_followed",
     false,
   );
-  const [subbed, setSubbed] = useLocalStorage<boolean>(
-    "ogs_stream_subbed",
-    false,
+  const [subbedDate, setSubbedDate] = useLocalStorage<string>(
+    "ogs_stream_subbed_date",
+    "",
   );
+  const todayKey = new Date().toDateString();
+  const subbed = subbedDate === todayKey;
   const [tipsSent, setTipsSent] = useLocalStorage<number>(
     "ogs_stream_tips_sent",
     0,
@@ -409,7 +411,7 @@ export default function Stream() {
 
   const handleSubscribe = () => {
     if (!subbed) {
-      setSubbed(true);
+      setSubbedDate(todayKey);
       setCoins((c) => Math.max(0, c - 100));
       unlock("subscriber");
       audio.playGlitch();
@@ -424,6 +426,7 @@ export default function Stream() {
     }
     setCoins((c) => Math.max(0, c - amount));
     setTipsSent((t) => t + amount);
+    unlock("taxpayer");
     audio.playCoin();
     const lines = [
       `Tip received: ${amount} NC. Loyalty +${Math.floor(amount / 10)}.`,

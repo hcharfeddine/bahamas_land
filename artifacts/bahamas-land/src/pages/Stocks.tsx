@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useCoins, useLocalStorage } from "@/lib/store";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { audio } from "@/lib/audio";
+import { unlock } from "@/lib/achievements";
 
 type Tick = { price: number; t: number };
 
@@ -72,11 +73,13 @@ export default function Stocks() {
   const sell = (qty: number) => {
     if (qty <= 0 || qty > holdings) return;
     const proceeds = Math.round(qty * price);
+    const cost = Math.round(qty * avgCost);
     const newHoldings = holdings - qty;
     setHoldings(newHoldings);
     if (newHoldings === 0) setAvgCost(0);
     setCoins(coins + proceeds);
     audio.playBlip();
+    if (proceeds > cost) unlock("mastermind");
   };
 
   // Build chart polyline

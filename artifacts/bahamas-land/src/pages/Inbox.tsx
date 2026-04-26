@@ -3,8 +3,9 @@ import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUsername } from "@/lib/store";
-import { useLetters, useLastLetterAt, generateLetter, Letter } from "@/lib/inbox";
+import { useLetters, useLastLetterAt, generateLetter, generateChainLetter, Letter } from "@/lib/inbox";
 import { Mail, MailOpen, Stamp } from "lucide-react";
+import { unlock } from "@/lib/achievements";
 
 const LETTER_INTERVAL_MS = 1000 * 60 * 5; // 5 minutes between auto-letters
 
@@ -15,19 +16,26 @@ export default function Inbox() {
   const [open, setOpen] = useState<Letter | null>(null);
 
   useEffect(() => {
-    // First time: seed an inbox with a welcome letter
+    // First time: seed an inbox with a welcome letter + the chain letter
     if (letters.length === 0) {
       const seed = generateLetter(username);
       seed.subject = "Welcome to the inbox you did not sign up for";
       seed.body = `Dear ${username || "Citizen"},\n\nYou have been added to the Presidential Mailing List. You cannot unsubscribe. We tried.\n\nExpect mail at random intervals. Open at your own risk.\n\n— The Office of the President`;
-      setLetters([seed]);
+      const chain = generateChainLetter(username);
+      setLetters([chain, seed]);
       setLastAt(Date.now());
       return;
+    }
+    // Inject chain letter if it's somehow missing
+    const hasChain = letters.some((l) => l.id === "chainletter-special");
+    if (!hasChain) {
+      const chain = generateChainLetter(username);
+      setLetters([chain, ...letters]);
     }
     // Send a new letter if enough time has passed
     if (Date.now() - lastAt > LETTER_INTERVAL_MS) {
       const next = generateLetter(username);
-      setLetters([next, ...letters]);
+      setLetters((prev) => [next, ...prev]);
       setLastAt(Date.now());
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -37,6 +45,7 @@ export default function Inbox() {
     setOpen(l);
     if (!l.read) {
       setLetters(letters.map((x) => (x.id === l.id ? { ...x, read: true } : x)));
+      if (l.stamp === "DO NOT OPEN") unlock("chainletter");
     }
   };
 

@@ -62,6 +62,12 @@ export function EasterEggs() {
   const typedBuffer = useRef<string>("");
   const typedTimer = useRef<number | null>(null);
   const f12Used = useRef<boolean>(false);
+  const konamiStep = useRef<number>(0);
+  const konamiSuffixStep = useRef<number>(0);
+  const konamiDone = useRef<boolean>(false);
+
+  const KONAMI_SEQ = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight"];
+  const KONAMI_SUFFIX = ["b","a","s","k","o","u","t","a"];
 
   const pushToast = (text: string, sub?: string) => {
     const id = Date.now() + Math.random();
@@ -188,9 +194,43 @@ export function EasterEggs() {
           }, 5000);
         }
       }
+      // Konami / compass sequence detection (arrows then "baskouta")
+      if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) {
+        if (e.key === KONAMI_SEQ[konamiStep.current]) {
+          konamiStep.current += 1;
+          if (konamiStep.current === KONAMI_SEQ.length) {
+            unlock("compass");
+            pushToast("🧭 COMPASS UNLOCKED", "North north south south...");
+            audio.playCoin();
+            konamiDone.current = true;
+            konamiStep.current = 0;
+          }
+        } else {
+          konamiStep.current = e.key === KONAMI_SEQ[0] ? 1 : 0;
+          konamiSuffixStep.current = 0;
+        }
+      }
+
       // Typed buffer for word combos. Triggers are stored as djb2 hashes so
       // viewing the bundle source doesn't reveal what to type.
       if (!isTyping && e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+        // Track "baskouta" suffix after compass sequence for konami achievement
+        if (konamiDone.current) {
+          const ch = e.key.toLowerCase();
+          if (ch === KONAMI_SUFFIX[konamiSuffixStep.current]) {
+            konamiSuffixStep.current += 1;
+            if (konamiSuffixStep.current === KONAMI_SUFFIX.length) {
+              unlock("konami");
+              pushToast("🎮 BASKOUTA CODE", "Ancient. Crunchy. Unlocked.");
+              audio.playGlitch();
+              konamiDone.current = false;
+              konamiSuffixStep.current = 0;
+            }
+          } else {
+            konamiSuffixStep.current = ch === KONAMI_SUFFIX[0] ? 1 : 0;
+          }
+        }
+
         typedBuffer.current = (typedBuffer.current + e.key.toLowerCase()).slice(-16);
         if (typedTimer.current) window.clearTimeout(typedTimer.current);
         typedTimer.current = window.setTimeout(() => {
