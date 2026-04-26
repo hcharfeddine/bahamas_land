@@ -10,8 +10,8 @@ import { trackSpend } from "@/lib/tracker";
 import { Hand, Scissors, Square, Coins } from "lucide-react";
 
 const COST_PER_ROUND = 25;
-// Once-in-a-blue-moon mercy: 5% chance Nattoun "lets you have it" and you win.
-const MERCY_RATE = 0.05;
+// Once-in-a-blue-moon mercy: chance Nattoun "lets you have it" and you win.
+const MERCY_RATE = 0.18;
 const MERCY_REWARD = 200;
 
 type Choice = "rock" | "paper" | "scissors";
@@ -45,6 +45,15 @@ const TAUNTS_LOSE = [
   "Mods, please ban [username] for losing too obviously.",
   "I let my advisors play once. They lost too. Then I exiled them.",
   "Did you really think you could beat me? In MY country?",
+];
+
+const TAUNTS_ROCK = [
+  "Rock? In Bahamas Land? We BANNED rocks after the Revolution of '09. Citizens were throwing them at the Palace. Paper covers it anyway. Goodbye.",
+  "A rock. Interesting. Last citizen who brought a rock to court used it as a 'protest tool'. They are now in exile. Paper wins. Move on.",
+  "Sir, rocks are classified as weapons of minor revolution in this country. I am confiscating it. With paper. As the law requires.",
+  "The Rock? Dwayne Johnson? No. Not here. Not in my court. Paper smothers your little rebellion. Next.",
+  "We had a citizen bring a rock once. Said it was 'symbolic'. It was symbolic of losing. Paper. Always paper.",
+  "Bahamas Land Penal Code Article 7: 'Rocks may not be used in official competitions due to their historical association with throwing at the President.' Paper wins. Obviously.",
 ];
 const TAUNTS_WIN = [
   "Lucky. Once. It will not happen again.",
@@ -114,7 +123,10 @@ export default function RPS() {
         setOutcome("lose");
         setScore((s) => ({ ...s, dog: s.dog + 1 }));
         setWinStreak(0);
-        setTaunt(TAUNTS_LOSE[Math.floor(Math.random() * TAUNTS_LOSE.length)]);
+        const loseTaunt = c === "rock"
+          ? TAUNTS_ROCK[Math.floor(Math.random() * TAUNTS_ROCK.length)]
+          : TAUNTS_LOSE[Math.floor(Math.random() * TAUNTS_LOSE.length)];
+        setTaunt(loseTaunt);
         audio.playGlitch();
       }
       setRevealing(false);
