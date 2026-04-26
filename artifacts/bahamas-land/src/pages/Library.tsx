@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Layout } from "@/components/Layout";
 import { motion, AnimatePresence } from "framer-motion";
 import { Book, ExternalLink, X } from "lucide-react";
@@ -23,13 +23,30 @@ const LINKS: LibraryLink[] = [
   { id: 5, label: "Sealed Until 2049", real: "Discord", url: "https://discord.com/invite/cqHafeyeSp" },
 ];
 
+const LIBRARY_KEY = "ogs_library_opened";
+
+function readOpened(): number[] {
+  try {
+    const raw = localStorage.getItem(LIBRARY_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch { return []; }
+}
+
 export default function Library() {
   const [trollLink, setTrollLink] = useState<string | null>(null);
-  const [opened, setOpened] = useLocalStorage<number[]>("ogs_library_opened", []);
+  const [opened, setOpened] = useLocalStorage<number[]>(LIBRARY_KEY, []);
+
+  // Check on mount — if all books already opened in a previous session, award now
+  useEffect(() => {
+    if (readOpened().length >= LINKS.length) unlock("scholar");
+  }, []);
 
   const markOpened = (id: number) => {
-    if (opened.includes(id)) return;
-    const next = [...opened, id];
+    // Read directly from localStorage to avoid stale closure bugs
+    const current = readOpened();
+    if (current.includes(id)) return;
+    const next = [...current, id];
     setOpened(next);
     if (next.length >= LINKS.length) unlock("scholar");
   };
