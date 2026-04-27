@@ -105,7 +105,7 @@ export default function CustomerService() {
     try {
       const base = (import.meta as any).env?.BASE_URL ?? "/";
       const apiBase = base.endsWith("/") ? base.slice(0, -1) : base;
-      const url = `${apiBase}/api/hint?day=${dayKey}`;
+      const url = `${apiBase}/__hint?day=${dayKey}`;
       const res = await fetch(url);
       if (!res.ok) {
         const text = await res.text().catch(() => "no body");

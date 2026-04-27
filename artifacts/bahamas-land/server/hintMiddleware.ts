@@ -583,7 +583,7 @@ export function hintMiddleware(
   next: (err?: unknown) => void,
 ) {
   const url = req.url || "";
-  if (!url.startsWith("/api/hint")) return next();
+  if (!url.startsWith("/__hint")) return next();
 
   // Parse query string for optional day override (defaults to today)
   const qIdx = url.indexOf("?");
