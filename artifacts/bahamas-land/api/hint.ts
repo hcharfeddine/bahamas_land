@@ -1,28 +1,36 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { todayKey, pickHint } from "./hintsData";
+import { todayKey, pickHint } from "../server/hintsData";
 
 // =============================================================================
-// hintMiddleware — Vite dev-server handler for POST /api/hint
+// Vercel serverless function — POST /api/hint
 //
-// In production (Vercel) the identical logic lives in api/hint.ts as a
-// serverless function.  Full spoiler text is stored in server/hintsData.ts
-// and is NEVER shipped in the client JS bundle.
+// Vercel automatically picks up files in the api/ directory and serves them
+// as serverless functions before any rewrites in vercel.json apply.
+//
+// Full spoiler hints live in server/hintsData.ts — never in the client bundle.
 // =============================================================================
 
 function sendJson(res: ServerResponse, status: number, body: unknown) {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.end(JSON.stringify(body));
 }
 
-export function hintMiddleware(
-  req: IncomingMessage,
-  res: ServerResponse,
-  next: (err?: unknown) => void,
-) {
-  if (req.url !== "/api/hint" && !req.url?.startsWith("/api/hint?")) return next();
-  if (req.method !== "POST") return next();
+export default function handler(req: IncomingMessage, res: ServerResponse) {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    sendJson(res, 204, {});
+    return;
+  }
+
+  if (req.method !== "POST") {
+    sendJson(res, 405, { ok: false, error: "method_not_allowed" });
+    return;
+  }
 
   const chunks: Buffer[] = [];
   req.on("data", (c: Buffer) => chunks.push(c));

@@ -105,7 +105,7 @@ export default function CustomerService() {
     try {
       const base = (import.meta as any).env?.BASE_URL ?? "/";
       const apiBase = base.endsWith("/") ? base.slice(0, -1) : base;
-      const url = `${apiBase}/__hint`;
+      const url = `${apiBase}/api/hint`;
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
