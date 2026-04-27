@@ -105,8 +105,12 @@ export default function CustomerService() {
     try {
       const base = (import.meta as any).env?.BASE_URL ?? "/";
       const apiBase = base.endsWith("/") ? base.slice(0, -1) : base;
-      const url = `${apiBase}/__hint?day=${dayKey}`;
-      const res = await fetch(url);
+      const url = `${apiBase}/__hint`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ day: String(dayKey) }),
+      });
       if (!res.ok) {
         const text = await res.text().catch(() => "no body");
         throw new Error(`HTTP ${res.status}: ${text.slice(0, 120)}`);

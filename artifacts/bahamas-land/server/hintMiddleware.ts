@@ -577,6 +577,15 @@ function todayKey(): number {
 // --------------------------------------------------------------------------
 // Middleware
 // --------------------------------------------------------------------------
+function readBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (c) => chunks.push(c));
+    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+    req.on("error", () => resolve(""));
+  });
+}
+
 export function hintMiddleware(
   req: IncomingMessage,
   res: ServerResponse,
@@ -584,25 +593,37 @@ export function hintMiddleware(
 ) {
   const url = req.url || "";
   if (!url.startsWith("/__hint")) return next();
+  if (req.method !== "POST") return next();
 
-  // Parse query string for optional day override (defaults to today)
-  const qIdx = url.indexOf("?");
-  const params = new URLSearchParams(qIdx >= 0 ? url.slice(qIdx + 1) : "");
-  const rawDay = params.get("day");
-  const dayKey = rawDay && /^\d{8}$/.test(rawDay) ? parseInt(rawDay, 10) : todayKey();
+  // Collect body chunks, then respond — fully callback-based so connect
+  // doesn't advance to the HTML fallback before we finish.
+  const chunks: Buffer[] = [];
+  req.on("data", (c: Buffer) => chunks.push(c));
+  req.on("error", () => sendJson(res, 400, { ok: false, error: "read_error" }));
+  req.on("end", () => {
+    let dayKey = todayKey();
+    try {
+      const raw = Buffer.concat(chunks).toString("utf8");
+      const body = JSON.parse(raw);
+      if (body.day && /^\d{8}$/.test(String(body.day))) {
+        dayKey = parseInt(String(body.day), 10);
+      }
+    } catch {
+      // use today
+    }
 
-  const rng = dayRng(dayKey);
-  const idx = Math.floor(rng() * HINTS.length);
-  const entry = HINTS[idx];
+    const rng = dayRng(dayKey);
+    const idx = Math.floor(rng() * HINTS.length);
+    const entry = HINTS[idx];
 
-  sendJson(res, 200, {
-    ok: true,
-    dayKey,
-    achievementId: entry.id,
-    achievementName: entry.name,
-    emoji: entry.emoji,
-    difficulty: entry.difficulty,
-    // Full hint — only sent when explicitly requested (after 500 NC payment)
-    hint: entry.hint,
+    sendJson(res, 200, {
+      ok: true,
+      dayKey,
+      achievementId: entry.id,
+      achievementName: entry.name,
+      emoji: entry.emoji,
+      difficulty: entry.difficulty,
+      hint: entry.hint,
+    });
   });
 }
