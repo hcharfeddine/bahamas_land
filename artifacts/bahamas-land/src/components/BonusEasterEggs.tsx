@@ -12,8 +12,6 @@ import { unlock, isUnlocked } from "@/lib/achievements";
 // 4. mrigel        — type "mrigel" anywhere
 // 5. ussd_pro      — type "*100#" anywhere
 // 6. tab_hoarder   — be opened in 5+ tabs at once
-// 7. zoom_god      — zoom in to >=1.8x, then out to <=0.6x
-// 8. 3ammar        — keep DevTools open for ~5 minutes
 // (bark_code lives in main.tsx as nattoun.bark())
 // ============================================================================
 
@@ -199,69 +197,6 @@ export function BonusEasterEggs() {
         /* ignore */
       }
     };
-  }, []);
-
-  // -------------------------------------------------------------------------
-  // 7. ZOOM GOD — zoom in to >=1.8x then out to <=0.6x (or vice versa)
-  // -------------------------------------------------------------------------
-  useEffect(() => {
-    if (isUnlocked("zoom_god")) return;
-    let sawHigh = false;
-    let sawLow = false;
-    const measure = () => {
-      // outerWidth/innerWidth gives a fair zoom estimate in Chromium.
-      const outer = window.outerWidth || 1;
-      const inner = window.innerWidth || 1;
-      const zoom = outer / inner;
-      if (!isFinite(zoom)) return;
-      if (zoom >= 1.8) sawHigh = true;
-      if (zoom > 0 && zoom <= 0.6) sawLow = true;
-      if (sawHigh && sawLow) unlock("zoom_god");
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, []);
-
-  // -------------------------------------------------------------------------
-  // 8. 3AMMAR — DevTools open for ~5 minutes (cumulative)
-  // -------------------------------------------------------------------------
-  useEffect(() => {
-    if (isUnlocked("3ammar")) return;
-    let openedSinceMs = 0;
-    let lastTickT = performance.now();
-    const STORE_KEY = "ogs_devtools_seconds";
-    const isDevtoolsOpen = () => {
-      const wThreshold = 160;
-      const hThreshold = 160;
-      const wDiff = (window.outerWidth || 0) - (window.innerWidth || 0);
-      const hDiff = (window.outerHeight || 0) - (window.innerHeight || 0);
-      // Either side-docked or bottom-docked devtools → big diff.
-      return wDiff > wThreshold || hDiff > hThreshold;
-    };
-    try {
-      openedSinceMs = Number(localStorage.getItem(STORE_KEY)) || 0;
-    } catch {
-      openedSinceMs = 0;
-    }
-    const tick = () => {
-      const now = performance.now();
-      const dt = now - lastTickT;
-      lastTickT = now;
-      if (isDevtoolsOpen()) {
-        openedSinceMs += dt;
-        try {
-          localStorage.setItem(STORE_KEY, String(openedSinceMs));
-        } catch {
-          /* ignore */
-        }
-        if (openedSinceMs >= 5 * 60 * 1000) {
-          unlock("3ammar");
-        }
-      }
-    };
-    const t = window.setInterval(tick, 2000);
-    return () => window.clearInterval(t);
   }, []);
 
   // -------------------------------------------------------------------------

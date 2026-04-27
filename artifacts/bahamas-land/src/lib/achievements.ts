@@ -106,9 +106,7 @@ export type AchievementId =
   | "raja3_ghodwa"    // visit /passport during lunch hour, stay 60s
   | "mrigel"          // type 'mrigel' anywhere
   | "ussd_pro"        // type '*100#' anywhere
-  | "tab_hoarder"     // open in 5+ tabs at once
-  | "zoom_god"        // zoom in to >=1.8x then out to <=0.6x
-  | "3ammar";         // keep devtools open for 5 minutes
+  | "tab_hoarder";    // open in 5+ tabs at once
 
 export type Difficulty = "easy" | "medium" | "hard" | "insane";
 
@@ -232,8 +230,6 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "mrigel", name: "Mrigel Sahbi", hint: "When in trouble, type the magic Tunisian word.", emoji: "🤙", difficulty: "easy" },
   { id: "ussd_pro", name: "*100# Expert", hint: "Old-school telecom code. No credit, just clout.", emoji: "📱", difficulty: "easy" },
   { id: "tab_hoarder", name: "Bahamas Resident", hint: "Population growth. Open many doors at once.", emoji: "📑", difficulty: "insane" },
-  { id: "zoom_god", name: "Magnifying Glass", hint: "Zoom way in. Then way out. Looking for secret pixels?", emoji: "🔍", difficulty: "medium" },
-  { id: "3ammar", name: "3ammar", hint: "Keep DevTools open. The surveillance team welcomes you.", emoji: "🚔", difficulty: "hard" },
 ];
 
 export const DIFFICULTY_REWARDS: Record<Difficulty, number> = {

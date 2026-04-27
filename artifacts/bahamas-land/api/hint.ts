@@ -99,8 +99,6 @@ const HINTS: HintEntry[] = [
   { id: "mrigel",        name: "Mrigel Sahbi",          emoji: "🤙", difficulty: "easy",   hint: "Type the word 'mrigel' letter by letter anywhere on the site (don't be in a text input). The classic Tunisian friend-greeting." },
   { id: "ussd_pro",      name: "*100# Expert",          emoji: "📱", difficulty: "easy",   hint: "Type these characters in order anywhere on the site:  *  1  0  0  #  (use Shift+8 for *, then 1, 0, 0, then Shift+3 for #). Old Tunisian USSD code." },
   { id: "tab_hoarder",   name: "Bahamas Resident",      emoji: "📑", difficulty: "insane", hint: "Open Bahamas Land in 5 different browser tabs at the same time, on the same computer. Wait a few seconds — the tabs find each other automatically." },
-  { id: "zoom_god",      name: "Magnifying Glass",      emoji: "🔍", difficulty: "medium", hint: "Use Ctrl + (plus) to zoom in to about 200%, then Ctrl - (minus) to zoom out to about 50%. The site rewards extreme curiosity." },
-  { id: "3ammar",        name: "3ammar",                emoji: "🚔", difficulty: "hard",   hint: "Open DevTools (F12) and keep them open while browsing the site for a total of 5 minutes. The surveillance team appreciates dedication." },
 ];
 
 function dayRng(dayKey: number): () => number {
