@@ -1,4 +1,5 @@
 import { ACHIEVEMENTS, getAllUnlocked } from "@/lib/achievements";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 const STORAGE_KEY = "ogs_reward_claim";
 const ID_KEY = "ogs_visitor_id";
@@ -14,6 +15,12 @@ export type ClaimResult = {
   claimedAt?: number;
   reason?: string;
   missing?: string[];
+};
+
+export type RewardStatus = {
+  fullCount: number;
+  top100Remaining: number;
+  requiredCount?: number;
 };
 
 function ensureVisitorId(): string {
@@ -58,6 +65,46 @@ export function getProgress() {
   };
 }
 
+function apiBase(): string {
+  const base = (import.meta as any).env?.BASE_URL || "/";
+  return base.endsWith("/") ? base.slice(0, -1) : base;
+}
+
+// ---------------------------------------------------------------------------
+// CLAIM — Supabase RPC if configured, else local Vite middleware fallback
+// ---------------------------------------------------------------------------
+async function claimViaSupabase(
+  visitorId: string,
+  username: string,
+  ids: string[],
+): Promise<ClaimResult> {
+  if (!supabase) return { ok: false, reason: "no_supabase" };
+  const { data, error } = await supabase.rpc("claim_reward", {
+    p_visitor_id: visitorId,
+    p_username: username,
+    p_achievements: ids,
+  });
+  if (error) return { ok: false, reason: error.message || "rpc_error" };
+  return (data as ClaimResult) ?? { ok: false, reason: "empty_response" };
+}
+
+async function claimViaLocal(
+  visitorId: string,
+  username: string,
+  ids: string[],
+): Promise<ClaimResult> {
+  try {
+    const res = await fetch(`${apiBase()}/api/reward/claim`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ visitorId, username, achievements: ids }),
+    });
+    return (await res.json()) as ClaimResult;
+  } catch {
+    return { ok: false, reason: "network" };
+  }
+}
+
 export async function claimReward(username: string): Promise<ClaimResult> {
   const visitorId = ensureVisitorId();
   const unlocked = getAllUnlocked();
@@ -72,19 +119,37 @@ export async function claimReward(username: string): Promise<ClaimResult> {
     };
   }
 
-  const base = (import.meta as any).env?.BASE_URL || "/";
-  const apiBase = base.endsWith("/") ? base.slice(0, -1) : base;
+  const result = isSupabaseConfigured
+    ? await claimViaSupabase(visitorId, username, ids)
+    : await claimViaLocal(visitorId, username, ids);
 
+  if (result.ok) storeClaim(result);
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// STATUS — Supabase RPC if configured, else local Vite middleware fallback
+// ---------------------------------------------------------------------------
+export async function fetchRewardStatus(): Promise<RewardStatus | null> {
+  if (isSupabaseConfigured && supabase) {
+    const { data, error } = await supabase.rpc("reward_status");
+    if (error || !data) return null;
+    const d = data as { fullCount?: number | string; top100Remaining?: number | string; requiredCount?: number | string };
+    return {
+      fullCount: Number(d.fullCount) || 0,
+      top100Remaining: Number(d.top100Remaining) || 0,
+      requiredCount: d.requiredCount != null ? Number(d.requiredCount) : undefined,
+    };
+  }
   try {
-    const res = await fetch(`${apiBase}/api/reward/claim`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ visitorId, username, achievements: ids }),
-    });
-    const data = (await res.json()) as ClaimResult;
-    if (data.ok) storeClaim(data);
-    return data;
-  } catch (e) {
-    return { ok: false, reason: "network" };
+    const res = await fetch(`${apiBase()}/api/reward/status`);
+    const d = await res.json();
+    return {
+      fullCount: Number(d.fullCount) || 0,
+      top100Remaining: Number(d.top100Remaining) || 0,
+      requiredCount: d.requiredCount != null ? Number(d.requiredCount) : undefined,
+    };
+  } catch {
+    return null;
   }
 }

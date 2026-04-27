@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Layout } from "@/components/Layout";
 import {
   claimReward,
+  fetchRewardStatus,
   getProgress,
   getStoredClaim,
   type ClaimResult,
@@ -478,15 +479,9 @@ export default function Reward() {
   const progress = useMemo(() => getProgress(), [stored]);
 
   useEffect(() => {
-    const base = (import.meta as any).env?.BASE_URL || "/";
-    const apiBase = base.endsWith("/") ? base.slice(0, -1) : base;
-    fetch(`${apiBase}/api/reward/status`)
-      .then((r) => r.json())
-      .then((d) => setServerStatus({
-        fullCount: Number(d.fullCount) || 0,
-        top100Remaining: Number(d.top100Remaining) || 0,
-      }))
-      .catch(() => { /* offline ok */ });
+    fetchRewardStatus().then((s) => {
+      if (s) setServerStatus({ fullCount: s.fullCount, top100Remaining: s.top100Remaining });
+    });
   }, []);
 
   async function onClaim() {

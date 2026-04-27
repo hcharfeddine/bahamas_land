@@ -270,3 +270,165 @@ execute function public.chat_messages_autoclean();
 
 -- Realtime so every visitor sees new messages instantly
 alter publication supabase_realtime add table public.chat_messages;
+
+
+-- =====================================================================
+-- REWARD CLAIMS — permanent Top-100 citizenship NFT registry
+-- One row per visitor, sequential citizen_number (1, 2, 3, ...).
+-- The first 100 claimants get is_top_100 = true.
+-- =====================================================================
+
+create table if not exists public.reward_claims (
+  citizen_number  bigint generated always as identity primary key,
+  visitor_id      text   not null unique,
+  username        text   not null default 'Citizen',
+  seed            text   not null,
+  is_top_100      boolean not null default false,
+  claimed_at      timestamptz not null default now()
+);
+
+create index if not exists reward_claims_top100_idx
+  on public.reward_claims (citizen_number)
+  where is_top_100;
+
+alter table public.reward_claims enable row level security;
+
+-- Anyone may READ the registry (used by the UI to show counts / leaderboards).
+drop policy if exists "reward public read" on public.reward_claims;
+create policy "reward public read"
+  on public.reward_claims
+  for select
+  using (true);
+
+-- No direct INSERT/UPDATE/DELETE from anon — everything goes through the
+-- SECURITY DEFINER functions below so the rules can't be bypassed by spoofing.
+
+-- ---------------------------------------------------------------------
+-- public.claim_reward(visitor_id, username, achievements)
+-- ---------------------------------------------------------------------
+-- Validates that EVERY required egg id is in `p_achievements`. If not,
+-- returns { ok:false, reason:'incomplete', missing:[...] }. If yes, mints
+-- the next citizen_number atomically (or returns the existing one if this
+-- visitor has already claimed) and returns the full claim row.
+-- ---------------------------------------------------------------------
+create or replace function public.claim_reward(
+  p_visitor_id   text,
+  p_username     text,
+  p_achievements text[]
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  required_ids text[] := array[
+    -- typed-word eggs
+    'loyal','midwarning','bonker','tunisia','kick','vault',
+    'passport','subscribe','treason','konami','mekky','rule10',
+    'respect','ban','fakeschedule','exile','ogs','secret','coup',
+    'constitution','ghost',
+    -- media eggs
+    'kdot','siuuu','kratos','madridista','treasoncule','faddina',
+    'catjam','cena','ggez','drake','rickroll','khamsa','KEKW',
+    'stonecold','baskouta',
+    -- varied-mechanic eggs
+    'pathfinder','seerstone','freedom','compass','cornerguard',
+    'painter','presnipe','patient','dna','chesschamp','chessfraud'
+  ];
+  missing text[];
+  vid text := nullif(trim(p_visitor_id), '');
+  uname text := coalesce(nullif(trim(p_username), ''), 'Citizen');
+  existing public.reward_claims%rowtype;
+  new_seed text;
+  total bigint;
+  new_row public.reward_claims%rowtype;
+begin
+  if vid is null then
+    return jsonb_build_object('ok', false, 'reason', 'no_visitor_id');
+  end if;
+
+  -- Validate achievement completeness
+  select coalesce(array_agg(r), array[]::text[])
+    into missing
+    from unnest(required_ids) r
+    where not (r = any(coalesce(p_achievements, array[]::text[])));
+
+  if array_length(missing, 1) > 0 then
+    return jsonb_build_object(
+      'ok', false,
+      'reason', 'incomplete',
+      'missing', to_jsonb(missing)
+    );
+  end if;
+
+  -- Already claimed? Return existing record.
+  select * into existing from public.reward_claims where visitor_id = vid;
+  if found then
+    select count(*) into total from public.reward_claims;
+    return jsonb_build_object(
+      'ok',           true,
+      'citizenNumber', existing.citizen_number,
+      'total',         total,
+      'fullCount',     total,
+      'isTop100',      existing.is_top_100,
+      'seed',          existing.seed,
+      'username',      existing.username,
+      'claimedAt',     extract(epoch from existing.claimed_at) * 1000
+    );
+  end if;
+
+  -- Insert with placeholder, then patch seed/is_top_100 once we know the number.
+  insert into public.reward_claims (visitor_id, username, seed, is_top_100)
+    values (vid, uname, '', false)
+    returning * into new_row;
+
+  new_seed := substr(
+    md5(vid || '|' || new_row.citizen_number::text || '|' || uname),
+    1, 8
+  );
+
+  update public.reward_claims
+    set seed = new_seed,
+        is_top_100 = (new_row.citizen_number <= 100)
+    where citizen_number = new_row.citizen_number
+    returning * into new_row;
+
+  select count(*) into total from public.reward_claims;
+
+  return jsonb_build_object(
+    'ok',           true,
+    'citizenNumber', new_row.citizen_number,
+    'total',         total,
+    'fullCount',     total,
+    'isTop100',      new_row.is_top_100,
+    'seed',          new_row.seed,
+    'username',      new_row.username,
+    'claimedAt',     extract(epoch from new_row.claimed_at) * 1000
+  );
+end;
+$$;
+
+grant execute on function public.claim_reward(text, text, text[]) to anon, authenticated;
+
+-- ---------------------------------------------------------------------
+-- public.reward_status() — public counters for the reward page
+-- ---------------------------------------------------------------------
+create or replace function public.reward_status()
+returns jsonb
+language sql
+security definer
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'fullCount',       count(*),
+    'top100Remaining', greatest(0, 100 - count(*))::int,
+    'requiredCount',   48
+  )
+  from public.reward_claims;
+$$;
+
+grant execute on function public.reward_status() to anon, authenticated;
+
+-- Realtime so the counter updates live as new citizens claim.
+alter publication supabase_realtime add table public.reward_claims;
