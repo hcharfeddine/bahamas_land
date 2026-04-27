@@ -96,7 +96,19 @@ export type AchievementId =
   | "rhythmmaster"    // beat rhythm-game level 50
   | "rhythmgod"       // beat rhythm-game level 100
   | "rigged"          // play coin flip and lose 5 in a row
-  | "oracle";         // claim the Top-100 reward (server-issued)
+  | "oracle"          // claim the Top-100 reward (server-issued)
+  // ============================
+  // BONUS TUNISIAN EASTER EGGS
+  // ============================
+  | "bark_code"       // console: nattoun.bark('--- --.')
+  | "harrag"          // try to leave the viewport upward 3 times
+  | "taxi_driver"     // mouse from left edge to right edge in <200ms
+  | "raja3_ghodwa"    // visit /passport during lunch hour, stay 60s
+  | "mrigel"          // type 'mrigel' anywhere
+  | "ussd_pro"        // type '*100#' anywhere
+  | "tab_hoarder"     // open in 5+ tabs at once
+  | "zoom_god"        // zoom in to >=1.8x then out to <=0.6x
+  | "3ammar";         // keep devtools open for 5 minutes
 
 export type Difficulty = "easy" | "medium" | "hard" | "insane";
 
@@ -209,6 +221,19 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "rhythmgod", name: "Rhythm God", hint: "Beat level 100. The dog cries. Nattoun retires.", emoji: "🤘", difficulty: "insane" },
   { id: "rigged", name: "It's Rigged", hint: "Lose at the coin flip 5 times in a row. The coin is honest. You are not.", emoji: "🪙", difficulty: "medium" },
   { id: "oracle", name: "The Oracle (Top 100)", hint: "Collect EVERY secret. Visit /reward. Server-verified.", emoji: "🔮", difficulty: "insane" },
+
+  // ============================
+  // BONUS TUNISIAN EASTER EGGS
+  // ============================
+  { id: "bark_code", name: "Morse Bark", hint: "Only for the OGs. Console knows the password.", emoji: "🔊", difficulty: "insane" },
+  { id: "harrag", name: "The Harrag", hint: "Thinking about leaving? Nattoun is watching.", emoji: "🚤", difficulty: "hard" },
+  { id: "taxi_driver", name: "bech ta5latli lezmek taxi", hint: "Grand Tunis speed. Left to right. No brakes.", emoji: "🚕", difficulty: "medium" },
+  { id: "raja3_ghodwa", name: "arja3 Ghodwa", hint: "The Administration is at lunch. Wait. Earn their respect.", emoji: "📁", difficulty: "hard" },
+  { id: "mrigel", name: "Mrigel Sahbi", hint: "When in trouble, type the magic Tunisian word.", emoji: "🤙", difficulty: "easy" },
+  { id: "ussd_pro", name: "*100# Expert", hint: "Old-school telecom code. No credit, just clout.", emoji: "📱", difficulty: "easy" },
+  { id: "tab_hoarder", name: "Bahamas Resident", hint: "Population growth. Open many doors at once.", emoji: "📑", difficulty: "insane" },
+  { id: "zoom_god", name: "Magnifying Glass", hint: "Zoom way in. Then way out. Looking for secret pixels?", emoji: "🔍", difficulty: "medium" },
+  { id: "3ammar", name: "3ammar", hint: "Keep DevTools open. The surveillance team welcomes you.", emoji: "🚔", difficulty: "hard" },
 ];
 
 export const DIFFICULTY_REWARDS: Record<Difficulty, number> = {
