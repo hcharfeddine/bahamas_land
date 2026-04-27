@@ -91,27 +91,32 @@ export default function CustomerService() {
   }, [storageKey]);
 
   const handleBuyHint = async () => {
-    if (phase !== "idle") return;
+    if (phase !== "idle" && phase !== "broke") return;
 
     if (coins < HINT_COST) {
       setPhase("broke");
       setTrollMsg(pick(BROKE_LINES));
-      audio.playGlitch();
+      try { audio.playGlitch(); } catch { /* non-critical */ }
       return;
     }
 
     setPhase("loading");
 
     try {
-      const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-      const res = await fetch(`${base}/api/hint?day=${dayKey}`);
-      if (!res.ok) throw new Error("server error");
+      const base = (import.meta as any).env?.BASE_URL ?? "/";
+      const apiBase = base.endsWith("/") ? base.slice(0, -1) : base;
+      const url = `${apiBase}/api/hint?day=${dayKey}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        const text = await res.text().catch(() => "no body");
+        throw new Error(`HTTP ${res.status}: ${text.slice(0, 120)}`);
+      }
       const data = await res.json();
-      if (!data.ok) throw new Error("bad response");
+      if (!data.ok) throw new Error(`bad response: ${JSON.stringify(data)}`);
 
       // Deduct NC client-side
       setCoins((c) => Math.max(0, c - HINT_COST));
-      audio.playGlitch();
+      try { audio.playGlitch(); } catch { /* non-critical */ }
 
       const entry: CachedHint = {
         dayKey: data.dayKey,
@@ -127,8 +132,10 @@ export default function CustomerService() {
       setCached(entry);
       setPhase("revealed");
       setTrollMsg(pick(AFTER_LINES));
-    } catch {
-      setError("The server ignored your request. Try again.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[CustomerService] hint fetch failed:", msg);
+      setError(`Error: ${msg}`);
       setPhase("idle");
     }
   };
@@ -188,7 +195,7 @@ export default function CustomerService() {
 
           {/* Action area */}
           <div className="flex flex-col items-center gap-3">
-            {phase === "idle" && (
+            {(phase === "idle" || phase === "broke") && (
               <motion.button
                 onClick={handleBuyHint}
                 className="px-8 py-3 border-2 border-primary bg-primary/10 text-primary font-mono uppercase tracking-widest text-sm hover:bg-primary hover:text-black transition neon-box"
