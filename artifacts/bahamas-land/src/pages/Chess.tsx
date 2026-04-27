@@ -16,7 +16,6 @@ import nattounImg from "@assets/Nattoun_1777028672745.png";
 //   • Move a knight 3+1, 3+2, 2+3, 1+3 etc. when it lets him grab a piece
 //   • Teleport a piece to capture you ("treaty between squares")
 //   • "Audit" one of your pieces (delete it from the board)
-//   • Spawn a 🐕 Dog piece in your half ("constitutional decree")
 //   • CONSTITUTIONAL REFORM — when he's losing, he just SWAPS sides with you.
 //     He becomes whichever color is winning. The board doesn't change.
 //
@@ -29,19 +28,19 @@ import nattounImg from "@assets/Nattoun_1777028672745.png";
 // =============================================================================
 
 type Color = "w" | "b";
-type PieceType = "K" | "Q" | "R" | "B" | "N" | "P" | "D";
+type PieceType = "K" | "Q" | "R" | "B" | "N" | "P";
 type Piece = `${Color}${PieceType}` | null;
 type Coord = [number, number];
 
 const PIECE_VALUES: Record<string, number> = {
-  P: 1, N: 3, B: 3, R: 5, Q: 9, K: 0, D: 4,
+  P: 1, N: 3, B: 3, R: 5, Q: 9, K: 0,
 };
 
 const GLYPHS_W: Record<string, string> = {
-  K: "♔", Q: "♕", R: "♖", B: "♗", N: "♘", P: "♙", D: "🐕",
+  K: "♔", Q: "♕", R: "♖", B: "♗", N: "♘", P: "♙",
 };
 const GLYPHS_B: Record<string, string> = {
-  K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟", D: "🐕",
+  K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟",
 };
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
@@ -66,7 +65,6 @@ const NATTOUN_TRASH_TALK = [
   "did you really play that?",
   "i'm letting you THINK you have a chance.",
   "this is a state secret btw.",
-  "the dog approves. of my own move.",
   "my queen is also the president btw.",
   "i'm not cheating, you're just losing.",
   "this is a chess simulation. of my dominance.",
@@ -87,7 +85,7 @@ function pieceColor(p: Piece): Color | null {
 }
 
 function pieceName(p: NonNullable<Piece>) {
-  return ({ K: "king", Q: "queen", R: "rook", B: "bishop", N: "knight", P: "pawn", D: "dog" } as Record<string, string>)[p[1]] || "piece";
+  return ({ K: "king", Q: "queen", R: "rook", B: "bishop", N: "knight", P: "pawn" } as Record<string, string>)[p[1]] || "piece";
 }
 
 function notation(r: number, c: number) {
@@ -156,9 +154,7 @@ function pseudoLegalMoves(board: Piece[][], r: number, c: number): Coord[] {
       }
       break;
     }
-    case "N":
-    case "D": {
-      // Knight + Dog (player-side dog moves like a knight too, just for legality).
+    case "N": {
       const deltas: Coord[] = [
         [-2, -1], [-2, 1], [-1, -2], [-1, 2],
         [1, -2], [1, 2], [2, -1], [2, 1],
@@ -522,33 +518,7 @@ export default function Chess() {
       }
     }
 
-    // CHEAT 2 — SPAWN A DOG in player's half
-    if (action < 0.18) {
-      const playerKing = findKing(next, playerColor);
-      const empties: Coord[] = [];
-      for (let r = 0; r < 8; r++) {
-        for (let c = 0; c < 8; c++) {
-          if (!next[r][c]) empties.push([r, c]);
-        }
-      }
-      if (empties.length) {
-        empties.sort((a, b) => {
-          if (!playerKing) return 0;
-          const da = Math.abs(a[0] - playerKing[0]) + Math.abs(a[1] - playerKing[1]);
-          const db = Math.abs(b[0] - playerKing[0]) + Math.abs(b[1] - playerKing[1]);
-          return da - db;
-        });
-        const [er, ec] = empties[Math.min(2, empties.length - 1)];
-        next[er][ec] = `${nattounColor}D`;
-        setBoard(next);
-        nattounSays("a dog has been deployed. constitutional. very legal.");
-        try { audio.playGlitch(); } catch { /* ignore */ }
-        finishNattounTurn(next);
-        return;
-      }
-    }
-
-    // CHEAT 3 — EXTENDED KNIGHT: knight goes 3+1, 3+2, 1+3, 2+3 to capture
+    // CHEAT 2 — EXTENDED KNIGHT: knight goes 3+1, 3+2, 1+3, 2+3 to capture
     if (action < 0.42) {
       const knights: Coord[] = [];
       for (let r = 0; r < 8; r++) {
@@ -608,7 +578,7 @@ export default function Chess() {
         : myLegal[Math.floor(Math.random() * myLegal.length)];
     }
 
-    // CHEAT 4 — TELEPORT: 30% of the time replace the chosen move with an
+    // CHEAT 3 — TELEPORT: 30% of the time replace the chosen move with an
     // illegal teleport-capture of any player piece (except the king).
     if (Math.random() < 0.3 || !chosen) {
       const myPieces: Coord[] = [];
@@ -637,8 +607,7 @@ export default function Chess() {
       // pawn promo for nattoun too
       let mover: Piece = next[chosen.from[0]][chosen.from[1]];
       if (mover && mover[1] === "P" && (chosen.to[0] === 0 || chosen.to[0] === 7)) {
-        // Nattoun promotes to a Dog because of course he does.
-        mover = `${nattounColor}D` as Piece;
+        mover = `${nattounColor}Q` as Piece;
       }
       next[chosen.to[0]][chosen.to[1]] = mover;
       next[chosen.from[0]][chosen.from[1]] = null;
