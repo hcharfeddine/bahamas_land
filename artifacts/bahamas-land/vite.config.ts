@@ -5,6 +5,7 @@ import path from "path";
 import { chatMiddleware } from "./server/chatMiddleware";
 import { rewardMiddleware } from "./server/rewardMiddleware";
 import { playerMiddleware } from "./server/playerMiddleware";
+import { hintMiddleware } from "./server/hintMiddleware";
 
 const port = process.env.PORT ? Number(process.env.PORT) : 5173;
 
@@ -14,11 +15,13 @@ const chatApiPlugin = (): PluginOption => ({
     server.middlewares.use(chatMiddleware);
     server.middlewares.use(rewardMiddleware);
     server.middlewares.use(playerMiddleware);
+    server.middlewares.use(hintMiddleware);
   },
   configurePreviewServer(server) {
     server.middlewares.use(chatMiddleware);
     server.middlewares.use(rewardMiddleware);
     server.middlewares.use(playerMiddleware);
+    server.middlewares.use(hintMiddleware);
   },
 });
 

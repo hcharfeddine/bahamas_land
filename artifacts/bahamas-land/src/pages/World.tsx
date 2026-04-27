@@ -15,6 +15,7 @@ import bldPolice from "@assets/generated_images/bld_police.png";
 import bldPostOffice from "@assets/generated_images/bld_postoffice.png";
 import bldWeather from "@assets/generated_images/bld_weather.png";
 import bldAnthem from "@assets/generated_images/bld_anthem.png";
+import bldCustomerService from "@assets/generated_images/bld_customer_service.png";
 
 type Building = {
   id: string;
@@ -35,7 +36,8 @@ const BUILDINGS: Building[] = [
   { id: "postoffice", label: "Post Office", route: "/postoffice", img: bldPostOffice },
   { id: "weather",    label: "Weather",     route: "/weather",    img: bldWeather },
   { id: "anthem",     label: "Anthem Hall", route: "/anthem",     img: bldAnthem },
-  { id: "arcade",     label: "Arcade",      route: "/arcade",     img: bldArcade },
+  { id: "arcade",          label: "Arcade",           route: "/arcade",           img: bldArcade },
+  { id: "customer-service", label: "Customer Service", route: "/customer-service", img: bldCustomerService },
 ];
 
 export default function World() {
