@@ -11,6 +11,7 @@ import {
 import { ACHIEVEMENTS, unlock } from "@/lib/achievements";
 import { useLocalStorage } from "@/lib/store";
 import nattounImg from "@assets/Nattoun_1777028672745.png";
+import ogsLogo from "@assets/ogs_1777329100263.png";
 
 // =============================================================================
 // /reward — Top-100 Server-Verified Reward
@@ -378,7 +379,12 @@ function NattounNFT({
                   transparent 4px 10px)`,
               }}
             />
-            <div className="text-7xl mb-4 drop-shadow-[0_0_20px_rgba(255,0,200,0.7)]">🐕</div>
+            <img
+              src={ogsLogo}
+              alt="OGS"
+              className="w-28 h-28 mb-4 object-contain drop-shadow-[0_0_24px_rgba(255,0,200,0.75)]"
+              draggable={false}
+            />
             <div className="text-primary font-black uppercase tracking-[0.25em] text-xl neon-text">
               Bahamas Land
             </div>
