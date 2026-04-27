@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { todayKey, pickHint } from "../server/hintsData";
+import { todayKey, pickHint } from "../server/hintsData.js";
 
 // =============================================================================
 // Vercel serverless function — POST /api/hint
