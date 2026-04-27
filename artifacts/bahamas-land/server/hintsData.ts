@@ -63,8 +63,8 @@ export const HINTS: HintEntry[] = [
   { id: "loremaster",    name: "Loremaster",       emoji: "🗝️", difficulty: "hard", hint: "Find every hidden door. You need to visit all secret pages: /secret, /baskouta, /177, and /freem3kky. All four must be visited." },
   { id: "madridista",    name: "Madridista",       emoji: "🤍", difficulty: "hard", hint: "Type 'hala madrid' anywhere on the site while browsing. Letter by letter — h, a, l, a, space, m, a, d, r, i, d." },
   { id: "treasoncule",   name: "Culé Confession",  emoji: "🚫", difficulty: "hard", hint: "Type 'barca' anywhere on the site while browsing. There will be consequences. You have been warned." },
-  { id: "rhythmist",     name: "Rhythmist",        emoji: "🎮", difficulty: "hard", hint: "Beat level 10 of the rhythm game inside Anthem Hall (/anthem). Select level 10, play through the full song, and finish with a passing score (45%+ notes hit)." },
-  { id: "rhythmmaster",  name: "Rhythm Master",    emoji: "🎸", difficulty: "hard", hint: "Beat level 50 of the rhythm game in Anthem Hall (/anthem). SynthMetal tier — fast notes, hold notes, symbol notes. Aim for ~50% hit rate to pass." },
+  { id: "rhythmist",     name: "Rhythmist",        emoji: "🎮", difficulty: "hard", hint: "Beat level 10 of the rhythm game inside Anthem Hall (/anthem). Just play through the full song and hit ~35% of the notes. Very forgiving." },
+  { id: "rhythmmaster",  name: "Rhythm Master",    emoji: "🎸", difficulty: "hard", hint: "Beat level 50 of the rhythm game in Anthem Hall (/anthem). Notes are slower than they look — aim for ~38% hit rate to pass." },
   { id: "rigged",        name: "Rigged",           emoji: "🪙", difficulty: "hard", hint: "Play the Coin Flip game (/coinflip) and lose 5 flips in a row without winning. Don't reset between flips — keep going until you hit 5 losses consecutively." },
 
   // ── INSANE ────────────────────────────────────────────────────────────────
@@ -79,7 +79,7 @@ export const HINTS: HintEntry[] = [
   { id: "completionist",name: "Completionist",        emoji: "🌟", difficulty: "insane", hint: "Unlock every other achievement in the game first. Once you have all of them, the Completionist badge unlocks automatically. Check your Passport for what's missing." },
   { id: "ghost",        name: "Ghost in the Machine", emoji: "👻", difficulty: "insane", hint: "Find the hidden name buried in the site. Look at the browser console messages when the page loads — there is a name in the ASCII art that no one was meant to find." },
   { id: "konami",       name: "Baskouta Code",        emoji: "🎮", difficulty: "insane", hint: "On any page, press these keys in exact order: Arrow Up, Arrow Up, Arrow Down, Arrow Down, Arrow Left, Arrow Right, Arrow Left, Arrow Right, then the letter B, then the letter A. No pauses — do it fast." },
-  { id: "rhythmgod",    name: "Rhythm God",           emoji: "👑", difficulty: "insane", hint: "Beat level 100 of the rhythm game inside Anthem Hall (/anthem). Final Boss tier: faster notes, holds, symbols, all 4 lanes firing. Hit ~55% of notes to pass. Good luck." },
+  { id: "rhythmgod",    name: "Rhythm God",           emoji: "👑", difficulty: "insane", hint: "Beat level 100 of the rhythm game inside Anthem Hall (/anthem). Final tier — but the threshold is only ~40% of notes hit. Pace yourself, don't panic, you got this." },
   { id: "dna",          name: "DNA",                  emoji: "🧬", difficulty: "insane", hint: "In the browser DevTools Console (F12), type: bahamas.dna() and press Enter." },
   { id: "chessfraud",   name: "Chess Fraud",          emoji: "♟️", difficulty: "insane", hint: "In the browser DevTools Console (F12), type: bahamas.chess() and press Enter while on the Chess page." },
   { id: "pathfinder",   name: "Pathfinder",           emoji: "🗺️", difficulty: "insane", hint: "Navigate directly to the hidden URL /baskouta in your browser address bar. This page is not linked anywhere." },
