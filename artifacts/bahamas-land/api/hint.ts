@@ -61,7 +61,7 @@ const HINTS: HintEntry[] = [
   { id: "madridista",     name: "Madridista",        emoji: "🤍", difficulty: "hard", hint: "Type 'hala madrid' anywhere on the site while browsing. Letter by letter — h, a, l, a, space, m, a, d, r, i, d." },
   { id: "treasoncule",    name: "Culé Confession",   emoji: "🚫", difficulty: "hard", hint: "Type 'barca' anywhere on the site while browsing. There will be consequences. You have been warned." },
   { id: "rhythmist",      name: "Rhythmist",         emoji: "🎮", difficulty: "hard", hint: "Beat level 10 of the rhythm game inside Anthem Hall (/anthem). Finish with a passing score (45%+ notes hit)." },
-  { id: "rhythmmaster",   name: "Rhythm Master",     emoji: "🎸", difficulty: "hard", hint: "Beat level 50 of the rhythm game in Anthem Hall (/anthem). SynthMetal tier — fast notes, hold notes. Aim for 55%+ hit rate." },
+  { id: "rhythmmaster",   name: "Rhythm Master",     emoji: "🎸", difficulty: "hard", hint: "Beat level 50 of the rhythm game in Anthem Hall (/anthem). SynthMetal tier — fast notes, hold notes. Aim for ~50% hit rate to pass." },
   { id: "rigged",         name: "Rigged",            emoji: "🪙", difficulty: "hard", hint: "Play Coin Flip (/coinflip) and lose 5 flips in a row without winning. Keep going — don't reset between flips." },
   // INSANE
   { id: "hacker",        name: "Console Cowboy",        emoji: "🖥️", difficulty: "insane", hint: "Open DevTools (F12), go to Console, and type exactly: bahamas.help() then press Enter. This reveals all console commands." },
@@ -75,7 +75,7 @@ const HINTS: HintEntry[] = [
   { id: "completionist", name: "Completionist",         emoji: "🌟", difficulty: "insane", hint: "Unlock every other achievement in the game first. The Completionist badge unlocks automatically once all are done." },
   { id: "ghost",         name: "Ghost in the Machine",  emoji: "👻", difficulty: "insane", hint: "Find the hidden name buried in the site. Look at the browser console messages when the page loads — check the ASCII art carefully." },
   { id: "konami",        name: "Baskouta Code",         emoji: "🎮", difficulty: "insane", hint: "On any page press: Arrow Up, Up, Down, Down, Left, Right, Left, Right, B, A. Do it fast without pauses." },
-  { id: "rhythmgod",     name: "Rhythm God",            emoji: "👑", difficulty: "insane", hint: "Beat level 100 of the rhythm game in Anthem Hall (/anthem). Final Boss tier: 200 BPM, all 4 lanes, 70%+ hit rate required. Good luck." },
+  { id: "rhythmgod",     name: "Rhythm God",            emoji: "👑", difficulty: "insane", hint: "Beat level 100 of the rhythm game in Anthem Hall (/anthem). Final Boss tier: faster notes, holds, symbols, all 4 lanes. Hit ~55% of notes to pass. Good luck." },
   { id: "dna",           name: "DNA",                   emoji: "🧬", difficulty: "insane", hint: "In the browser DevTools Console (F12), type: bahamas.dna() and press Enter." },
   { id: "chessfraud",    name: "Chess Fraud",           emoji: "♟️", difficulty: "insane", hint: "In the DevTools Console (F12), type: bahamas.chess() and press Enter while on the Chess page." },
   { id: "pathfinder",    name: "Pathfinder",            emoji: "🗺️", difficulty: "insane", hint: "Navigate directly to the hidden URL /baskouta in your browser address bar. Not linked anywhere." },

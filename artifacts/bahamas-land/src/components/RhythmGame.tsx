@@ -237,14 +237,14 @@ function getLevelParams(level: number): LevelParams {
   const bpm = Math.round(tierBaseBpm + tierStep * 12);
   return {
     durationMs: Math.round(lerp(28000, 75000, t)),
-    noteSpawnMs: Math.round(lerp(950, 230, t)),
-    travelMs: Math.round(lerp(1700, 520, t)),
-    hitWindowMs: Math.round(lerp(220, 90, t)),
-    holdChance: level >= 8 ? Math.min(0.5, (level - 8) / 60) : 0,
-    symbolChance: level >= 20 ? Math.min(0.4, (level - 20) / 80) : 0,
-    multiChance: level >= 40 ? Math.min(0.35, (level - 40) / 70) : 0,
+    noteSpawnMs: Math.round(lerp(950, 380, t)),
+    travelMs: Math.round(lerp(1700, 720, t)),
+    hitWindowMs: Math.round(lerp(220, 140, t)),
+    holdChance: level >= 8 ? Math.min(0.35, (level - 8) / 80) : 0,
+    symbolChance: level >= 20 ? Math.min(0.25, (level - 20) / 120) : 0,
+    multiChance: level >= 40 ? Math.min(0.2, (level - 40) / 100) : 0,
     bpm,
-    passScorePct: lerp(0.45, 0.7, t),
+    passScorePct: lerp(0.45, 0.55, t),
   };
 }
 
