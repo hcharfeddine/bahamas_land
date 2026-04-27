@@ -47,6 +47,40 @@ function NattounNFT({
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [tilt, setTilt] = useState({ rx: 0, ry: 0, mx: 50, my: 50, active: false });
+  const [flipped, setFlipped] = useState(false);
+  const [autoSpin, setAutoSpin] = useState(false);
+  const [cardDataUrl, setCardDataUrl] = useState<string>("");
+
+  function onMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    const el = wrapRef.current;
+    if (!el || autoSpin) return;
+    const r = el.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    const y = e.clientY - r.top;
+    const px = x / r.width;
+    const py = y / r.height;
+    // tilt up to ~22 degrees
+    const ry = (px - 0.5) * 44;
+    const rx = -(py - 0.5) * 32;
+    setTilt({ rx, ry, mx: px * 100, my: py * 100, active: true });
+  }
+  function onMouseLeave() {
+    setTilt({ rx: 0, ry: 0, mx: 50, my: 50, active: false });
+  }
+  function onTouchMove(e: React.TouchEvent<HTMLDivElement>) {
+    const el = wrapRef.current;
+    if (!el || autoSpin) return;
+    const t = e.touches[0];
+    if (!t) return;
+    const r = el.getBoundingClientRect();
+    const px = (t.clientX - r.left) / r.width;
+    const py = (t.clientY - r.top) / r.height;
+    const ry = (px - 0.5) * 44;
+    const rx = -(py - 0.5) * 32;
+    setTilt({ rx, ry, mx: px * 100, my: py * 100, active: true });
+  }
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -168,6 +202,11 @@ function NattounNFT({
       ctx.strokeStyle = "rgba(255,255,255,0.4)";
       ctx.lineWidth = 1;
       ctx.strokeRect(20, 20, W - 40, H - 40);
+
+      // Snapshot canvas → data URL so the 3D card front face can render it
+      try {
+        setCardDataUrl(canvas.toDataURL("image/png"));
+      } catch { /* tainted canvas — ignore */ }
     };
 
     if (imgRef.current?.complete) drawPortrait();
@@ -183,8 +222,22 @@ function NattounNFT({
     a.click();
   }
 
+  // Combined Y rotation: tilt + flip + auto-spin
+  const flipDeg = flipped ? 180 : 0;
+  const spinDeg = autoSpin ? 360 : 0;
+  const ry = tilt.ry + flipDeg + spinDeg;
+  const rx = tilt.rx;
+  const mx = tilt.mx;
+  const my = tilt.my;
+  const lift = tilt.active ? 1.04 : 1;
+
+  // Holo color shifts with mouse position (Pokemon-style rainbow)
+  const holoHueA = Math.round((mx / 100) * 360);
+  const holoHueB = (holoHueA + 120) % 360;
+  const holoHueC = (holoHueA + 240) % 360;
+
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-4 select-none">
       <img
         ref={imgRef}
         src={nattounImg}
@@ -192,19 +245,207 @@ function NattounNFT({
         crossOrigin="anonymous"
         style={{ display: "none" }}
       />
+
+      {/* Hidden canvas — used as the texture source for the front face */}
       <canvas
         ref={canvasRef}
         width={520}
         height={720}
-        className="max-w-full h-auto border-4 border-primary neon-box bg-black"
-        style={{ imageRendering: "auto" }}
+        style={{ display: "none" }}
       />
-      <button
-        onClick={downloadImage}
-        className="px-4 py-2 border-2 border-primary text-primary font-mono uppercase text-xs neon-box hover:bg-primary/20"
+
+      {/* 3D card stage */}
+      <div
+        ref={wrapRef}
+        onMouseMove={onMouseMove}
+        onMouseLeave={onMouseLeave}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onMouseLeave}
+        className="relative cursor-grab active:cursor-grabbing"
+        style={{
+          width: "min(100%, 360px)",
+          aspectRatio: "520 / 720",
+          perspective: "1400px",
+          touchAction: "none",
+        }}
       >
-        Download .png
-      </button>
+        <div
+          className="absolute inset-0"
+          style={{
+            transformStyle: "preserve-3d",
+            transition: tilt.active && !autoSpin
+              ? "transform 80ms ease-out"
+              : "transform 900ms cubic-bezier(.2,.9,.25,1)",
+            transform: `rotateX(${rx}deg) rotateY(${ry}deg) scale(${lift})`,
+          }}
+        >
+          {/* FRONT FACE */}
+          <div
+            className="absolute inset-0 overflow-hidden rounded-[18px] border-4 border-primary neon-box bg-black"
+            style={{
+              backfaceVisibility: "hidden",
+              boxShadow:
+                "0 30px 60px -10px rgba(0,0,0,0.7), 0 18px 36px -18px rgba(255,0,200,0.6), 0 0 0 1px rgba(255,255,255,0.08) inset",
+            }}
+          >
+            {cardDataUrl && (
+              <img
+                src={cardDataUrl}
+                alt="Citizen NFT"
+                className="absolute inset-0 w-full h-full object-cover"
+                draggable={false}
+              />
+            )}
+
+            {/* HOLO LAYER 1 — rainbow shimmer (mouse-tracked) */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: `linear-gradient(${105 + (mx - 50) * 0.8}deg,
+                  hsla(${holoHueA},100%,70%,0.55) 0%,
+                  hsla(${holoHueB},100%,65%,0.45) 35%,
+                  hsla(${holoHueC},100%,70%,0.55) 70%,
+                  hsla(${holoHueA},100%,75%,0.45) 100%)`,
+                mixBlendMode: "color-dodge",
+                opacity: tilt.active ? 0.85 : 0.45,
+                transition: "opacity 200ms ease",
+              }}
+            />
+
+            {/* HOLO LAYER 2 — diagonal prism stripes (foil texture) */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: `repeating-linear-gradient(
+                  ${115 + (mx - 50) * 0.6}deg,
+                  rgba(255,0,128,0.18) 0px,
+                  rgba(0,255,255,0.18) 8px,
+                  rgba(255,255,0,0.18) 16px,
+                  rgba(0,255,128,0.18) 24px,
+                  rgba(255,0,255,0.18) 32px)`,
+                mixBlendMode: "soft-light",
+                opacity: tilt.active ? 0.9 : 0.35,
+                transition: "opacity 200ms ease",
+              }}
+            />
+
+            {/* HOLO LAYER 3 — bright glare spot following the cursor */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: `radial-gradient(
+                  circle at ${mx}% ${my}%,
+                  rgba(255,255,255,0.55) 0%,
+                  rgba(255,255,255,0.18) 18%,
+                  rgba(255,255,255,0) 45%)`,
+                mixBlendMode: "overlay",
+                opacity: tilt.active ? 1 : 0.4,
+                transition: "opacity 200ms ease",
+              }}
+            />
+
+            {/* TOP-100 sparkle border accent */}
+            {isTop100 && (
+              <div
+                className="absolute inset-0 pointer-events-none rounded-[14px]"
+                style={{
+                  boxShadow:
+                    "inset 0 0 60px rgba(255,215,0,0.45), inset 0 0 120px rgba(255,0,200,0.25)",
+                }}
+              />
+            )}
+          </div>
+
+          {/* BACK FACE — Bahamas Land presidential seal */}
+          <div
+            className="absolute inset-0 overflow-hidden rounded-[18px] border-4 border-pink-500 neon-box flex flex-col items-center justify-center text-center px-6"
+            style={{
+              backfaceVisibility: "hidden",
+              transform: "rotateY(180deg)",
+              background:
+                "radial-gradient(circle at 50% 35%, hsl(300 80% 22%) 0%, hsl(280 90% 10%) 55%, #000 100%)",
+              boxShadow:
+                "0 30px 60px -10px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08) inset",
+            }}
+          >
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: `repeating-linear-gradient(
+                  ${45}deg,
+                  rgba(255,0,200,0.07) 0px 4px,
+                  transparent 4px 10px)`,
+              }}
+            />
+            <div className="text-7xl mb-4 drop-shadow-[0_0_20px_rgba(255,0,200,0.7)]">🐕</div>
+            <div className="text-primary font-black uppercase tracking-[0.25em] text-xl neon-text">
+              Bahamas Land
+            </div>
+            <div className="text-pink-300 font-mono text-[10px] uppercase tracking-widest mt-2">
+              Office of the President
+            </div>
+            <div className="mt-6 border-t-2 border-pink-400/40 pt-4 px-6">
+              <div className="text-white/80 font-mono text-[10px] uppercase">
+                Citizen Number
+              </div>
+              <div className="text-yellow-200 font-black text-3xl tracking-widest">
+                #{String(citizenNumber).padStart(4, "0")}
+              </div>
+              <div className="text-white/60 font-mono text-[9px] mt-3">
+                SEED · {seed.toUpperCase()}
+              </div>
+              <div className="text-white/40 font-mono text-[9px] mt-1">
+                {isTop100 ? "TOP-100 LOYALIST" : "CERTIFIED CITIZEN"}
+              </div>
+            </div>
+            <div className="absolute bottom-3 text-pink-400/60 font-mono text-[9px] uppercase tracking-widest">
+              Authentic. Audited. Holographic.
+            </div>
+          </div>
+        </div>
+
+        {/* Soft floor shadow that reacts to tilt */}
+        <div
+          className="absolute left-1/2 -bottom-4 -translate-x-1/2 pointer-events-none rounded-full"
+          style={{
+            width: "70%",
+            height: "18px",
+            background: "radial-gradient(ellipse, rgba(0,0,0,0.6), transparent 70%)",
+            filter: "blur(6px)",
+            transform: `translate(calc(-50% + ${tilt.ry * 0.6}px), 0)`,
+            opacity: tilt.active ? 0.9 : 0.5,
+            transition: "opacity 250ms ease",
+          }}
+        />
+      </div>
+
+      <div className="flex flex-wrap gap-2 justify-center mt-2">
+        <button
+          onClick={() => setFlipped((f) => !f)}
+          className="px-4 py-2 border-2 border-pink-500 text-pink-300 font-mono uppercase text-xs neon-box hover:bg-pink-500/20"
+        >
+          {flipped ? "◀ Show front" : "Flip card ▶"}
+        </button>
+        <button
+          onClick={() => {
+            setAutoSpin(true);
+            window.setTimeout(() => setAutoSpin(false), 950);
+          }}
+          className="px-4 py-2 border-2 border-yellow-400 text-yellow-200 font-mono uppercase text-xs neon-box hover:bg-yellow-400/20"
+        >
+          ↻ Spin 360
+        </button>
+        <button
+          onClick={downloadImage}
+          className="px-4 py-2 border-2 border-primary text-primary font-mono uppercase text-xs neon-box hover:bg-primary/20"
+        >
+          ⬇ Download .png
+        </button>
+      </div>
+
+      <div className="text-secondary font-mono text-[10px] uppercase tracking-widest mt-1 text-center max-w-xs">
+        Move your mouse over the card · holographic foil · click flip to see the back
+      </div>
     </div>
   );
 }
@@ -212,6 +453,21 @@ function NattounNFT({
 export default function Reward() {
   const [username] = useLocalStorage<string>("ogs_username", "Citizen");
   const [stored, setStored] = useState<ClaimResult | null>(() => getStoredClaim());
+
+  // Demo preview: /reward?demo=1 (or ?demo=top) — lets you see the 3D card
+  // without actually claiming. Does NOT touch storage / server.
+  const demoMode = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const q = new URLSearchParams(window.location.search);
+    const d = q.get("demo");
+    if (!d) return null;
+    return {
+      seed: q.get("seed") || "BAHAMAS2026",
+      citizenNumber: Number(q.get("n")) || 42,
+      username: username || "Citizen",
+      isTop100: d === "top" || d === "1",
+    };
+  }, [username]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [serverStatus, setServerStatus] = useState<{
@@ -257,6 +513,31 @@ export default function Reward() {
   const have = progress.have;
   const pct = Math.round((have / Math.max(1, total)) * 100);
   const complete = have >= total;
+
+  // Demo preview mode — show the 3D card with fake data
+  if (demoMode) {
+    return (
+      <Layout showBack={true}>
+        <div className="max-w-3xl mx-auto py-8 px-4 flex flex-col items-center gap-6">
+          <div className="text-center">
+            <div className="text-5xl mb-2">{demoMode.isTop100 ? "👑" : "🏅"}</div>
+            <h1 className="text-3xl md:text-4xl font-black uppercase tracking-widest text-primary neon-text">
+              {demoMode.isTop100 ? "TOP-100 LOYALIST" : "OFFICIAL CITIZEN"}
+            </h1>
+            <div className="text-yellow-300 font-mono text-[11px] uppercase mt-1">
+              ⚠ DEMO PREVIEW — not a real claim
+            </div>
+          </div>
+          <NattounNFT
+            seed={demoMode.seed}
+            citizenNumber={demoMode.citizenNumber}
+            username={demoMode.username}
+            isTop100={demoMode.isTop100}
+          />
+        </div>
+      </Layout>
+    );
+  }
 
   // Already claimed → show their NFT
   if (stored?.ok && stored.seed && typeof stored.citizenNumber === "number") {
