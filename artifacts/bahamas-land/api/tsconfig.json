@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": false,
+    "noEmitOnError": false,
+    "lib": ["es2022"],
+    "types": ["node"]
+  },
+  "include": ["./**/*.ts"],
+  "exclude": ["node_modules"]
+}
