@@ -167,12 +167,15 @@ function generateNotesFromSong(
   candidates.sort((a, b) => a.spawnAt - b.spawnAt || b.priority - a.priority);
 
   // Density filter: enforce min gap per lane + global min gap.
-  // Early levels get a much stricter gap so beginners aren't overwhelmed.
+  // The global gap applies to ALL notes (not just hihats) so the player is
+  // never asked to physically tap two arrows closer than a human can react.
   const densityT = (song.level - 1) / 99; // 0 at lv1 → 1 at lv100
-  const laneGapMul  = 1.5 - densityT * 0.9;  // 1.5 at lv1 → 0.6 at lv100
-  const globalGapMul = 0.55 - densityT * 0.33; // 0.55 at lv1 → 0.22 at lv100
-  const minLaneGap   = Math.max(p.noteSpawnMs * laneGapMul, 90);
-  const minGlobalGap = Math.max(p.noteSpawnMs * globalGapMul, 40);
+  const laneGapMul  = 1.6 - densityT * 0.6;  // 1.6 at lv1 → 1.0 at lv100
+  const globalGapMul = 0.75 - densityT * 0.15; // 0.75 at lv1 → 0.60 at lv100
+  // Floors: never let any two arrows arrive closer than ~280ms (humans cap
+  // reliable rapid tapping around 4/sec across multiple keys).
+  const minLaneGap   = Math.max(p.noteSpawnMs * laneGapMul, 320);
+  const minGlobalGap = Math.max(p.noteSpawnMs * globalGapMul, 280);
   const lastPerLane: Record<LaneKey, number> = { ArrowLeft: -Infinity, ArrowDown: -Infinity, ArrowUp: -Infinity, ArrowRight: -Infinity };
   let lastAny = -Infinity;
 
@@ -181,7 +184,8 @@ function generateNotesFromSong(
 
   candidates.forEach((c) => {
     if (c.spawnAt - lastPerLane[c.lane] < minLaneGap) return;
-    if (c.priority < 2 && c.spawnAt - lastAny < minGlobalGap) return;
+    // Global gap now applies to ALL priorities so kick/snare/lead can't stack.
+    if (c.spawnAt - lastAny < minGlobalGap) return;
     lastPerLane[c.lane] = c.spawnAt;
     lastAny = c.spawnAt;
 
