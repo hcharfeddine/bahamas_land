@@ -227,7 +227,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   // ============================
   { id: "bark_code", name: "Morse Bark", hint: "Only for the OGs. Console knows the password.", emoji: "🔊", difficulty: "insane" },
   { id: "harrag", name: "The Harrag", hint: "Thinking about leaving? Nattoun is watching.", emoji: "🚤", difficulty: "hard" },
-  { id: "taxi_driver", name: "bech ta5latli lezmek taxi", hint: "Grand Tunis speed. Left to right. No brakes.", emoji: "🚕", difficulty: "medium" },
+  { id: "taxi_driver", name: "Taxi", hint: "Grand Tunis speed. Left to right. No brakes.", emoji: "🚕", difficulty: "medium" },
   { id: "raja3_ghodwa", name: "arja3 Ghodwa", hint: "The Administration is at lunch. Wait. Earn their respect.", emoji: "📁", difficulty: "hard" },
   { id: "mrigel", name: "Mrigel Sahbi", hint: "When in trouble, type the magic Tunisian word.", emoji: "🤙", difficulty: "easy" },
   { id: "ussd_pro", name: "*100# Expert", hint: "Old-school telecom code. No credit, just clout.", emoji: "📱", difficulty: "easy" },
