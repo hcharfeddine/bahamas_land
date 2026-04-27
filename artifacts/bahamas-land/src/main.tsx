@@ -32,7 +32,12 @@ console.log(
   "color:#888; font-size:11px;"
 );
 
-(window as unknown as { nattoun: () => string }).nattoun = () => {
+type NattounApi = {
+  (): string;
+  bark: (code?: string) => string;
+};
+
+const nattounFn = (() => {
   unlock("og");
   document.body.animate(
     [
@@ -42,6 +47,38 @@ console.log(
     { duration: 2000, iterations: 3 }
   );
   return "🐕 NATTOUN APPROVES OF YOUR CURIOSITY. +OG STATUS";
+}) as NattounApi;
+
+// Morse pattern: "OG" → "--- --."  (the secret password the Bahamas dog
+// only answers to).  Citizens who guess any close variant are rewarded.
+const OG_MORSE = "--- --.";
+nattounFn.bark = (code?: string) => {
+  if (typeof code !== "string") {
+    return "🐶 *bark!*  Try: nattoun.bark('--- --.')";
+  }
+  const cleaned = code.replace(/\s+/g, " ").trim();
+  if (cleaned === OG_MORSE) {
+    unlock("bark_code");
+    try {
+      document.body.animate(
+        [
+          { filter: "hue-rotate(0deg) saturate(1)" },
+          { filter: "hue-rotate(720deg) saturate(2)" },
+        ],
+        { duration: 1800, iterations: 1 }
+      );
+    } catch {
+      /* ignore */
+    }
+    console.log(
+      "%c🐕 BARK BARK BARK! YOU SPEAK DOG. +MORSE BARK STATUS",
+      "color:#ff2d8c;font-weight:900;font-size:16px;text-shadow:0 0 6px #ff2d8c"
+    );
+    return "🐕 OG OG OG — Nattoun salutes you.";
+  }
+  return "🐶 *confused bark*  That's not a real word in Dog.";
 };
+
+(window as unknown as { nattoun: NattounApi }).nattoun = nattounFn;
 
 createRoot(document.getElementById("root")!).render(<App />);

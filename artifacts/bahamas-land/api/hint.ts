@@ -90,6 +90,17 @@ const HINTS: HintEntry[] = [
   { id: "redacted",      name: "Redacted",              emoji: "⬛", difficulty: "insane", hint: "Type the word 'freedom' letter by letter anywhere on the site while browsing. The screen will go REDACTED." },
   { id: "jailbird",      name: "Jailbird",              emoji: "🦅", difficulty: "insane", hint: "Type the word 'prison' letter by letter anywhere on the site while browsing. You know what happens next." },
   { id: "oracle",        name: "Oracle",                emoji: "🔮", difficulty: "insane", hint: "Unlock ALL other achievements first, then go to /reward and claim the Top-100 Loyalist prize." },
+
+  // ── BONUS TUNISIAN EASTER EGGS ──────────────────────────────────────────
+  { id: "bark_code",     name: "Morse Bark",            emoji: "🔊", difficulty: "insane", hint: "Open DevTools console and type exactly: nattoun.bark('--- --.')  — that's morse for 'OG'. Three dashes, space, two dashes and a dot." },
+  { id: "harrag",        name: "The Harrag",            emoji: "🚤", difficulty: "hard",   hint: "Move your mouse rapidly toward the very top of the screen (toward the browser tab bar) so it leaves the page area. Do this 3 separate times. The President sees every escape attempt." },
+  { id: "taxi_driver",   name: "Bech Lezmek Taxi",      emoji: "🚕", difficulty: "medium", hint: "Place your mouse at the very LEFT edge of the screen, then sweep it all the way to the very RIGHT edge in less than 0.2 seconds. Tunis taxi speed." },
+  { id: "raja3_ghodwa",  name: "Arja3 Ghodwa",          emoji: "📁", difficulty: "hard",   hint: "Visit /passport between 13:00 and 14:00 (LOCAL time on YOUR computer). The office will be closed for lunch. Stay on the page without leaving for a full 60 seconds." },
+  { id: "mrigel",        name: "Mrigel Sahbi",          emoji: "🤙", difficulty: "easy",   hint: "Type the word 'mrigel' letter by letter anywhere on the site (don't be in a text input). The classic Tunisian friend-greeting." },
+  { id: "ussd_pro",      name: "*100# Expert",          emoji: "📱", difficulty: "easy",   hint: "Type these characters in order anywhere on the site:  *  1  0  0  #  (use Shift+8 for *, then 1, 0, 0, then Shift+3 for #). Old Tunisian USSD code." },
+  { id: "tab_hoarder",   name: "Bahamas Resident",      emoji: "📑", difficulty: "insane", hint: "Open Bahamas Land in 5 different browser tabs at the same time, on the same computer. Wait a few seconds — the tabs find each other automatically." },
+  { id: "zoom_god",      name: "Magnifying Glass",      emoji: "🔍", difficulty: "medium", hint: "Use Ctrl + (plus) to zoom in to about 200%, then Ctrl - (minus) to zoom out to about 50%. The site rewards extreme curiosity." },
+  { id: "3ammar",        name: "3ammar",                emoji: "🚔", difficulty: "hard",   hint: "Open DevTools (F12) and keep them open while browsing the site for a total of 5 minutes. The surveillance team appreciates dedication." },
 ];
 
 function dayRng(dayKey: number): () => number {

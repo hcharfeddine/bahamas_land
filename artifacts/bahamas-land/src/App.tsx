@@ -57,6 +57,7 @@ import { CRTOverlay } from "@/components/CRTOverlay";
 import { OGCheat } from "@/components/OGCheat";
 import { EasterEggs } from "@/components/EasterEggs";
 import { MediaEasterEggs } from "@/components/MediaEasterEggs";
+import { BonusEasterEggs } from "@/components/BonusEasterEggs";
 import { ConsoleEggs } from "@/components/ConsoleEggs";
 import { HiddenEggs } from "@/components/HiddenEggs";
 import { NattounComments } from "@/components/NattounComments";
@@ -142,6 +143,7 @@ function App() {
           <OGCheat />
           <EasterEggs />
           <MediaEasterEggs />
+          <BonusEasterEggs />
           <ConsoleEggs />
           <HiddenEggs />
           <NattounComments />
