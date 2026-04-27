@@ -577,14 +577,6 @@ function todayKey(): number {
 // --------------------------------------------------------------------------
 // Middleware
 // --------------------------------------------------------------------------
-function readBody(req: IncomingMessage): Promise<string> {
-  return new Promise((resolve) => {
-    const chunks: Buffer[] = [];
-    req.on("data", (c) => chunks.push(c));
-    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
-    req.on("error", () => resolve(""));
-  });
-}
 
 export function hintMiddleware(
   req: IncomingMessage,
