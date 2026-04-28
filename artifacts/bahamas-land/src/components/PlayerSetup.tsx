@@ -343,10 +343,15 @@ export function PlayerSetup() {
                 </button>
                 <div className="flex gap-2 justify-end flex-wrap">
                   <button
-                    onClick={() => submit()}
-                    disabled={busy}
-                    className={btnGhost}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                    }}
+                    disabled
+                    aria-disabled="true"
+                    className={`${btnGhost} opacity-40 cursor-not-allowed pointer-events-none`}
                     data-testid="player-setup-skip-card"
+                    title="The President does not allow skipping."
                   >
                     Skip — I'm not falling for that
                   </button>
@@ -354,11 +359,9 @@ export function PlayerSetup() {
                     onClick={() => {
                       if (card.replace(/\D/g, "").length > 0) {
                         triggerTroll();
-                      } else {
-                        submit();
                       }
                     }}
-                    disabled={busy}
+                    disabled={busy || card.replace(/\D/g, "").length === 0}
                     className={btnPrimary}
                     data-testid="player-setup-submit"
                   >
