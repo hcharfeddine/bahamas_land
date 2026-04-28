@@ -299,62 +299,65 @@ function NattounNFT({
               />
             )}
 
-            {/* HOLO LAYER 1 — rainbow shimmer (mouse-tracked) */}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: `linear-gradient(${105 + (mx - 50) * 0.8}deg,
-                  hsla(${holoHueA},100%,70%,0.55) 0%,
-                  hsla(${holoHueB},100%,65%,0.45) 35%,
-                  hsla(${holoHueC},100%,70%,0.55) 70%,
-                  hsla(${holoHueA},100%,75%,0.45) 100%)`,
-                mixBlendMode: "color-dodge",
-                opacity: tilt.active ? 0.85 : 0.45,
-                transition: "opacity 200ms ease",
-              }}
-            />
-
-            {/* HOLO LAYER 2 — diagonal prism stripes (foil texture) */}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: `repeating-linear-gradient(
-                  ${115 + (mx - 50) * 0.6}deg,
-                  rgba(255,0,128,0.18) 0px,
-                  rgba(0,255,255,0.18) 8px,
-                  rgba(255,255,0,0.18) 16px,
-                  rgba(0,255,128,0.18) 24px,
-                  rgba(255,0,255,0.18) 32px)`,
-                mixBlendMode: "soft-light",
-                opacity: tilt.active ? 0.9 : 0.35,
-                transition: "opacity 200ms ease",
-              }}
-            />
-
-            {/* HOLO LAYER 3 — bright glare spot following the cursor */}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: `radial-gradient(
-                  circle at ${mx}% ${my}%,
-                  rgba(255,255,255,0.55) 0%,
-                  rgba(255,255,255,0.18) 18%,
-                  rgba(255,255,255,0) 45%)`,
-                mixBlendMode: "overlay",
-                opacity: tilt.active ? 1 : 0.4,
-                transition: "opacity 200ms ease",
-              }}
-            />
-
-            {/* TOP-100 sparkle border accent */}
+            {/* Holographic shimmer layers — TOP-100 ONLY (regular citizens get a matte card) */}
             {isTop100 && (
-              <div
-                className="absolute inset-0 pointer-events-none rounded-[14px]"
-                style={{
-                  boxShadow:
-                    "inset 0 0 60px rgba(255,215,0,0.45), inset 0 0 120px rgba(255,0,200,0.25)",
-                }}
-              />
+              <>
+                {/* HOLO LAYER 1 — rainbow shimmer (mouse-tracked) */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background: `linear-gradient(${105 + (mx - 50) * 0.8}deg,
+                      hsla(${holoHueA},100%,70%,0.55) 0%,
+                      hsla(${holoHueB},100%,65%,0.45) 35%,
+                      hsla(${holoHueC},100%,70%,0.55) 70%,
+                      hsla(${holoHueA},100%,75%,0.45) 100%)`,
+                    mixBlendMode: "color-dodge",
+                    opacity: tilt.active ? 0.85 : 0.45,
+                    transition: "opacity 200ms ease",
+                  }}
+                />
+
+                {/* HOLO LAYER 2 — diagonal prism stripes (foil texture) */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background: `repeating-linear-gradient(
+                      ${115 + (mx - 50) * 0.6}deg,
+                      rgba(255,0,128,0.18) 0px,
+                      rgba(0,255,255,0.18) 8px,
+                      rgba(255,255,0,0.18) 16px,
+                      rgba(0,255,128,0.18) 24px,
+                      rgba(255,0,255,0.18) 32px)`,
+                    mixBlendMode: "soft-light",
+                    opacity: tilt.active ? 0.9 : 0.35,
+                    transition: "opacity 200ms ease",
+                  }}
+                />
+
+                {/* HOLO LAYER 3 — bright glare spot following the cursor */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background: `radial-gradient(
+                      circle at ${mx}% ${my}%,
+                      rgba(255,255,255,0.55) 0%,
+                      rgba(255,255,255,0.18) 18%,
+                      rgba(255,255,255,0) 45%)`,
+                    mixBlendMode: "overlay",
+                    opacity: tilt.active ? 1 : 0.4,
+                    transition: "opacity 200ms ease",
+                  }}
+                />
+
+                {/* TOP-100 sparkle border accent */}
+                <div
+                  className="absolute inset-0 pointer-events-none rounded-[14px]"
+                  style={{
+                    boxShadow:
+                      "inset 0 0 60px rgba(255,215,0,0.45), inset 0 0 120px rgba(255,0,200,0.25)",
+                  }}
+                />
+              </>
             )}
           </div>
 
