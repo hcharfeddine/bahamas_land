@@ -1,17 +1,20 @@
 import { Layout } from "@/components/Layout";
 import { useUsername, useCoins, useVerdicts, useMuseum, useApplause, useSecretVisitors, useFirstVisit } from "@/lib/store";
 import { motion } from "framer-motion";
+import { useEffect } from "react";
 import nattounImg from "@assets/Nattoun_1777028672745.png";
-import { Stamp, ShieldAlert, Lock, Check } from "lucide-react";
+import { Stamp, ShieldAlert } from "lucide-react";
 import {
   ACHIEVEMENTS,
   DIFFICULTY_COLOR,
   DIFFICULTY_LABEL,
   DIFFICULTY_REWARDS,
   type Difficulty,
+  unlock,
   useAchievements,
   useAchievementsByDifficulty,
 } from "@/lib/achievements";
+import { AchievementBook } from "@/components/AchievementBook";
 
 function rank(coins: number, verdicts: number, applause: number) {
   const score = coins / 100 + verdicts * 5 + applause * 0.5;
@@ -42,6 +45,28 @@ export default function Passport() {
   const [firstVisit] = useFirstVisit();
   const { data: achData, unlockedCount, total } = useAchievements();
   const byDiff = useAchievementsByDifficulty();
+
+  // Demo helper: append `?seed=cards` to the URL to instantly unlock the first
+  // 10 easy achievements that have AI-generated portraits, so visitors can
+  // preview the unlocked card design without playing through the game.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("seed") !== "cards") return;
+    const easyIds = ACHIEVEMENTS.filter((a) => a.difficulty === "easy")
+      .slice(0, 10)
+      .map((a) => a.id);
+    let needsUnlock = false;
+    for (const id of easyIds) {
+      if (!achData[id]) {
+        needsUnlock = true;
+        break;
+      }
+    }
+    if (needsUnlock) {
+      easyIds.forEach((id) => unlock(id));
+    }
+  }, [achData]);
 
   const lastVerdict = verdicts.length > 0 ? verdicts[verdicts.length - 1] : null;
   const citizenRank = rank(coins, verdicts.length, applause);
@@ -211,85 +236,10 @@ export default function Passport() {
             })}
           </div>
 
-          {/* Achievement grid grouped by difficulty */}
-          <div className="space-y-5">
-            {DIFF_ORDER.map((d) => {
-              const list = ACHIEVEMENTS.filter((a) => a.difficulty === d);
-              return (
-                <div key={d}>
-                  <div
-                    className="flex items-baseline gap-2 mb-2"
-                    style={{ color: DIFFICULTY_COLOR[d] }}
-                  >
-                    <span className="font-black uppercase tracking-widest text-sm">
-                      {DIFFICULTY_LABEL[d]}
-                    </span>
-                    <span className="text-[10px] font-mono uppercase opacity-70">
-                      ·  {DIFFICULTY_REWARDS[d]} NC reward each
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                    {list.map((a) => {
-                      const unlocked = !!achData[a.id];
-                      return (
-                        <div
-                          key={a.id}
-                          className={`flex items-start gap-2 border p-2 transition-all ${
-                            unlocked
-                              ? "bg-black/60"
-                              : "bg-black/40 border-white/10"
-                          }`}
-                          style={
-                            unlocked
-                              ? {
-                                  borderColor: DIFFICULTY_COLOR[d],
-                                  boxShadow: `0 0 8px ${DIFFICULTY_COLOR[d]}55`,
-                                }
-                              : undefined
-                          }
-                          title={a.hint}
-                        >
-                          <div
-                            className={`text-2xl shrink-0 ${unlocked ? "" : "grayscale opacity-30"}`}
-                            aria-hidden
-                          >
-                            {a.emoji}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1">
-                              <div
-                                className={`font-black uppercase text-xs tracking-wider truncate ${
-                                  unlocked ? "text-white" : "text-white/40"
-                                }`}
-                              >
-                                {unlocked ? a.name : "???"}
-                              </div>
-                              {unlocked ? (
-                                <Check
-                                  className="w-3 h-3 shrink-0"
-                                  style={{ color: DIFFICULTY_COLOR[d] }}
-                                />
-                              ) : (
-                                <Lock className="w-3 h-3 text-white/30 shrink-0" />
-                              )}
-                            </div>
-                            <div
-                              className={`font-mono text-[10px] leading-snug ${
-                                unlocked ? "text-secondary/80" : "text-white/35 italic"
-                              }`}
-                            >
-                              {a.hint}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </motion.div>
+
+        {/* Pokemon-style card book of every achievement */}
+        <AchievementBook />
 
         <div className="text-center text-xs font-mono text-primary/60 uppercase">
           Take a screenshot. Brag responsibly.
