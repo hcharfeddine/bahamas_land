@@ -238,7 +238,6 @@ export default function Passport() {
 
         </motion.div>
 
-        {/* Pokemon-style card book of every achievement */}
         <AchievementBook />
 
         <div className="text-center text-xs font-mono text-primary/60 uppercase">

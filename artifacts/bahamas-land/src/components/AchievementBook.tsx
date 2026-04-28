@@ -15,7 +15,6 @@ import { fallbackPortrait, getAchievementImage } from "@/lib/achievementImages";
 // =============================================================================
 // AchievementBook
 //
-// A Pokemon-style card collection book for all achievements.
 //   • 8 cards per page (4×2 on desktop, 2×4 on mobile)
 //   • Each card shows: AI portrait of President Nattoun for that achievement,
 //     name, the secret/hint, and a difficulty badge (1–4 stars).
@@ -324,7 +323,7 @@ export function AchievementBook() {
             Card Collection
           </h2>
           <p className="text-secondary/80 font-mono text-[11px] uppercase mt-1 tracking-widest">
-            {unlockedCount}/{total} cards collected · Pokémon-style album of every secret
+            {unlockedCount}/{total} cards collected — keep exploring to fill your book!
           </p>
         </div>
         <SortBy value={filter} onChange={(v) => { setFilter(v); setPage(0); }} />

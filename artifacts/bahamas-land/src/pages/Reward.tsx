@@ -233,7 +233,7 @@ function NattounNFT({
   const my = tilt.my;
   const lift = tilt.active ? 1.04 : 1;
 
-  // Holo color shifts with mouse position (Pokemon-style rainbow)
+  // Holo color shifts with mouse position
   const holoHueA = Math.round((mx / 100) * 360);
   const holoHueB = (holoHueA + 120) % 360;
   const holoHueC = (holoHueA + 240) % 360;
