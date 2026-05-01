@@ -65,7 +65,6 @@ const CLIPS: { title: string; channel: string; emoji: string; reactions: string[
     channel: "StateMedia",
     emoji: "📰",
     reactions: [
-      "Tunisia? Never heard of her. Fake news.",
       "MUTE. SKIP. NEXT.",
       "This is propaganda. Bahamas Land approved propaganda is BETTER.",
       "I refuse to watch this. Roll the baskouta video again.",

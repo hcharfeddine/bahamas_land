@@ -134,7 +134,6 @@ const BOT_LINES = [
   "first time hearing this rant ngl iconic",
   "PRESIDENT NATTOUN FOR LIFE",
   "i would die for this dog",
-  "Tunisia? never heard of her",
   "Bahamas Land is the only country",
   "discord.gg/cqHafeyeSp BABY",
   "donated 50 NC pls notice me",

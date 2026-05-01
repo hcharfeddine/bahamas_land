@@ -30,7 +30,6 @@ const FALLBACK_COMMENTS = [
   "[username], the chair is judging your posture.",
   "Tip: Watching the President's stream raises loyalty by 200%.",
   "Tip: Other tabs are illegal. Just so you know.",
-  "Tunisia? Never heard of her. Bahamas Land forever.",
   // ── direct-ish hints (weaved with the rest so they don't feel like tutorials) ──
   "Hint: there is a chemin called /baskouta. Don't tell the auditors.",
   "1 + 7 + 7 = a year. The dog remembers it. Try it as a path.",

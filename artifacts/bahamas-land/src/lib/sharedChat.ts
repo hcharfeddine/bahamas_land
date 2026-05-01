@@ -54,7 +54,7 @@ const BOT_LINES = [
   "wen 17:50 wen", "🍪🍪🍪 BASKOUTA BASKOUTA BASKOUTA",
   "pog", "PogChamp", "Pepega", "KEKW", "ratio", "ratio + L + skill issue",
   "the President speaks the truth", "PRESIDENT NATTOUN FOR LIFE",
-  "i would die for this dog", "Tunisia? never heard of her",
+  "i would die for this dog",
   "Bahamas Land is the only country", "lurking 🫡", "just here to be loyal",
   "the chair is suspicious today", "did the rules change again",
 ];
