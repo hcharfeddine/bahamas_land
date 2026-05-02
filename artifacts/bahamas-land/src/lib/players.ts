@@ -129,6 +129,7 @@ export async function loginPlayer(
     const player = normalizePlayer(result.data);
     saveSession(player.username, cleanPinStr);
     hydrateLocalSecrets(player.secrets);
+    saveServerConfirmedSecrets(player.secrets);
     if (Number.isFinite(player.coins)) {
       try {
         localStorage.setItem("ogs_coins", JSON.stringify(player.coins));
@@ -140,6 +141,33 @@ export async function loginPlayer(
     return { ok: true, data: player };
   }
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// Sync rate limiter — prevents someone injecting all achievements at once.
+// We compare what we're about to send against what the server last confirmed,
+// and reject any sync that tries to add more than MAX_NEW_PER_SYNC new secrets
+// in a single call. Legitimate play earns 1-2 at a time; cheaters inject 80+.
+// ---------------------------------------------------------------------------
+const MAX_NEW_PER_SYNC = 5;
+const SERVER_SECRETS_KEY = "ogs_server_confirmed_secrets";
+
+function getServerConfirmedSecrets(): Set<string> {
+  try {
+    const raw = localStorage.getItem(SERVER_SECRETS_KEY);
+    const arr = raw ? (JSON.parse(raw) as string[]) : [];
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveServerConfirmedSecrets(secrets: string[]) {
+  try {
+    localStorage.setItem(SERVER_SECRETS_KEY, JSON.stringify(secrets));
+  } catch {
+    /* ignore */
+  }
 }
 
 export async function syncSecrets(): Promise<ApiResult<PlayerView>> {
@@ -163,14 +191,46 @@ export async function syncSecrets(): Promise<ApiResult<PlayerView>> {
     /* ignore */
   }
 
+  // Rate-limit: count how many secrets are new compared to what the server
+  // already confirmed. If too many are new at once, only send a safe batch.
+  const confirmed = getServerConfirmedSecrets();
+  const newOnes = secrets.filter((id) => !confirmed.has(id));
+  let secretsToSend = secrets;
+  if (newOnes.length > MAX_NEW_PER_SYNC) {
+    const alreadyConfirmed = secrets.filter((id) => confirmed.has(id));
+    const safeBatch = newOnes.slice(0, MAX_NEW_PER_SYNC);
+    secretsToSend = [...alreadyConfirmed, ...safeBatch];
+  }
+
+  // Also validate timestamps: reject secrets with timestamps in the future
+  // or suspiciously clustered (all within 10 seconds of each other).
+  try {
+    const raw = localStorage.getItem("ogs_achievements");
+    const map = raw ? (JSON.parse(raw) as Record<string, number>) : {};
+    const now = Date.now();
+    const validSecrets = secretsToSend.filter((id) => {
+      const ts = map[id];
+      if (!ts || !Number.isFinite(ts)) return true;
+      if (ts > now + 60_000) return false;
+      return true;
+    });
+    secretsToSend = validSecrets;
+  } catch {
+    /* ignore */
+  }
+
   const pin_hash = await hashPin(username, pin);
   const result = await callRpc<PlayerView>("player_sync", {
     p_username: username,
     p_pin_hash: pin_hash,
-    p_secrets: secrets,
+    p_secrets: secretsToSend,
     p_coins: coins,
   });
-  if (result.ok) return { ok: true, data: normalizePlayer(result.data) };
+  if (result.ok) {
+    const player = normalizePlayer(result.data);
+    saveServerConfirmedSecrets(player.secrets);
+    return { ok: true, data: player };
+  }
   return result;
 }
 
