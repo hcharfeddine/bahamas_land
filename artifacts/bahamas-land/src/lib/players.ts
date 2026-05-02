@@ -147,7 +147,6 @@ export async function loginPlayer(
     const player = normalizePlayer(result.data);
     saveSession(player.username, cleanPinStr);
     hydrateLocalSecrets(player.secrets);
-    saveServerConfirmedSecrets(player.secrets);
     if (Number.isFinite(player.coins)) {
       try {
         localStorage.setItem("ogs_coins", JSON.stringify(player.coins));
