@@ -23,6 +23,23 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 export const PLAYER_SETUP_KEY = "ogs_v2_setup";
 export const PLAYER_USERNAME_KEY = "ogs_v2_username";
 export const PLAYER_PIN_KEY = "ogs_v2_pin";
+export const PLAYER_BANNED_KEY = "ogs_v2_banned";
+
+// ---------------------------------------------------------------------------
+// Ban state — stored locally so banned users see a block screen immediately
+// ---------------------------------------------------------------------------
+export function markBanned(reason = "banned") {
+  try { localStorage.setItem(PLAYER_BANNED_KEY, reason); } catch { /* ignore */ }
+  clearSession();
+}
+
+export function isBanned(): boolean {
+  try { return !!localStorage.getItem(PLAYER_BANNED_KEY); } catch { return false; }
+}
+
+export function getBanReason(): string {
+  try { return localStorage.getItem(PLAYER_BANNED_KEY) || "banned"; } catch { return "banned"; }
+}
 
 export type PlayerView = {
   username: string;
@@ -108,6 +125,7 @@ export async function registerPlayer(
     saveSession(player.username, cleanPinStr);
     return { ok: true, data: player };
   }
+  if (!result.ok && result.reason === "banned") markBanned(result.reason);
   return result;
 }
 
@@ -140,6 +158,7 @@ export async function loginPlayer(
     }
     return { ok: true, data: player };
   }
+  if (!result.ok && result.reason === "banned") markBanned(result.reason);
   return result;
 }
 
@@ -231,6 +250,7 @@ export async function syncSecrets(): Promise<ApiResult<PlayerView>> {
     saveServerConfirmedSecrets(player.secrets);
     return { ok: true, data: player };
   }
+  if (!result.ok && result.reason === "banned") markBanned(result.reason);
   return result;
 }
 
