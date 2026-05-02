@@ -88,14 +88,13 @@ async function callRpc<T>(
   try {
     const { data, error } = await supabase.rpc(fn, args);
     if (error) {
-      console.error(`[RPC] ${fn} error:`, error.message, error);
+    
       return { ok: false, reason: error.message || "rpc_error" };
     }
-    console.log(`[RPC] ${fn} response:`, JSON.stringify(data));
+    
     if (data?.ok) return { ok: true, data: (data.player ?? data) as T };
     return { ok: false, reason: data?.reason || "unknown" };
   } catch (e) {
-    console.error(`[RPC] ${fn} threw:`, e);
     return { ok: false, reason: "network" };
   }
 }
