@@ -499,11 +499,14 @@ export default function Stream() {
                     {revealed ? "OFFLINE" : "STANDBY"}
                   </div>
                 )}
-                <div
-                  className={`px-2 py-1 text-xs font-black uppercase tracking-widest border ${playerBadge.tone}`}
-                >
-                  {playerBadge.text}
-                </div>
+                {/* Only show the category badge when it adds info — not when T5ATHELT badge already covers it */}
+                {!(revealed && (status.crashed || isT5athelDay)) && (
+                  <div
+                    className={`px-2 py-1 text-xs font-black uppercase tracking-widest border ${playerBadge.tone}`}
+                  >
+                    {playerBadge.text}
+                  </div>
+                )}
                 <div className="bg-black/70 text-white px-2 py-1 text-[11px] font-mono flex items-center gap-1 border border-white/30">
                   <Eye className="w-3 h-3" />
                   {fakeViewers.toLocaleString()}

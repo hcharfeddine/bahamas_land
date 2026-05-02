@@ -163,31 +163,11 @@ export async function loginPlayer(
 }
 
 // ---------------------------------------------------------------------------
-// Sync rate limiter — prevents someone injecting all achievements at once.
-// We compare what we're about to send against what the server last confirmed,
-// and reject any sync that tries to add more than MAX_NEW_PER_SYNC new secrets
-// in a single call. Legitimate play earns 1-2 at a time; cheaters inject 80+.
+// Sync — sends all locally-unlocked achievements to the server.
+// The server-side RPC is the authority: it validates the PIN, merges secrets,
+// and returns the canonical list. We only filter out future timestamps and
+// IDs that don't exist in the achievement catalogue (basic tamper check).
 // ---------------------------------------------------------------------------
-const MAX_NEW_PER_SYNC = 5;
-const SERVER_SECRETS_KEY = "ogs_server_confirmed_secrets";
-
-function getServerConfirmedSecrets(): Set<string> {
-  try {
-    const raw = localStorage.getItem(SERVER_SECRETS_KEY);
-    const arr = raw ? (JSON.parse(raw) as string[]) : [];
-    return new Set(Array.isArray(arr) ? arr : []);
-  } catch {
-    return new Set();
-  }
-}
-
-function saveServerConfirmedSecrets(secrets: string[]) {
-  try {
-    localStorage.setItem(SERVER_SECRETS_KEY, JSON.stringify(secrets));
-  } catch {
-    /* ignore */
-  }
-}
 
 export async function syncSecrets(): Promise<ApiResult<PlayerView>> {
   const username = getStoredUsername();
@@ -196,44 +176,25 @@ export async function syncSecrets(): Promise<ApiResult<PlayerView>> {
 
   let secrets: string[] = [];
   let coins = 0;
-  try {
-    const raw = localStorage.getItem("ogs_achievements");
-    const map = raw ? (JSON.parse(raw) as Record<string, number>) : {};
-    secrets = Object.keys(map).filter((id) => ACHIEVEMENTS.some((a) => a.id === id));
-  } catch {
-    /* ignore */
-  }
-  try {
-    const c = Number(localStorage.getItem("ogs_coins"));
-    coins = Number.isFinite(c) ? c : 0;
-  } catch {
-    /* ignore */
-  }
 
-  // Rate-limit: count how many secrets are new compared to what the server
-  // already confirmed. If too many are new at once, only send a safe batch.
-  const confirmed = getServerConfirmedSecrets();
-  const newOnes = secrets.filter((id) => !confirmed.has(id));
-  let secretsToSend = secrets;
-  if (newOnes.length > MAX_NEW_PER_SYNC) {
-    const alreadyConfirmed = secrets.filter((id) => confirmed.has(id));
-    const safeBatch = newOnes.slice(0, MAX_NEW_PER_SYNC);
-    secretsToSend = [...alreadyConfirmed, ...safeBatch];
-  }
-
-  // Also validate timestamps: reject secrets with timestamps in the future
-  // or suspiciously clustered (all within 10 seconds of each other).
   try {
     const raw = localStorage.getItem("ogs_achievements");
     const map = raw ? (JSON.parse(raw) as Record<string, number>) : {};
     const now = Date.now();
-    const validSecrets = secretsToSend.filter((id) => {
+    // Only send IDs that exist in the catalogue and don't have a future timestamp
+    secrets = Object.keys(map).filter((id) => {
+      if (!ACHIEVEMENTS.some((a) => a.id === id)) return false;
       const ts = map[id];
-      if (!ts || !Number.isFinite(ts)) return true;
-      if (ts > now + 60_000) return false;
+      if (ts && Number.isFinite(ts) && ts > now + 60_000) return false;
       return true;
     });
-    secretsToSend = validSecrets;
+  } catch {
+    /* ignore */
+  }
+
+  try {
+    const c = Number(localStorage.getItem("ogs_coins"));
+    coins = Number.isFinite(c) ? c : 0;
   } catch {
     /* ignore */
   }
@@ -242,12 +203,14 @@ export async function syncSecrets(): Promise<ApiResult<PlayerView>> {
   const result = await callRpc<PlayerView>("player_sync", {
     p_username: username,
     p_pin_hash: pin_hash,
-    p_secrets: secretsToSend,
+    p_secrets: secrets,
     p_coins: coins,
   });
   if (result.ok) {
     const player = normalizePlayer(result.data);
-    saveServerConfirmedSecrets(player.secrets);
+    // Hydrate any server-side secrets back into localStorage
+    // (e.g. achievements earned on another device)
+    hydrateLocalSecrets(player.secrets);
     return { ok: true, data: player };
   }
   if (!result.ok && result.reason === "banned") markBanned(result.reason);
