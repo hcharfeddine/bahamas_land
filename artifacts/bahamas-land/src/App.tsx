@@ -25,7 +25,7 @@ const RPS = lazy(() => import("@/pages/RPS"));
 const Stream = lazy(() => import("@/pages/Stream"));
 const Stocks = lazy(() => import("@/pages/Stocks"));
 const Inbox = lazy(() => import("@/pages/Inbox"));
-const AdminBahamas = lazy(() => import("@/pages/AdminBahamas"));
+const Ctrl = lazy(() => import("@/pages/Ctrl"));
 const Vault = lazy(() => import("@/pages/Vault"));
 const Banned = lazy(() => import("@/pages/Banned"));
 const Exile = lazy(() => import("@/pages/Exile"));
@@ -106,8 +106,7 @@ function Router() {
         <Route path="/stream" component={Stream} />
         <Route path="/stocks" component={Stocks} />
         <Route path="/inbox" component={Inbox} />
-        <Route path="/adminbahamas" component={AdminBahamas} />
-        <Route path="/AdminBahamas" component={AdminBahamas} />
+        <Route path="/nthq" component={Ctrl} />
         <Route path="/vault" component={Vault} />
         <Route path="/banned" component={Banned} />
         <Route path="/exile" component={Exile} />

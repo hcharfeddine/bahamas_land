@@ -31,7 +31,7 @@ const BOT_CHATTERS = [
   "freedom_buyer",
   "loyal_007",
   "baskouta_president",
-  "tunisian_dreamer",
+  "bahamas_dreamer",
   "anonymous_citizen",
   "ex_oligarch",
   "court_of_ogs",
@@ -191,7 +191,6 @@ const MOD_LINES = [
   "The dog can read every chat message. Choose wisely.",
   "Loyalty check passed: +1 NC for everyone watching. (Not really.)",
   "Ban hammer is warm. Don't make us use it.",
-  "Tunisia is a rumor. Do not spread it.",
 ];
 
 const PRES_LINES = [
@@ -209,7 +208,7 @@ const PRES_LINES = [
   "Who said bots? [username] you said bots? MODS. EXILE.",
   "I personally verified all 142,857 viewers. Hand-shook every one of them.",
   "Bots? In MY stream? Impossible. The dog sniffs them out.",
-  "Anyone claiming there are bots is a Tunisian spy. Confirmed.",
+  "Anyone claiming there are bots is a foreign spy. Confirmed.",
   "0 bots. 0%. Zero. None. Stop asking. Next question.",
   "These usernames look weird because Bahamas Land citizens are CREATIVE.",
   "If there were bots they would be loyal bots. Which we do not have.",
@@ -224,7 +223,7 @@ const PRES_LINES = [
   "Inflated viewer count? Excuse me? I am simply that popular. Move on.",
   "[username] if you think this is bots wait until you see my Twitter.",
   "Every viewer here passed a 14-step loyalty audit. There are NO bots.",
-  "The bots accusation is fake news manufactured by my enemies in Tunisia.",
+  "The bots accusation is fake news manufactured by my enemies abroad.",
 ];
 
 const state = {

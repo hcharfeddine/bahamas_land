@@ -25,7 +25,7 @@ import * as path from "node:path";
 
 const REQUIRED_IDS = [
   // typed-word eggs
-  "loyal", "midwarning", "bonker", "tunisia", "kick", "vault",
+  "loyal", "midwarning", "bonker", "kick", "vault",
   "passport", "subscribe", "treason", "konami", "mekky", "rule10",
   "respect", "ban", "fakeschedule", "exile", "ogs", "secret", "coup",
   "constitution", "ghost",

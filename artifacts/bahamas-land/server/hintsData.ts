@@ -22,7 +22,7 @@ export const HINTS: HintEntry[] = [
   { id: "gambler",   name: "Lil' Gambler",      emoji: "🎲", difficulty: "easy",   hint: "Go to the Arcade (/arcade) and find the Coin Flip game, or visit /coinflip directly. Place a single bet of at least 1 NC and click flip." },
   { id: "scholar",   name: "Scholar",           emoji: "📜", difficulty: "easy",   hint: "Visit the Library (/library). Click every single book on the shelf to read it. You must open ALL books — missing even one won't count." },
   { id: "siuuu",     name: "SIUUUU!",           emoji: "🇵🇹", difficulty: "easy",   hint: "Just type 's', 'i', 'u', 'u', 'u' consecutively anywhere on the site while browsing. No special page needed — just type it." },
-  { id: "faddina",   name: "FADDINA UNLEASHED", emoji: "🇹🇳", difficulty: "easy",   hint: "Type 'faddina' letter by letter anywhere on the site. It's a Tunisian rap anthem by Klay BBJ." },
+  { id: "faddina",   name: "FADDINA UNLEASHED", emoji: "🎵", difficulty: "easy",   hint: "Type 'faddina' letter by letter anywhere on the site. It's an OG rap anthem by Klay BBJ." },
   { id: "kdot",      name: "K.Dot Listener",    emoji: "👑", difficulty: "easy",   hint: "Type 'they not like us' anywhere on the site — those exact words, letter by letter, while browsing." },
 
   // ── MEDIUM ────────────────────────────────────────────────────────────────
@@ -95,13 +95,13 @@ export const HINTS: HintEntry[] = [
   { id: "jailbird",     name: "Jailbird",             emoji: "🦅", difficulty: "insane", hint: "Type the word 'prison' letter by letter anywhere on the site while browsing. You know what happens next." },
   { id: "oracle",       name: "Oracle",               emoji: "🔮", difficulty: "insane", hint: "Unlock ALL other achievements first, then go to /reward and claim the Top-100 Loyalist prize. You must be in the first 100 citizens to finish everything." },
 
-  // ── BONUS TUNISIAN EASTER EGGS ──────────────────────────────────────────
+  // ── BONUS EASTER EGGS ──────────────────────────────────────────
   { id: "bark_code",    name: "Morse Bark",           emoji: "🔊", difficulty: "insane", hint: "Open DevTools console and type exactly: nattoun.bark('--- --.')  — that's morse for 'OG'. Three dashes, space, two dashes and a dot." },
   { id: "harrag",       name: "The Harrag",           emoji: "🚤", difficulty: "hard",   hint: "Move your mouse rapidly toward the very top of the screen (toward the browser tab bar) so it leaves the page area. Do this 3 separate times. The President sees every escape attempt." },
-  { id: "taxi_driver",  name: "Taxi",                 emoji: "🚕", difficulty: "medium", hint: "Place your mouse at the very LEFT edge of the screen, then sweep it all the way to the very RIGHT edge in less than 0.2 seconds. Tunis taxi speed." },
+  { id: "taxi_driver",  name: "Taxi",                 emoji: "🚕", difficulty: "medium", hint: "Place your mouse at the very LEFT edge of the screen, then sweep it all the way to the very RIGHT edge in less than 0.2 seconds. Maximum speed." },
   { id: "raja3_ghodwa", name: "Arja3 Ghodwa",         emoji: "📁", difficulty: "hard",   hint: "Visit /passport between 13:00 and 14:00 (LOCAL time on YOUR computer). The office will be closed for lunch. Stay on the page without leaving for a full 60 seconds." },
-  { id: "mrigel",       name: "Mrigel Sahbi",         emoji: "🤙", difficulty: "easy",   hint: "Type the word 'mrigel' letter by letter anywhere on the site (don't be in a text input). The classic Tunisian friend-greeting." },
-  { id: "ussd_pro",     name: "*100# Expert",         emoji: "📱", difficulty: "easy",   hint: "Type these characters in order anywhere on the site:  *  1  0  0  #  (use Shift+8 for *, then 1, 0, 0, then Shift+3 for #). Old Tunisian USSD code." },
+  { id: "mrigel",       name: "Mrigel Sahbi",         emoji: "🤙", difficulty: "easy",   hint: "Type the word 'mrigel' letter by letter anywhere on the site (don't be in a text input). A legendary friend-greeting." },
+  { id: "ussd_pro",     name: "*100# Expert",         emoji: "📱", difficulty: "easy",   hint: "Type these characters in order anywhere on the site:  *  1  0  0  #  (use Shift+8 for *, then 1, 0, 0, then Shift+3 for #). Old-school USSD code." },
   { id: "tab_hoarder",  name: "Bahamas Resident",     emoji: "📑", difficulty: "insane", hint: "Open Bahamas Land in 5 different browser tabs at the same time, on the same computer. Wait a few seconds — the tabs find each other automatically." },
 ];
 

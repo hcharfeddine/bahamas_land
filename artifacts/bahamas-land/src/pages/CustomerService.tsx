@@ -70,7 +70,6 @@ export default function CustomerService() {
   const [phase, setPhase] = useState<"idle" | "loading" | "revealed" | "used" | "broke">("idle");
   const [trollMsg, setTrollMsg] = useState(() => pick(GREET_LINES));
   const [cached, setCached] = useState<CachedHint | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const dayKey = todayKey();
   const storageKey = `${STORAGE_KEY_PREFIX}${dayKey}`;
@@ -139,7 +138,6 @@ export default function CustomerService() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[CustomerService] hint fetch failed:", msg);
-      setError(`Error: ${msg}`);
       setPhase("idle");
     }
   };
@@ -222,9 +220,6 @@ export default function CustomerService() {
               </p>
             )}
 
-            {error && (
-              <p className="font-mono text-xs text-red-400 uppercase tracking-widest">{error}</p>
-            )}
           </div>
         </div>
 

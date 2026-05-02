@@ -12,7 +12,7 @@ import nattounImg from "@assets/Nattoun_1777028672745.png";
 const INVESTMENTS = [
   { name: "MID Token (definitely going up)", min: 50 },
   { name: "DogeNattoun Inu Coin", min: 100 },
-  { name: "Tunisian Pyramid Scheme™", min: 250 },
+  { name: "Bahamas Land Pyramid Scheme™", min: 250 },
 ];
 
 const DISASTERS = [

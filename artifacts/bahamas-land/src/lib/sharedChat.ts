@@ -27,7 +27,7 @@ const VIEWER_FLOOR = 99_999;
 
 const BOT_USERS = [
   "ogboss", "bahamas_4lyfe", "mid_destroyer", "natttoun_fan", "kickwarrior",
-  "freedom_buyer", "loyal_007", "baskouta_president", "tunisian_dreamer",
+  "freedom_buyer", "loyal_007", "baskouta_president", "bahamas_dreamer",
   "anonymous_citizen", "ex_oligarch", "court_of_ogs", "vault_keeper",
   "exile_survivor", "bahamas_treasury", "mid_witness", "nattoun_lover99",
   "the_real_m3kky", "definitely_not_nattoun", "ogboss_jr", "loyalty_dept",
@@ -65,7 +65,7 @@ const MOD_LINES = [
   "President Nattoun has banned the word 'mid' for 30 minutes.",
   "Court of OGs is now in session. Behave.",
   "Loyalty check passed: +1 NC for everyone watching. (Not really.)",
-  "Tunisia is a rumor. Do not spread it.",
+
   "Reminder: rule 10 does not exist. Stop asking.",
 ];
 

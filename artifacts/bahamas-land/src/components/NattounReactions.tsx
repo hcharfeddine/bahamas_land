@@ -61,7 +61,7 @@ const CLIPS: { title: string; channel: string; emoji: string; reactions: string[
     ],
   },
   {
-    title: "TUNISIA DAILY NEWS — OFFICIAL CHANNEL",
+    title: "FOREIGN STATE MEDIA — OFFICIAL CHANNEL",
     channel: "StateMedia",
     emoji: "📰",
     reactions: [

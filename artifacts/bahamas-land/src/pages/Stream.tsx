@@ -57,7 +57,7 @@ const RULES = [
   "Rule 3: Drop a follow or face the Court of OGs.",
   "Rule 4: No backseat governing.",
   "Rule 5: Donations are spiritual. NC are accepted in this dimension only.",
-  "Rule 6: 'IRL' streams happen exclusively in Bahamas Land. Tunisia is a rumor.",
+  "Rule 6: 'IRL' streams happen exclusively in Bahamas Land. No other countries exist.",
   "Rule 7: All clips are property of the President. Royalties: 0%.",
   "Rule 8: Mute is for cowards. Volume is for citizens.",
   "Rule 9: Do not whisper to other streamers. We will know.",
@@ -106,12 +106,12 @@ const CATEGORY_QUOTES: Record<Exclude<SlotCategory, "t5athel">, string[]> = {
     "Subscribe wherever you legally cannot get podcasts.",
   ],
   irl: [
-    "IRL stream. We are walking. Allegedly in Tunis. Cannot confirm.",
+    "IRL stream. We are walking. Location classified. Cannot confirm.",
     "[username], the camera is shaky because the President is shaky. Same.",
     "If you see me on the street: do NOT acknowledge me. Loyalty test.",
     "The wifi out here is 1 bar. The vibes are 11.",
     "We promised IRL. We delivered: a man holding a phone in a hallway.",
-    "Tunisia is a rumor. This footage proves nothing.",
+    "The location is classified. This footage proves nothing.",
   ],
   asmr: [
     "Tonight: 4 hours of baskouta crunching, ASMR-style. Headphones on.",

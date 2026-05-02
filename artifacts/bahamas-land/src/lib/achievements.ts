@@ -98,7 +98,7 @@ export type AchievementId =
   | "rigged"          // play coin flip and lose 5 in a row
   | "oracle"          // claim the Top-100 reward (server-issued)
   // ============================
-  // BONUS TUNISIAN EASTER EGGS
+  // BONUS EASTER EGGS
   // ============================
   | "bark_code"       // console: nattoun.bark('--- --.')
   | "harrag"          // try to leave the viewport upward 3 times
@@ -181,10 +181,10 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "kratos", name: "Boy.", hint: "Spartan rage. One single word from the bald god.", emoji: "🪓", difficulty: "medium" },
   { id: "madridista", name: "Madridista", hint: "Hala the white club. The real anthem plays itself.", emoji: "🤍", difficulty: "hard" },
   { id: "treasoncule", name: "Culé Confession", hint: "Mention the rival club. Suffer the consequences.", emoji: "🚫", difficulty: "hard" },
-  // M3kky community + Tunisia memes
-  { id: "faddina", name: "FADDINA UNLEASHED", hint: "Type the name of the OG Tunisian rap anthem. Klay knows.", emoji: "🇹🇳", difficulty: "easy" },
+  // M3kky community memes
+  { id: "faddina", name: "FADDINA UNLEASHED", hint: "Type the name of the OG rap anthem. Klay knows.", emoji: "🎵", difficulty: "easy" },
   { id: "khamsa", name: "Khamsa Aleik", hint: "Five fingers in your face. Block the evil eye.", emoji: "🖐", difficulty: "medium" },
-  { id: "baskouta", name: "Cookie Inspector", hint: "The Crunchiest Word. Three syllables, very Tunisian.", emoji: "🍪", difficulty: "easy" },
+  { id: "baskouta", name: "Cookie Inspector", hint: "The Crunchiest Word. Three syllables, very loyal.", emoji: "🍪", difficulty: "easy" },
   // Internet / gaming / rap memes
   { id: "catjam", name: "CAT JAM", hint: "When the cat vibes, the OGs vibe. Type the meme.", emoji: "🐈", difficulty: "easy" },
   { id: "cena", name: "AND HIS NAME IS…", hint: "Trumpets in your ears. Spell the bald champion.", emoji: "🎺", difficulty: "medium" },
@@ -221,13 +221,13 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "oracle", name: "The Oracle (Top 100)", hint: "Collect EVERY secret. Visit /reward. Server-verified.", emoji: "🔮", difficulty: "insane" },
 
   // ============================
-  // BONUS TUNISIAN EASTER EGGS
+  // BONUS EASTER EGGS
   // ============================
   { id: "bark_code", name: "Morse Bark", hint: "Only for the OGs. Console knows the password.", emoji: "🔊", difficulty: "insane" },
   { id: "harrag", name: "The Harrag", hint: "Thinking about leaving? Nattoun is watching.", emoji: "🚤", difficulty: "hard" },
-  { id: "taxi_driver", name: "Taxi", hint: "Grand Tunis speed. Left to right. No brakes.", emoji: "🚕", difficulty: "medium" },
+  { id: "taxi_driver", name: "Taxi", hint: "Speed run. Left to right. No brakes.", emoji: "🚕", difficulty: "medium" },
   { id: "raja3_ghodwa", name: "arja3 Ghodwa", hint: "The Administration is at lunch. Wait. Earn their respect.", emoji: "📁", difficulty: "hard" },
-  { id: "mrigel", name: "Mrigel Sahbi", hint: "When in trouble, type the magic Tunisian word.", emoji: "🤙", difficulty: "easy" },
+  { id: "mrigel", name: "Mrigel Sahbi", hint: "When in trouble, type the magic word.", emoji: "🤙", difficulty: "easy" },
   { id: "ussd_pro", name: "*100# Expert", hint: "Old-school telecom code. No credit, just clout.", emoji: "📱", difficulty: "easy" },
   { id: "tab_hoarder", name: "Bahamas Resident", hint: "Population growth. Open many doors at once.", emoji: "📑", difficulty: "insane" },
 ];

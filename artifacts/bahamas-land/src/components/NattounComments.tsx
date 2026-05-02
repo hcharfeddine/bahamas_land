@@ -9,8 +9,7 @@ const SUPPRESSED_PATHS = new Set([
   "/stream",
   "/banned",
   "/exile",
-  "/adminbahamas",
-  "/AdminBahamas",
+  "/nthq",
   "/chess",
 ]);
 

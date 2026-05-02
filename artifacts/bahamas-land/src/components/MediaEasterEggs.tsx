@@ -666,15 +666,15 @@ function BarcaOverlay({ onClose }: { onClose: () => void }) {
 }
 
 // ============================================================
-// 6) FADDINA — Tunisian rap anthem with the real YT track
+// 6) FADDINA — OG rap anthem with the real YT track
 // ============================================================
 function FaddinaOverlay({ onClose }: { onClose: () => void }) {
   return (
     <Shell onClose={onClose} testId="egg-faddina">
       {/* Simple solid background — no fake-flag motif */}
       <div className="absolute inset-0" style={{ background: "#e70013" }} />
-      <HeroGif src={gifFaddina} size="min(45vmin, 380px)" glow="#e70013" alt="tunisia" />
-      <FlyingGif gifs={[gifFaddina]} count={12} px={100} glow="#e70013" emojis={["🇹🇳", "🎤", "🔥", "🪕"]} />
+      <HeroGif src={gifFaddina} size="min(45vmin, 380px)" glow="#e70013" alt="faddina" />
+      <FlyingGif gifs={[gifFaddina]} count={12} px={100} glow="#e70013" emojis={["🎵", "🎤", "🔥", "🪕"]} />
       <div className="relative z-10 text-center px-6">
         <motion.div
           animate={{ y: [0, -14, 0], rotate: [-2, 2, -2] }}
@@ -990,7 +990,7 @@ function RickrollOverlay({ onClose }: { onClose: () => void }) {
 }
 
 // ============================================================
-// 12) KHAMSA — Tunisian "5" hand against the evil eye
+// 12) KHAMSA — "5" hand against the evil eye
 // ============================================================
 function KhamsaOverlay({ onClose }: { onClose: () => void }) {
   return (
@@ -1184,7 +1184,7 @@ function StoneColdOverlay({ onClose }: { onClose: () => void }) {
 }
 
 // ============================================================
-// 15) BASKOUTA — Cookie monster crunch, Tunisian biscuit
+// 15) BASKOUTA — Cookie monster crunch, legendary biscuit
 // ============================================================
 function BaskoutaOverlay({ onClose }: { onClose: () => void }) {
   return (

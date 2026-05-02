@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { unlock, isUnlocked } from "@/lib/achievements";
 
 // ============================================================================
-// BONUS TUNISIAN EASTER EGGS
+// BONUS EASTER EGGS
 // ----------------------------------------------------------------------------
 // 1. harrag        — try to leave the viewport upward 3 times
 // 2. taxi_driver   — sweep mouse from left edge to right edge in <200ms
