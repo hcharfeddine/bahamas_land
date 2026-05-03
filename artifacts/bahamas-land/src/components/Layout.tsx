@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { ChevronLeft, Volume2, VolumeX, IdCard, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,21 @@ import { useUsername, useCoins } from "@/lib/store";
 import { useLetters } from "@/lib/inbox";
 import { KickBadge } from "@/components/KickBadge";
 import { NattounLiveBadge } from "@/components/NattounLiveBadge";
+import { isSetupComplete, syncSecrets } from "@/lib/players";
+
+const SYNC_INTERVAL_MS = 5 * 60 * 1000;
 
 export function Layout({ children, showBack = true }: { children: ReactNode; showBack?: boolean }) {
   const [isMuted, setIsMuted] = useState(audio.isMuted());
+
+  useEffect(() => {
+    if (!isSetupComplete()) return;
+    syncSecrets().catch(() => {});
+    const t = window.setInterval(() => {
+      if (isSetupComplete()) syncSecrets().catch(() => {});
+    }, SYNC_INTERVAL_MS);
+    return () => window.clearInterval(t);
+  }, []);
   const [username] = useUsername();
   const [coins] = useCoins();
   const [letters] = useLetters();
