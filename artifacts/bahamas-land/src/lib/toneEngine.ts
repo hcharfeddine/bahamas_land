@@ -133,24 +133,27 @@ function planBar(
       };
     }
 
-    // ── VERSE: A phrase (call) on odd bars, B phrase (response) on even bars
-    // Every 4 bars the octave shifts up to keep it developing.
-    // Bar 3 of each group: silence on lead (breathing room).
+    // ── VERSE: through-composed — each bar plays the NEXT phrase in sequence.
+    // 8 phrases form a complete musical arc: opening → motif → response →
+    // development → build → climax → resolution → closing.
+    // Octave rises with the arc then comes back down at resolution.
     case "verse": {
-      const group      = Math.floor(barIdxInSec / 4);
-      const posInGroup = barIdxInSec % 4;
-      const leadOctMul = group % 2 === 0 ? 4 : 8; // alternates octave every 4 bars
-      // Bar 0: A phrase full
-      // Bar 1: B phrase back half (response)
-      // Bar 2: A phrase front half (call again, slight variation)
-      // Bar 3: silence (rest bar, let the chord breathe)
-      const playLead   = hasLead && posInGroup !== 3;
-      const phraseRole = posInGroup === 1 ? 1 : 0; // B on bar 1, A otherwise
-      const backHalf   = posInGroup === 1;           // response = back half
-      const vel = 0.6 + Math.min(0.15, barIdxInSec * 0.012);
+      const numPhrases = 8; // each group has 8 through-composed phrases
+      const phraseRole = barIdxInSec % numPhrases;
+      // Octave arc: phrases 0-1 low, 2-4 mid, 5 high (climax), 6-7 back down
+      const leadOctMul =
+        phraseRole <= 1 ? 2 :
+        phraseRole <= 4 ? 4 :
+        phraseRole === 5 ? 8 :
+        4; // resolution and closing return to mid
+      // Velocity arc: grows toward climax, falls at resolution/closing
+      const vel =
+        phraseRole <= 1 ? 0.55 + phraseRole * 0.05 :
+        phraseRole <= 5 ? 0.65 + (phraseRole - 2) * 0.06 :
+        0.85 - (phraseRole - 5) * 0.15;
       return {
-        playDrums: true, playSnare: true, playHihat: true, playBass: true, playChords: true, playLead,
-        velocity: vel, leadOctMul, phraseRole, backHalf, noteSkip: 1,
+        playDrums: true, playSnare: true, playHihat: true, playBass: true, playChords: true, playLead: hasLead,
+        velocity: Math.max(0.3, Math.min(0.95, vel)), leadOctMul, phraseRole, backHalf: false, noteSkip: 1,
       };
     }
 

@@ -227,12 +227,8 @@ export function getSongForLevel(
         isLastInSection: b === sec.bars - 1,
         chord: powerChord(chordRoot),
         rootHz: chordRoot,
-        // Lead present in chorus, bridge, and the last bar of intro.
-        hasLead:
-          genre.hasLead &&
-          (sec.type === "chorus" ||
-            sec.type === "bridge" ||
-            (sec.type === "intro" && b === sec.bars - 1)),
+        // Lead is active on all bars; planBar handles per-bar dynamics.
+        hasLead: genre.hasLead,
       });
       barIdx += 1;
     }

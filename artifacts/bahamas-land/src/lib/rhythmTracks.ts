@@ -121,24 +121,17 @@ const PROGS_DIMINISHED  = [[0,3,6,9],[0,9,6,3],[0,3,9,6],[0,6,3,9]];
 const PROGS_DRAMA       = [[0,8,5,7],[0,5,7,8],[0,7,8,5],[0,8,7,5]];
 
 // ── Song structure templates ──────────────────────────────────────────────────
-const SIMPLE_STRUCT: SongTemplate[] = [[
-  {type:"intro",bars:2},{type:"verse",bars:4},{type:"chorus",bars:4},
-  {type:"verse",bars:4},{type:"chorus",bars:4},{type:"outro",bars:2},
+// THROUGH_STRUCT: intro → complete through-composed melody → outro.
+// No repeating verse/chorus cycles. The "verse" section carries the full
+// melodic journey (8 sequential phrases, each bar plays the next one).
+const THROUGH_STRUCT: SongTemplate[] = [[
+  {type:"intro",bars:4},{type:"verse",bars:24},{type:"outro",bars:4},
 ]];
-const STANDARD_STRUCT: SongTemplate[] = [[
-  {type:"intro",bars:4},{type:"verse",bars:8},{type:"chorus",bars:8},
-  {type:"verse",bars:4},{type:"chorus",bars:8},{type:"outro",bars:4},
-]];
-const EPIC_STRUCT: SongTemplate[] = [[
-  {type:"intro",bars:4},{type:"verse",bars:8},{type:"chorus",bars:8},
-  {type:"breakdown",bars:4},{type:"verse",bars:4},{type:"chorus",bars:8},
-  {type:"bridge",bars:4},{type:"chorus",bars:8},{type:"outro",bars:4},
-]];
-const BALLAD_STRUCT: SongTemplate[] = [[
-  {type:"intro",bars:4},{type:"verse",bars:8},{type:"chorus",bars:4},
-  {type:"verse",bars:8},{type:"chorus",bars:8},{type:"bridge",bars:4},
-  {type:"chorus",bars:4},{type:"outro",bars:4},
-]];
+// Keep legacy names pointing to the same through-composed structure.
+const SIMPLE_STRUCT   = THROUGH_STRUCT;
+const STANDARD_STRUCT = THROUGH_STRUCT;
+const EPIC_STRUCT     = THROUGH_STRUCT;
+const BALLAD_STRUCT   = THROUGH_STRUCT;
 
 // ── Default synth profiles per archetype ─────────────────────────────────────
 const PROF_BELL: SynthProfile = {
