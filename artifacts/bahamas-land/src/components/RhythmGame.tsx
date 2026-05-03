@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import nattounImg from "@assets/Nattoun_1777028672745.png";
 import { useLocalStorage } from "@/lib/store";
 import { unlock } from "@/lib/achievements";
-import { playRockLoop } from "@/lib/rockLoop";
+import { playWithTone } from "@/lib/toneEngine";
+import * as Tone from "tone";
 import { getSongForLevel, type SongPlan } from "@/lib/rhythmSong";
 
 // ---------------------------------------------------------------
@@ -326,7 +327,6 @@ export function RhythmGame() {
     ArrowUp: false,
     ArrowRight: false,
   });
-  const audioCtxRef = useRef<AudioContext | null>(null);
   const stopMusicRef = useRef<(() => void) | null>(null);
   const rafRef = useRef<number | null>(null);
   const flashRef = useRef<Record<LaneKey, number>>({
@@ -368,17 +368,11 @@ export function RhythmGame() {
     };
     setMode("playing");
 
-    // Music
+    // Music — Tone.js handles its own AudioContext
+    Tone.start().catch(() => {/* ignore */});
+    stopMusicRef.current?.();
     try {
-      const Ctx =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext })
-          .webkitAudioContext;
-      const ctx = audioCtxRef.current ?? new Ctx();
-      if (ctx.state === "suspended") void ctx.resume();
-      audioCtxRef.current = ctx;
-      stopMusicRef.current?.();
-      stopMusicRef.current = playRockLoop(ctx, {
+      stopMusicRef.current = playWithTone({
         song,
         durationMs: p.durationMs + 1500,
         onBeat: (b) => setMusicBeat(b),
@@ -405,11 +399,6 @@ export function RhythmGame() {
     return () => {
       stopMusic();
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      try {
-        audioCtxRef.current?.close();
-      } catch {
-        /* ignore */
-      }
     };
   }, [stopMusic]);
 
