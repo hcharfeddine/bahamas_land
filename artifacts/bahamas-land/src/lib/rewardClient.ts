@@ -1,5 +1,6 @@
 import { ACHIEVEMENTS, getAllUnlocked } from "@/lib/achievements";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getStoredUsername, getStoredPin, hashPin } from "@/lib/players";
 
 const STORAGE_KEY = "ogs_reward_claim";
 const ID_KEY = "ogs_visitor_id";
@@ -76,13 +77,13 @@ function apiBase(): string {
 async function claimViaSupabase(
   visitorId: string,
   username: string,
-  ids: string[],
+  pinHash: string,
 ): Promise<ClaimResult> {
   if (!supabase) return { ok: false, reason: "no_supabase" };
   const { data, error } = await supabase.rpc("claim_reward", {
     p_visitor_id: visitorId,
     p_username: username,
-    p_achievements: ids,
+    p_pin_hash: pinHash,
   });
   if (error) return { ok: false, reason: error.message || "rpc_error" };
   return (data as ClaimResult) ?? { ok: false, reason: "empty_response" };
@@ -107,6 +108,19 @@ async function claimViaLocal(
 
 export async function claimReward(username: string): Promise<ClaimResult> {
   const visitorId = ensureVisitorId();
+
+  if (isSupabaseConfigured) {
+    // Server reads achievements from DB — client list is ignored and untrusted.
+    const storedUsername = getStoredUsername() || username;
+    const storedPin = getStoredPin();
+    if (!storedPin) return { ok: false, reason: "no_session" };
+    const pinHash = await hashPin(storedUsername, storedPin);
+    const result = await claimViaSupabase(visitorId, storedUsername, pinHash);
+    if (result.ok) storeClaim(result);
+    return result;
+  }
+
+  // Local fallback (dev only) — still checks locally
   const unlocked = getAllUnlocked();
   const required = rewardRequiredIds();
   const ids = required.filter((id) => unlocked[id]);
@@ -119,10 +133,7 @@ export async function claimReward(username: string): Promise<ClaimResult> {
     };
   }
 
-  const result = isSupabaseConfigured
-    ? await claimViaSupabase(visitorId, username, ids)
-    : await claimViaLocal(visitorId, username, ids);
-
+  const result = await claimViaLocal(visitorId, username, ids);
   if (result.ok) storeClaim(result);
   return result;
 }

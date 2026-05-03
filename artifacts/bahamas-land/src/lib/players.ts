@@ -58,7 +58,7 @@ export type ApiResult<T> =
 // ---------------------------------------------------------------------------
 // PIN hashing — SHA-256(username_lower ":" pin), hex.
 // ---------------------------------------------------------------------------
-async function hashPin(username: string, pin: string): Promise<string> {
+export async function hashPin(username: string, pin: string): Promise<string> {
   const data = new TextEncoder().encode(`${username.trim().toLowerCase()}:${pin}`);
   const buf = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(buf))
@@ -121,8 +121,6 @@ export async function registerPlayer(
     p_username: cleanName,
     p_pin_hash: pin_hash,
     p_card_joke: safeJoke,
-    p_secrets: [],
-    p_coins: 1000,
   });
   if (result.ok) {
     const player = normalizePlayer(result.data);
