@@ -153,7 +153,7 @@ export default function Ctrl() {
     if (section === "museum" || section === "court") { fetchItems(); fetchPendingCounts(); }
     if (section === "players") fetchPlayers();
     if (section === "bans") fetchBans();
-    if (section === "interrogate") fetchInterrogations();
+    if (section === "interrogate") { fetchPlayers(); fetchInterrogations(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, section, filter, interrogateFilter]);
 
