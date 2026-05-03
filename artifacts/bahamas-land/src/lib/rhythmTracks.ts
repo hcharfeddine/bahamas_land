@@ -269,7 +269,7 @@ export const GENRES: GenreTemplate[] = [
     songNames: [
       "Pallet Town Patriot",
       "Rival Encounter",
-      "Victory Road",
+      "Salute the Nose",
       "The Elite Four",
       "Champion's Theme",
     ],
