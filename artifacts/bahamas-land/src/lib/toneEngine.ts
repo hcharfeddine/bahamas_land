@@ -41,6 +41,10 @@ function buildChain(
     const rev = new Tone.Reverb({ decay: Math.max(0.1, p.reverbDecay), wet: Math.min(0.85, p.reverbDecay * 0.18) });
     rev.connect(last); last = rev; nodes.push(rev);
   }
+  const lowCut = new Tone.Filter(110, "highpass");
+  lowCut.connect(last);
+  last = lowCut;
+  nodes.push(lowCut);
   if (p.useChorus) {
     const cho = new Tone.Chorus(4, 2.5, 0.5).start();
     cho.connect(last); last = cho; nodes.push(cho);
@@ -178,8 +182,8 @@ export function playWithTone(opts: ToneEngineOptions): () => void {
 
   // ── Effects chains ────────────────────────────────────────────────────────
   const chordChain = buildChain(profile, -13);
-  const bassChain  = buildChain(profile, -10, { distortion: profile.distortion * 0.35, reverbDecay: 0, useBitCrush: false, useChorus: false });
-  const leadChain  = buildChain(profile, -15, { distortion: profile.distortion * 0.55, reverbDecay: profile.reverbDecay * 0.4, useBitCrush: false, useChorus: false });
+  const bassChain  = buildChain(profile, -12, { distortion: profile.distortion * 0.2, reverbDecay: 0, useBitCrush: false, useChorus: false });
+  const leadChain  = buildChain(profile, -16, { distortion: profile.distortion * 0.35, reverbDecay: profile.reverbDecay * 0.3, useBitCrush: false, useChorus: false });
   const drumChain  = buildChain(profile, -5,  { distortion: 0, reverbDecay: 0, useBitCrush: false, useChorus: false });
 
   disposeList.push(chordChain.dispose, bassChain.dispose, leadChain.dispose, drumChain.dispose);
@@ -207,7 +211,7 @@ export function playWithTone(opts: ToneEngineOptions): () => void {
     envelope: { attack: 0.018, decay: 0.22, sustain: 0.55, release: 0.28 },
   });
   bassSynth.connect(bassChain.input);
-  bassSynth.volume.value = 5;
+  bassSynth.volume.value = 0;
   disposeList.push(() => bassSynth.dispose());
 
   const kick = new Tone.MembraneSynth({
