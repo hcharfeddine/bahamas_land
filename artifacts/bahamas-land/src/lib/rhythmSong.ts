@@ -14,6 +14,8 @@ import {
   getGenreForLevel,
 } from "./rhythmTracks";
 
+import { getComposedPhrase } from "./rhythmPhrases";
+
 export type SongBar = {
   index: number;
   section: SectionType;
@@ -103,21 +105,6 @@ function genProgression(rng: () => number, vocab: number[]): number[] {
   return prog;
 }
 
-// Build a unique lead phrase from the genre's scale.
-// Produces 2–7 note events with varying positions, degrees, and durations.
-function genLeadPhrase(rng: () => number, scaleLen: number): LeadPhrase {
-  const count = 2 + Math.floor(rng() * 6); // 2..7 notes
-  const phrase: LeadPhrase = [];
-  let pos = 0;
-  for (let i = 0; i < count && pos < 13; i++) {
-    const len = 1 + Math.floor(rng() * 5);      // 1..5 sixteenths long
-    const deg = Math.floor(rng() * Math.min(scaleLen, 11)); // scale degree
-    phrase.push({ pos, deg, len });
-    pos += len + 1 + Math.floor(rng() * 3);     // gap 1..3 sixteenths
-  }
-  return phrase;
-}
-
 // ---------------------------------------------------------------
 // Section-type → chosen progression mapping.
 // ---------------------------------------------------------------
@@ -194,25 +181,22 @@ export function getSongForLevel(
   const genre = getGenreForLevel(level);
   const rng = mulberry32(level * 9301 + 49297);
 
-  // ── Procedural music generation: every level is unique ──────────────────
   // Root key: pick from chromatic grid spanning genre's register ± 5 semitones.
-  // This gives ~15 distinct pitches per genre instead of the 4-key pool.
   const rootHz = genRootHz(rng, genre.keys);
 
-  // Song name: cycle through genre's curated names (already 1 per level in a tier).
+  // Song name: cycle through genre's curated names.
   const songName = genre.songNames[(level - 1) % genre.songNames.length];
 
-  // Chord progressions: generate unique sequences from the genre's chord vocabulary
-  // rather than picking from 3–4 fixed patterns.  With 6–8 vocab offsets and
-  // sequences of length 3–6, there are thousands of unique progressions per genre.
+  // Chord progressions: generate unique sequences from the genre's chord vocabulary.
   const vocab = extractVocab(genre.progressionPool);
   const verseProg = genProgression(rng, vocab);
   const chorusProg = genProgression(rng, vocab);
   const bridgeProg = genProgression(rng, vocab);
 
-  // Lead melody: procedurally generated from the genre's scale.
-  // 2–7 notes with unique positions, scale degrees, and durations per level.
-  const leadPhrase = genLeadPhrase(rng, genre.scale.length);
+  // ── Lead melody: hand-composed iconic phrase per level group ──────────────
+  // Verse (phraseRole 0), chorus (1), bridge (2) each get a different phrase.
+  // getComposedPhrase maps level → one of 20 groups × 3 phrases = 60 melodies.
+  const leadPhrase = getComposedPhrase(level, 0); // verse phrase by default
 
   const template = pick(rng, genre.songTemplates);
 
