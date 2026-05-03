@@ -6,10 +6,10 @@ import { supabase, isSupabaseConfigured, ADMIN_EMAIL, RemoteMuseumItem, RemoteCo
 import nattounImg from "@assets/Nattoun_1777028672745.png";
 import {
   ShieldCheck, Trash2, Check, LogOut, AlertTriangle, Pin, PinOff,
-  Scale, Image as ImageIcon, Users, Ban, RefreshCw, ShieldOff, Search,
+  Scale, Image as ImageIcon, Users, Ban, RefreshCw, ShieldOff, Search, Zap,
 } from "lucide-react";
 
-type Section = "museum" | "court" | "players" | "bans";
+type Section = "museum" | "court" | "players" | "bans" | "suspects";
 type Filter = "pending" | "approved" | "rejected";
 
 type AdminPlayer = {
@@ -240,13 +240,21 @@ export default function AdminBahamas() {
   );
 
   // ── helpers ──────────────────────────────────────────────────────────────
-  const isSuspicious = (p: AdminPlayer) => {
-    if (p.secrets_count < 20) return false;
+  const suspicionReasons = (p: AdminPlayer): string[] => {
+    const reasons: string[] = [];
     const created = new Date(p.created_at).getTime();
     const updated = new Date(p.updated_at).getTime();
     const hours = (updated - created) / 3_600_000;
-    return hours < 6;
+    if (p.secrets_count >= 30 && hours < 1) reasons.push(`${p.secrets_count} secrets in under 1 hour`);
+    else if (p.secrets_count >= 20 && hours < 6) reasons.push(`${p.secrets_count} secrets in ${hours.toFixed(1)}h`);
+    if (p.coins >= 999_000) reasons.push(`coins at max (${p.coins.toLocaleString()} NC)`);
+    if (p.secrets_count === 85 && hours < 24) reasons.push("all achievements unlocked in <24h");
+    return reasons;
   };
+
+  const isSuspicious = (p: AdminPlayer) => suspicionReasons(p).length > 0;
+
+  const suspiciousPlayers = players.filter(isSuspicious);
 
   if (!isSupabaseConfigured) {
     return (
@@ -336,6 +344,7 @@ export default function AdminBahamas() {
             { key: "museum", icon: <ImageIcon className="w-4 h-4" />, label: "Museum", badge: pendingCounts.museum },
             { key: "court", icon: <Scale className="w-4 h-4" />, label: "Court", badge: pendingCounts.court },
             { key: "players", icon: <Users className="w-4 h-4" />, label: "Citizens" },
+            { key: "suspects", icon: <Zap className="w-4 h-4" />, label: "Suspects", badge: suspiciousPlayers.length },
             { key: "bans", icon: <Ban className="w-4 h-4" />, label: "Bans", badge: bans.length },
           ] as const).map(({ key, icon, label, badge }) => (
             <Button
@@ -535,6 +544,98 @@ export default function AdminBahamas() {
               </AnimatePresence>
               {!playersLoading && filteredPlayers.length === 0 && (
                 <div className="text-primary/40 font-mono text-sm uppercase text-center py-12">No citizens found.</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── SUSPECTS ─────────────────────────────────────────────────────── */}
+        {section === "suspects" && (
+          <div className="space-y-4">
+            <div className="flex gap-3 items-center flex-wrap">
+              <Button onClick={fetchPlayers} variant="outline" className="border-primary text-primary hover:bg-primary/20 uppercase">
+                <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+              </Button>
+              <span className="text-red-400 font-mono text-xs uppercase">
+                {suspiciousPlayers.length} flagged citizen{suspiciousPlayers.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+
+            <div className="bg-red-950/20 border border-red-800/50 p-3 font-mono text-xs text-red-400/80 uppercase tracking-wide">
+              ⚠ Flagged automatically. Review before acting — legitimate power users may appear here.
+            </div>
+
+            {playersLoading && (
+              <div className="text-primary/40 font-mono text-sm uppercase text-center py-8">Loading...</div>
+            )}
+
+            <div className="space-y-3">
+              <AnimatePresence>
+                {suspiciousPlayers.map((p) => {
+                  const reasons = suspicionReasons(p);
+                  const created = new Date(p.created_at);
+                  const updated = new Date(p.updated_at);
+                  return (
+                    <motion.div
+                      key={p.username}
+                      initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                      className="border-2 border-red-500 bg-red-950/20 p-4 space-y-3"
+                    >
+                      {/* Header */}
+                      <div className="flex items-start justify-between flex-wrap gap-2">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <span className="bg-red-500 text-black text-[9px] font-black uppercase px-2 py-0.5 animate-pulse">FLAGGED</span>
+                            <span className="text-red-300 font-mono font-bold uppercase text-sm">{p.username}</span>
+                          </div>
+                          <div className="flex gap-4 text-white/50 font-mono text-xs">
+                            <span>{p.secrets_count} secrets</span>
+                            <span>{p.coins.toLocaleString()} NC</span>
+                            <span>Joined: {created.toLocaleDateString()}</span>
+                            <span>Last sync: {updated.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Reasons */}
+                      <div className="space-y-1">
+                        {reasons.map((r, i) => (
+                          <div key={i} className="flex items-center gap-2 text-red-400 font-mono text-xs">
+                            <Zap className="w-3 h-3 flex-shrink-0" />
+                            {r}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2 flex-wrap items-center pt-1 border-t border-red-800/40">
+                        <Input
+                          value={banReason[p.username] ?? "cheating"}
+                          onChange={(e) => setBanReason((r) => ({ ...r, [p.username]: e.target.value }))}
+                          placeholder="Ban reason"
+                          className="bg-black border-red-800/60 text-primary font-mono text-xs h-8 flex-1 min-w-[150px]"
+                        />
+                        <Button size="sm" onClick={() => resetPlayer(p.username)}
+                          variant="outline" className="border-yellow-500 text-yellow-400 uppercase text-xs hover:bg-yellow-500/10">
+                          <RefreshCw className="w-3 h-3 mr-1" /> Reset
+                        </Button>
+                        <Button size="sm" onClick={() => banPlayer(p.username)}
+                          className="bg-red-700 hover:bg-red-600 uppercase text-xs font-bold">
+                          <Ban className="w-3 h-3 mr-1" /> Ban
+                        </Button>
+                        <Button size="sm" onClick={() => deletePlayer(p.username)}
+                          variant="outline" className="border-red-800 text-red-600 uppercase text-xs hover:bg-red-900/20">
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+              {!playersLoading && suspiciousPlayers.length === 0 && (
+                <div className="text-primary/40 font-mono text-sm uppercase text-center py-12">
+                  No suspicious activity detected. All citizens behaving.
+                </div>
               )}
             </div>
           </div>
