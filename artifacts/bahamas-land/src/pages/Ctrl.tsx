@@ -2,14 +2,16 @@ import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase, isSupabaseConfigured, ADMIN_EMAIL, RemoteMuseumItem, RemoteCourtVerdict } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured, ADMIN_EMAIL, RemoteMuseumItem, RemoteCourtVerdict, RemoteInterrogation } from "@/lib/supabase";
+import { ACHIEVEMENTS } from "@/lib/achievements";
 import nattounImg from "@assets/Nattoun_1777028672745.png";
 import {
   ShieldCheck, Trash2, Check, LogOut, AlertTriangle, Pin, PinOff,
   Scale, Image as ImageIcon, Users, Ban, RefreshCw, ShieldOff, Search,
+  HelpCircle, Send, Eye, RotateCcw,
 } from "lucide-react";
 
-type Section = "museum" | "court" | "players" | "bans";
+type Section = "museum" | "court" | "players" | "bans" | "interrogate";
 type Filter = "pending" | "approved" | "rejected";
 
 type AdminPlayer = {
@@ -50,6 +52,12 @@ export default function Ctrl() {
 
   const [bans, setBans] = useState<BannedUser[]>([]);
   const [bansLoading, setBansLoading] = useState(false);
+
+  const [interrogations, setInterrogations] = useState<RemoteInterrogation[]>([]);
+  const [interrogationsLoading, setInterrogationsLoading] = useState(false);
+  const [interrogateFilter, setInterrogateFilter] = useState<"pending" | "answered" | "reviewed">("answered");
+  const [newIq, setNewIq] = useState<{ username: string; achievementId: string } | null>(null);
+  const [sendingIq, setSendingIq] = useState(false);
 
   const [actionMsg, setActionMsg] = useState<string | null>(null);
 
@@ -127,13 +135,27 @@ export default function Ctrl() {
     setBans((data || []) as BannedUser[]);
   }, [isAdmin]);
 
+  const fetchInterrogations = useCallback(async () => {
+    if (!supabase || !isAdmin) return;
+    setInterrogationsLoading(true);
+    const { data, error } = await supabase
+      .from("interrogations")
+      .select("*")
+      .eq("status", interrogateFilter)
+      .order("created_at", { ascending: false });
+    setInterrogationsLoading(false);
+    if (error) { console.warn("[admin] interrogations fetch error", error); return; }
+    setInterrogations((data || []) as RemoteInterrogation[]);
+  }, [isAdmin, interrogateFilter]);
+
   useEffect(() => {
     if (!isAdmin) return;
     if (section === "museum" || section === "court") { fetchItems(); fetchPendingCounts(); }
     if (section === "players") fetchPlayers();
     if (section === "bans") fetchBans();
+    if (section === "interrogate") fetchInterrogations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, section, filter]);
+  }, [user, section, filter, interrogateFilter]);
 
   const signIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -192,6 +214,58 @@ export default function Ctrl() {
     if (error) { showMsg(`Error: ${error.message}`); return; }
     showMsg(`${username} has been reset.`);
     fetchPlayers();
+  };
+
+  const softResetPlayer = async (username: string) => {
+    if (!supabase) return;
+    if (!confirm(`Soft-reset ${username}? This keeps only "tourist" and "citizen" achievements and resets coins to 1000.`)) return;
+    const player = players.find((p) => p.username === username);
+    const keepSecrets = player
+      ? player.secrets.filter((s) => s === "tourist" || s === "citizen")
+      : [];
+    const { error } = await supabase
+      .from("players")
+      .update({ secrets: keepSecrets, coins: 1000, updated_at: new Date().toISOString() })
+      .eq("username", username);
+    if (error) { showMsg(`Error: ${error.message}`); return; }
+    showMsg(`${username} soft-reset. Kept: ${keepSecrets.join(", ") || "none"}.`);
+    fetchPlayers();
+  };
+
+  // Interrogation actions
+  const sendInterrogation = async () => {
+    if (!supabase || !newIq) return;
+    const { username, achievementId } = newIq;
+    if (!username || !achievementId) return;
+    const ach = ACHIEVEMENTS.find((a) => a.id === achievementId);
+    if (!ach) return;
+    setSendingIq(true);
+    const { error } = await supabase.from("interrogations").insert({
+      username,
+      achievement_id: achievementId,
+      achievement_name: ach.name,
+      status: "pending",
+    });
+    setSendingIq(false);
+    if (error) { showMsg(`Error: ${error.message}`); return; }
+    showMsg(`Interrogation sent to ${username} for "${ach.name}".`);
+    setNewIq(null);
+    if (interrogateFilter === "pending") fetchInterrogations();
+  };
+
+  const markReviewed = async (id: string) => {
+    if (!supabase) return;
+    const { error } = await supabase.from("interrogations").update({ status: "reviewed" }).eq("id", id);
+    if (error) { showMsg(`Error: ${error.message}`); return; }
+    showMsg("Marked as reviewed.");
+    fetchInterrogations();
+  };
+
+  const deleteInterrogation = async (id: string) => {
+    if (!supabase) return;
+    if (!confirm("Delete this interrogation?")) return;
+    await supabase.from("interrogations").delete().eq("id", id);
+    fetchInterrogations();
   };
 
   const banPlayer = async (username: string) => {
@@ -329,10 +403,11 @@ export default function Ctrl() {
         {/* Section tabs */}
         <div className="flex gap-2 border-b border-primary/30 pb-2 flex-wrap">
           {([
-            { key: "museum",  icon: <ImageIcon className="w-4 h-4" />, label: "Museum",   badge: pendingCounts.museum },
-            { key: "court",   icon: <Scale className="w-4 h-4" />,     label: "Court",    badge: pendingCounts.court },
-            { key: "players", icon: <Users className="w-4 h-4" />,     label: "Citizens" },
-            { key: "bans",    icon: <Ban className="w-4 h-4" />,       label: "Bans",     badge: bans.length || undefined },
+            { key: "museum",      icon: <ImageIcon className="w-4 h-4" />,   label: "Museum",      badge: pendingCounts.museum },
+            { key: "court",       icon: <Scale className="w-4 h-4" />,        label: "Court",       badge: pendingCounts.court },
+            { key: "players",     icon: <Users className="w-4 h-4" />,        label: "Citizens" },
+            { key: "bans",        icon: <Ban className="w-4 h-4" />,          label: "Bans",        badge: bans.length || undefined },
+            { key: "interrogate", icon: <HelpCircle className="w-4 h-4" />,   label: "Interrogate" },
           ] as const).map(({ key, icon, label, badge }) => (
             <Button key={key} onClick={() => setSection(key as Section)}
               variant={section === key ? "default" : "outline"}
@@ -499,9 +574,20 @@ export default function Ctrl() {
                           placeholder="Ban reason (optional)"
                           className="bg-black border-primary/40 text-primary font-mono text-xs h-8 flex-1 min-w-[150px]"
                         />
+                        <Button size="sm" onClick={() => {
+                          setSection("interrogate");
+                          setNewIq({ username: p.username, achievementId: p.secrets[0] ?? "" });
+                        }}
+                          variant="outline" className="border-orange-500 text-orange-400 uppercase text-xs hover:bg-orange-500/10">
+                          <HelpCircle className="w-3 h-3 mr-1" /> Interrogate
+                        </Button>
+                        <Button size="sm" onClick={() => softResetPlayer(p.username)}
+                          variant="outline" className="border-blue-500 text-blue-400 uppercase text-xs hover:bg-blue-500/10">
+                          <RotateCcw className="w-3 h-3 mr-1" /> Soft Reset
+                        </Button>
                         <Button size="sm" onClick={() => resetPlayer(p.username)}
                           variant="outline" className="border-yellow-500 text-yellow-400 uppercase text-xs hover:bg-yellow-500/10">
-                          <RefreshCw className="w-3 h-3 mr-1" /> Reset
+                          <RefreshCw className="w-3 h-3 mr-1" /> Full Reset
                         </Button>
                         <Button size="sm" onClick={() => banPlayer(p.username)}
                           className="bg-red-700 hover:bg-red-600 uppercase text-xs font-bold">
@@ -519,6 +605,172 @@ export default function Ctrl() {
               {!playersLoading && filteredPlayers.length === 0 && (
                 <div className="text-primary/40 font-mono text-sm uppercase text-center py-12">No citizens found.</div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ── INTERROGATE ────────────────────────────────────────────────── */}
+        {section === "interrogate" && (
+          <div className="space-y-6">
+
+            {/* New interrogation form */}
+            <div className="border-2 border-orange-500/60 bg-orange-950/10 p-5 space-y-4">
+              <h3 className="text-orange-400 font-black uppercase tracking-widest text-sm flex items-center gap-2">
+                <HelpCircle className="w-4 h-4" /> Send New Interrogation
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-white/50 font-mono text-xs uppercase">Select citizen</label>
+                  <select
+                    value={newIq?.username ?? ""}
+                    onChange={(e) => setNewIq((prev) => ({ username: e.target.value, achievementId: prev?.achievementId ?? "" }))}
+                    className="w-full bg-black border border-primary/40 text-primary font-mono text-sm p-2 focus:border-orange-400 focus:outline-none"
+                  >
+                    <option value="">— choose a citizen —</option>
+                    {players.map((p) => (
+                      <option key={p.username} value={p.username}>
+                        {isSuspicious(p) ? "⚠ " : ""}{p.username} ({p.secrets_count} achievements)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-white/50 font-mono text-xs uppercase">Select achievement to ask about</label>
+                  <select
+                    value={newIq?.achievementId ?? ""}
+                    onChange={(e) => setNewIq((prev) => ({ username: prev?.username ?? "", achievementId: e.target.value }))}
+                    disabled={!newIq?.username}
+                    className="w-full bg-black border border-primary/40 text-primary font-mono text-sm p-2 focus:border-orange-400 focus:outline-none disabled:opacity-40"
+                  >
+                    <option value="">— choose an achievement —</option>
+                    {newIq?.username && (() => {
+                      const p = players.find((x) => x.username === newIq.username);
+                      if (!p) return null;
+                      return p.secrets.map((id) => {
+                        const ach = ACHIEVEMENTS.find((a) => a.id === id);
+                        return (
+                          <option key={id} value={id}>
+                            {ach ? `${ach.emoji} ${ach.name} (${ach.difficulty.toUpperCase()})` : id}
+                          </option>
+                        );
+                      });
+                    })()}
+                  </select>
+                </div>
+              </div>
+
+              {newIq?.username && newIq?.achievementId && (() => {
+                const ach = ACHIEVEMENTS.find((a) => a.id === newIq.achievementId);
+                if (!ach) return null;
+                return (
+                  <div className="border border-orange-500/30 bg-black/40 p-3 text-sm font-serif italic text-primary/80">
+                    "Citizen <span className="text-orange-400 font-bold not-italic">{newIq.username}</span>, explain in your own words how you unlocked <span className="text-orange-400 font-bold not-italic">{ach.emoji} {ach.name}</span>. Be specific — the President is watching."
+                  </div>
+                );
+              })()}
+
+              <Button
+                onClick={sendInterrogation}
+                disabled={sendingIq || !newIq?.username || !newIq?.achievementId}
+                className="bg-orange-700 hover:bg-orange-600 text-white font-bold uppercase tracking-widest"
+              >
+                <Send className="w-4 h-4 mr-2" />
+                {sendingIq ? "Sending..." : "Send Interrogation"}
+              </Button>
+
+              {players.length === 0 && (
+                <p className="text-white/30 font-mono text-xs uppercase">
+                  Load the Citizens tab first to populate the player list.
+                </p>
+              )}
+            </div>
+
+            {/* Responses list */}
+            <div className="space-y-4">
+              <div className="flex gap-2 items-center flex-wrap">
+                {(["pending", "answered", "reviewed"] as const).map((f) => (
+                  <Button key={f} onClick={() => setInterrogateFilter(f)}
+                    variant={interrogateFilter === f ? "default" : "outline"}
+                    className={interrogateFilter === f
+                      ? "bg-orange-600 text-white uppercase font-bold"
+                      : "border-orange-500/60 text-orange-400 hover:bg-orange-500/10 uppercase"}>
+                    {f}
+                  </Button>
+                ))}
+                <Button onClick={fetchInterrogations} variant="outline" className="border-primary text-primary hover:bg-primary/20 uppercase ml-auto">
+                  <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+                </Button>
+              </div>
+
+              {interrogationsLoading && (
+                <div className="text-primary/40 font-mono text-sm uppercase text-center py-8">Loading interrogations...</div>
+              )}
+
+              <div className="space-y-3">
+                <AnimatePresence>
+                  {interrogations.map((iq) => {
+                    const ach = ACHIEVEMENTS.find((a) => a.id === iq.achievement_id);
+                    return (
+                      <motion.div key={iq.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                        className="border-2 border-orange-500/40 bg-orange-950/10 p-4 space-y-3">
+                        <div className="flex items-start justify-between flex-wrap gap-2">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <span className="text-orange-300 font-mono font-bold uppercase">{iq.username}</span>
+                              <span className="border border-orange-500/40 text-orange-400 text-[9px] uppercase font-mono px-2 py-0.5">
+                                {ach ? `${ach.emoji} ${ach.name}` : iq.achievement_name}
+                              </span>
+                              <span className={`text-[9px] uppercase font-black px-2 py-0.5 ${
+                                iq.status === "answered" ? "bg-green-700 text-white" :
+                                iq.status === "reviewed" ? "bg-gray-700 text-white" :
+                                "bg-orange-700 text-white animate-pulse"
+                              }`}>{iq.status}</span>
+                            </div>
+                            <div className="text-white/30 font-mono text-[10px]">
+                              Sent: {new Date(iq.created_at).toLocaleString()}
+                              {iq.answered_at && ` — Answered: ${new Date(iq.answered_at).toLocaleString()}`}
+                            </div>
+                          </div>
+                          <div className="flex gap-2 items-start">
+                            {iq.status === "answered" && (
+                              <>
+                                <Button size="sm" onClick={() => markReviewed(iq.id)}
+                                  variant="outline" className="border-green-500 text-green-400 uppercase text-xs hover:bg-green-500/10">
+                                  <Eye className="w-3 h-3 mr-1" /> Mark Reviewed
+                                </Button>
+                                <Button size="sm" onClick={() => softResetPlayer(iq.username)}
+                                  variant="outline" className="border-blue-500 text-blue-400 uppercase text-xs hover:bg-blue-500/10">
+                                  <RotateCcw className="w-3 h-3 mr-1" /> Soft Reset
+                                </Button>
+                              </>
+                            )}
+                            <Button size="sm" onClick={() => deleteInterrogation(iq.id)}
+                              variant="outline" className="border-red-700 text-red-500 uppercase text-xs hover:bg-red-900/20">
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {iq.answer ? (
+                          <div className="border border-green-500/30 bg-green-950/20 p-3 space-y-1">
+                            <div className="text-green-400/60 font-mono text-[10px] uppercase">Citizen's testimony:</div>
+                            <p className="text-white/80 font-serif italic text-sm leading-relaxed break-words">"{iq.answer}"</p>
+                          </div>
+                        ) : (
+                          <div className="text-white/20 font-mono text-xs uppercase italic">No response yet.</div>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+                {!interrogationsLoading && interrogations.length === 0 && (
+                  <div className="text-primary/40 font-mono text-sm uppercase text-center py-12">
+                    No {interrogateFilter} interrogations.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

@@ -47,3 +47,14 @@ export type RemoteChatMessage = {
   is_mod: boolean;
   created_at: string;
 };
+
+export type RemoteInterrogation = {
+  id: string;
+  username: string;
+  achievement_id: string;
+  achievement_name: string;
+  status: "pending" | "answered" | "reviewed";
+  answer: string | null;
+  created_at: string;
+  answered_at: string | null;
+};

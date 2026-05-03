@@ -9,6 +9,7 @@ import { useLetters } from "@/lib/inbox";
 import { KickBadge } from "@/components/KickBadge";
 import { NattounLiveBadge } from "@/components/NattounLiveBadge";
 import { isSetupComplete, syncSecrets } from "@/lib/players";
+import { InterrogationAlert } from "@/components/InterrogationAlert";
 
 const SYNC_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -38,6 +39,7 @@ export function Layout({ children, showBack = true }: { children: ReactNode; sho
 
   return (
     <div className="min-h-[100dvh] w-full relative bg-background overflow-hidden flex flex-col">
+      <InterrogationAlert />
       {/* Top HUD */}
       <div className="fixed top-0 left-0 right-0 p-4 flex justify-between items-start z-40 pointer-events-none">
         <div className="pointer-events-auto flex items-start gap-3 flex-wrap">
