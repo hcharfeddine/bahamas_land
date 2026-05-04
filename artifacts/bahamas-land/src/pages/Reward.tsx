@@ -232,29 +232,28 @@ function NattounNFT({
       const W = out.width;
       const H = out.height;
 
-      // Layer 1 — rainbow shimmer (color-dodge)
-      ctx.globalCompositeOperation = "color-dodge";
+      // Layer 1 — subtle rainbow tint (screen, low opacity)
+      ctx.globalCompositeOperation = "screen";
       const grad1 = ctx.createLinearGradient(0, 0, W, H);
-      grad1.addColorStop(0,    "hsla(30,100%,70%,0.55)");
-      grad1.addColorStop(0.33, "hsla(150,100%,65%,0.45)");
-      grad1.addColorStop(0.66, "hsla(270,100%,70%,0.55)");
-      grad1.addColorStop(1,    "hsla(30,100%,75%,0.45)");
+      grad1.addColorStop(0,    "hsla(30,80%,55%,0.18)");
+      grad1.addColorStop(0.33, "hsla(150,80%,50%,0.14)");
+      grad1.addColorStop(0.66, "hsla(270,80%,55%,0.18)");
+      grad1.addColorStop(1,    "hsla(30,80%,60%,0.14)");
       ctx.fillStyle = grad1;
-      ctx.globalAlpha = 0.7;
+      ctx.globalAlpha = 1;
       ctx.fillRect(0, 0, W, H);
 
-      // Layer 2 — foil prism stripes (soft-light)
+      // Layer 2 — foil prism stripes (soft-light, very subtle)
       ctx.globalCompositeOperation = "soft-light";
-      ctx.globalAlpha = 0.65;
-      const stripeH = 16;
+      ctx.globalAlpha = 0.28;
+      const stripeH = 18;
       const colors = [
-        "rgba(255,0,128,0.45)",
-        "rgba(0,255,255,0.45)",
-        "rgba(255,255,0,0.45)",
-        "rgba(0,255,128,0.45)",
-        "rgba(255,0,255,0.45)",
+        "rgba(255,0,128,1)",
+        "rgba(0,255,255,1)",
+        "rgba(255,255,0,1)",
+        "rgba(0,255,128,1)",
+        "rgba(255,0,255,1)",
       ];
-      // Draw diagonal stripes by rotating the canvas
       ctx.save();
       ctx.translate(W / 2, H / 2);
       ctx.rotate((125 * Math.PI) / 180);
@@ -265,23 +264,14 @@ function NattounNFT({
       }
       ctx.restore();
 
-      // Layer 3 — glare spot at top-left (overlay)
+      // Layer 3 — glare spot top-left (overlay, soft)
       ctx.globalCompositeOperation = "overlay";
-      ctx.globalAlpha = 0.7;
-      const glare = ctx.createRadialGradient(W * 0.3, H * 0.25, 0, W * 0.3, H * 0.25, W * 0.55);
-      glare.addColorStop(0,   "rgba(255,255,255,0.75)");
-      glare.addColorStop(0.2, "rgba(255,255,255,0.3)");
-      glare.addColorStop(0.5, "rgba(255,255,255,0)");
-      ctx.fillStyle = glare;
-      ctx.fillRect(0, 0, W, H);
-
-      // Gold inner glow (inset feel)
-      ctx.globalCompositeOperation = "color-dodge";
       ctx.globalAlpha = 0.35;
-      const glow = ctx.createRadialGradient(W / 2, H / 2, H * 0.2, W / 2, H / 2, H * 0.75);
-      glow.addColorStop(0, "rgba(255,215,0,0.6)");
-      glow.addColorStop(1, "rgba(255,0,200,0)");
-      ctx.fillStyle = glow;
+      const glare = ctx.createRadialGradient(W * 0.28, H * 0.22, 0, W * 0.28, H * 0.22, W * 0.6);
+      glare.addColorStop(0,   "rgba(255,255,255,0.9)");
+      glare.addColorStop(0.15, "rgba(255,255,255,0.4)");
+      glare.addColorStop(0.4, "rgba(255,255,255,0)");
+      ctx.fillStyle = glare;
       ctx.fillRect(0, 0, W, H);
 
       ctx.globalCompositeOperation = "source-over";
