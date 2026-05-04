@@ -41,16 +41,17 @@ export function ActivityTracker() {
     }
   }, [coins]);
 
-  // Completionist: every other achievement unlocked
+  // Completionist: every other achievement unlocked (oracle excluded — it's the reward itself)
   useEffect(() => {
-    if (!data["completionist"] && unlockedCount >= total - 1) {
-      const missing = ACHIEVEMENTS.filter((a) => !data[a.id]).map((a) => a.id);
-      // Allow the unlock when only completionist itself is missing
-      if (missing.length === 1 && missing[0] === "completionist") {
-        unlock("completionist");
-      }
+    if (data["completionist"]) return;
+    const missing = ACHIEVEMENTS
+      .filter((a) => a.id !== "completionist" && a.id !== "oracle")
+      .filter((a) => !data[a.id])
+      .map((a) => a.id);
+    if (missing.length === 0) {
+      unlock("completionist");
     }
-  }, [data, unlockedCount, total]);
+  }, [data]);
 
   return null;
 }
