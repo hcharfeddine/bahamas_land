@@ -323,6 +323,12 @@ export default function Stream() {
     if (status.live) unlock("streamer");
   }, [status.live]);
 
+  // Reactor achievement — stay on the stream page for 10 seconds
+  useEffect(() => {
+    const id = window.setTimeout(() => unlock("reactor"), 10_000);
+    return () => window.clearTimeout(id);
+  }, []);
+
   // Fire intro overlay ONCE per day, when reveal moment arrives.
   useEffect(() => {
     if (!revealed) return;
