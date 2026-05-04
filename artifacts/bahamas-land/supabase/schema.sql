@@ -323,18 +323,27 @@ set search_path = public
 as $$
 declare
   required_ids text[] := array[
-    -- typed-word eggs
-    'loyal','midwarning','bonker','kick','vault',
-    'passport','subscribe','treason','konami','mekky','rule10',
-    'respect','ban','fakeschedule','exile','ogs','secret','coup',
-    'constitution','ghost',
-    -- media eggs
-    'kdot','siuuu','kratos','madridista','treasoncule','faddina',
-    'catjam','cena','ggez','drake','rickroll','khamsa','KEKW',
-    'stonecold','baskouta',
-    -- varied-mechanic eggs
-    'pathfinder','seerstone','freedom','compass','cornerguard',
-    'painter','presnipe','patient','dna','chesschamp','chessfraud'
+    -- easy tier
+    'citizen','tourist','clicker','loyal','newshound','konami','gambler','scholar',
+    -- medium tier
+    'spy','og','midwit','mekkyfan','bonker','curator','urlsnoop','vip',
+    'minister','subscriber','broke','reactor',
+    -- hard tier
+    'nightowl','suspect','bankrupt','survivor','taxpayer','chainletter',
+    'exiled','denied','nightcrawler','nattounsleeper','streamer','trollchat',
+    'respected','richman','patriot','loremaster',
+    -- insane tier
+    'hacker','cheat','traitor','breadhead','vaultkeeper','mastermind',
+    'loyaltour','ascended','completionist','ghost',
+    -- media easter eggs
+    'siuuu','kdot','kratos','madridista','treasoncule','faddina',
+    'khamsa','baskouta','catjam','cena','ggez','drake','rickroll','KEKW','stonecold',
+    -- varied-mechanic easter eggs
+    'pathfinder','seerstone','freedom','compass','cornerguard','painter',
+    'presnipe','patient','dna','chesschamp','chessfraud','redacted','jailbird',
+    'wanted','decreed','weather','anthem','rhythmist','rhythmmaster','rhythmgod','rigged',
+    -- bonus easter eggs
+    'bark_code','harrag','taxi_driver','raja3_ghodwa','mrigel','ussd_pro','tab_hoarder'
   ];
   missing text[];
   vid text := nullif(trim(p_visitor_id), '');

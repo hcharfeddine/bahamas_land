@@ -77,13 +77,17 @@ function apiBase(): string {
 async function claimViaSupabase(
   visitorId: string,
   username: string,
-  pinHash: string,
+  _pinHash: string,
 ): Promise<ClaimResult> {
   if (!supabase) return { ok: false, reason: "no_supabase" };
+  // Collect all locally-unlocked achievement IDs that count toward the reward
+  const unlocked = getAllUnlocked();
+  const required = rewardRequiredIds();
+  const achievements = required.filter((id) => unlocked[id]);
   const { data, error } = await supabase.rpc("claim_reward", {
     p_visitor_id: visitorId,
     p_username: username,
-    p_pin_hash: pinHash,
+    p_achievements: achievements,
   });
   if (error) return { ok: false, reason: error.message || "rpc_error" };
   return (data as ClaimResult) ?? { ok: false, reason: "empty_response" };
