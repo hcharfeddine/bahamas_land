@@ -496,17 +496,21 @@ export default function Stream() {
                     <span className="w-2 h-2 rounded-full bg-white" />
                     LIVE
                   </motion.div>
-                ) : revealed && (status.crashed || isT5athelDay) ? (
+                ) : revealed && isT5athelDay ? (
                   <div className="bg-yellow-500 text-black px-2 py-1 text-xs font-black uppercase tracking-widest border border-yellow-300">
                     T5ATHELT
+                  </div>
+                ) : revealed && status.crashed ? (
+                  <div className="bg-zinc-700 text-white/80 px-2 py-1 text-xs font-black uppercase tracking-widest border border-zinc-500">
+                    STREAM ENDED
                   </div>
                 ) : (
                   <div className="bg-black/80 text-white/60 px-2 py-1 text-xs font-black uppercase tracking-widest border border-white/30">
                     {revealed ? "OFFLINE" : "STANDBY"}
                   </div>
                 )}
-                {/* Only show the category badge when it adds info — not when T5ATHELT badge already covers it */}
-                {!(revealed && (status.crashed || isT5athelDay)) && (
+                {/* Always show the category badge once revealed, except on true t5athel days where the T5ATHELT badge already covers it */}
+                {revealed && !isT5athelDay && (
                   <div
                     className={`px-2 py-1 text-xs font-black uppercase tracking-widest border ${playerBadge.tone}`}
                   >
@@ -590,8 +594,8 @@ export default function Stream() {
                 </div>
               )}
 
-              {/* T5ATHELT crash overlay (slot burned OR full t5athel day) — only after reveal */}
-              {revealed && (status.crashed || isT5athelDay) && (
+              {/* T5ATHELT overlay — true no-stream day only */}
+              {revealed && isT5athelDay && (
                 <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
                   <div
                     className="absolute inset-0 opacity-60 mix-blend-screen"
@@ -624,11 +628,39 @@ export default function Stream() {
                       T5ATHELT
                     </motion.div>
                     <div className="mt-2 text-white/80 font-mono text-[11px] uppercase tracking-widest">
-                      {isT5athelDay
-                        ? "Not streaming today — just send tips"
-                        : "Today's stream slot is burned"}
+                      Not streaming today — just send tips
                     </div>
                     <div className="mt-1 text-yellow-300/70 font-mono text-[10px] uppercase tracking-widest">
+                      Try again tomorrow. Or do not. He notices either way.
+                    </div>
+                  </motion.div>
+                </div>
+              )}
+
+              {/* STREAM ENDED overlay — slot ran out, but it wasn't a t5athel day */}
+              {revealed && status.crashed && !isT5athelDay && (
+                <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                  <div className="absolute inset-0 bg-black/60" />
+                  <motion.div
+                    initial={{ scale: 0.85, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 14 }}
+                    className="relative text-center px-6 py-5 border-4 border-zinc-500 bg-black/85"
+                    style={{
+                      boxShadow:
+                        "0 0 30px rgba(160,160,160,0.5), inset 0 0 18px rgba(160,160,160,0.2)",
+                    }}
+                  >
+                    <div
+                      className="text-zinc-300 font-black uppercase tracking-[0.4em] text-3xl md:text-5xl"
+                      style={{ textShadow: "0 0 12px rgba(200,200,200,0.6)" }}
+                    >
+                      STREAM ENDED
+                    </div>
+                    <div className="mt-2 text-white/70 font-mono text-[11px] uppercase tracking-widest">
+                      {CATEGORY_BADGE[status.category].text} — today's slot is over
+                    </div>
+                    <div className="mt-1 text-zinc-400/70 font-mono text-[10px] uppercase tracking-widest">
                       Try again tomorrow. Or do not. He notices either way.
                     </div>
                   </motion.div>
@@ -731,11 +763,13 @@ export default function Stream() {
                 <div className="flex-1 min-w-0">
                   <h2
                     className={`font-black uppercase text-base md:text-lg tracking-wider truncate ${
-                      revealed && (status.crashed || isT5athelDay)
+                      revealed && isT5athelDay
                         ? "text-yellow-400"
-                        : !revealed
-                          ? "text-zinc-300"
-                          : "text-primary"
+                        : revealed && status.crashed
+                          ? "text-zinc-400"
+                          : !revealed
+                            ? "text-zinc-300"
+                            : "text-primary"
                     }`}
                   >
                     {!revealed
@@ -745,7 +779,7 @@ export default function Stream() {
                         : isT5athelDay
                           ? "T5ATHELT — NO STREAM TODAY (TIPS ONLY)"
                           : status.crashed
-                            ? "T5ATHELT — TODAY'S SLOT IS BURNED"
+                            ? `${CATEGORY_BADGE[status.category].text} — STREAM ENDED`
                             : status.next
                               ? `LIVE OPENS IN ${formatCountdown(status.next.minutesUntil)}${status.next.isToday ? "" : " (TOMORROW)"}`
                               : "LIVE IS CLOSED"}
@@ -776,9 +810,11 @@ export default function Stream() {
                 {viewers.real} online ·{" "}
                 {status.live
                   ? "LIVE"
-                  : revealed && (isT5athelDay || status.crashed)
+                  : revealed && isT5athelDay
                     ? "T5ATHELT"
-                    : "READ ONLY"}
+                    : revealed && status.crashed
+                      ? "OFFLINE"
+                      : "READ ONLY"}
               </div>
             </div>
             <div
