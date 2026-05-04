@@ -137,11 +137,6 @@ export type StreamStatus = {
   dayKey: number; // stable id for "today" — useful for once-per-slot keys
 };
 
-// How long the President actually stays live before he gives up for the slot.
-// The slot opens for this many seconds, then the stream "crashes" and shows
-// T5ATHELT for the remainder of the slot window.
-export const LIVE_DURATION_SEC = 60;
-
 function findNextSlot(now: Date): {
   slot: Slot;
   minutesUntil: number;
@@ -202,14 +197,12 @@ export function getStreamStatus(now: Date = new Date()): StreamStatus {
   let current: Slot | null = null;
 
   if (m >= slot.startMin && m < slot.endMin) {
-    const slotStartSec = slot.startMin * 60;
-    const sinceStart = nowSec - slotStartSec;
-    if (sinceStart >= 0 && sinceStart < LIVE_DURATION_SEC) {
-      live = true;
-      current = slot;
-    } else {
-      crashed = true;
-    }
+    // Within the slot window → stream is live for the full duration
+    live = true;
+    current = slot;
+  } else if (m >= slot.endMin) {
+    // Slot has finished for today → stream ended
+    crashed = true;
   }
 
   let next: StreamStatus["next"] = null;
