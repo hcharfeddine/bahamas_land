@@ -10,6 +10,7 @@ import {
 } from "@/lib/rewardClient";
 import { ACHIEVEMENTS, unlock } from "@/lib/achievements";
 import { useLocalStorage } from "@/lib/store";
+import { supabase } from "@/lib/supabase";
 import nattounImg from "@assets/Nattoun_1777028672745.png";
 import ogsLogo from "@assets/ogs_1777329100263.png";
 
@@ -550,6 +551,7 @@ export default function Reward() {
     fullCount: number;
     top100Remaining: number;
   } | null>(null);
+  const [interrogationPending, setInterrogationPending] = useState(false);
 
   const progress = useMemo(() => getProgress(), [stored]);
 
@@ -559,7 +561,21 @@ export default function Reward() {
     });
   }, []);
 
+  // Block the reward if this player has an open interrogation (pending or answered but not yet reviewed)
+  useEffect(() => {
+    if (!supabase || !username || username === "Citizen") return;
+    supabase
+      .from("interrogations")
+      .select("id", { count: "exact", head: true })
+      .eq("username", username)
+      .in("status", ["pending", "answered"])
+      .then(({ count }) => {
+        setInterrogationPending((count ?? 0) > 0);
+      });
+  }, [username]);
+
   async function onClaim() {
+    if (interrogationPending) return;
     setLoading(true);
     setError(null);
     const cleanName = (username || "Citizen").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 24) || "Citizen";
@@ -712,16 +728,25 @@ export default function Reward() {
           )}
         </div>
 
+        {interrogationPending && (
+          <div className="w-full border-2 border-yellow-400 bg-yellow-400/10 text-yellow-300 p-4 font-mono text-xs text-center uppercase tracking-wide">
+            ⚠ You have an open interrogation from President Nattoun.<br />
+            <span className="normal-case">The reward is locked until your case is reviewed by the admin. Check your notifications.</span>
+          </div>
+        )}
+
         <button
-          disabled={!complete || loading}
+          disabled={!complete || loading || interrogationPending}
           onClick={onClaim}
           className="w-full py-4 border-4 border-primary text-primary font-black text-xl uppercase tracking-widest neon-box hover:bg-primary/20 disabled:opacity-30 disabled:cursor-not-allowed"
         >
           {loading
             ? "claiming…"
-            : complete
-              ? "▶ CLAIM YOUR ICON"
-              : `Find ${total - have} more secret(s) to claim`}
+            : interrogationPending
+              ? "🔒 REWARD LOCKED — INTERROGATION PENDING"
+              : complete
+                ? "▶ CLAIM YOUR ICON"
+                : `Find ${total - have} more secret(s) to claim`}
         </button>
 
         {error && (
