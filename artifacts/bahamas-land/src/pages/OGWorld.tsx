@@ -1,13 +1,29 @@
 import {
-  Suspense, useRef, useState, useEffect, useCallback,
+  Suspense, useRef, useState, useEffect, useCallback, memo,
 } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { PointerLockControls, Sky, Text, Billboard } from "@react-three/drei";
+import { PointerLockControls, Sky, Text, Billboard, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, Users, Compass } from "lucide-react";
+
+// ── Asset imports ─────────────────────────────────────────────────────────────
+import mapBg          from "@assets/generated_images/bahamas_map_bg.png";
+import bldPalace      from "@assets/generated_images/bld_palace.png";
+import bldStreamStudio from "@assets/generated_images/bld_stream_studio.png";
+import bldCourt       from "@assets/generated_images/bld_court.png";
+import bldBank        from "@assets/generated_images/bld_bank.png";
+import bldMuseum      from "@assets/generated_images/bld_museum.png";
+import bldPolice      from "@assets/generated_images/bld_police.png";
+import bldLibrary     from "@assets/generated_images/bld_library.png";
+import bldPostoffice  from "@assets/generated_images/bld_postoffice.png";
+import bldArcade      from "@assets/generated_images/bld_arcade.png";
+import bldOgGate      from "@assets/generated_images/bld_og_gate.png";
+import bldWeather     from "@assets/generated_images/bld_weather.png";
+import bldAnthem      from "@assets/generated_images/bld_anthem.png";
+import bldCustomerService from "@assets/generated_images/bld_customer_service.png";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -88,66 +104,66 @@ const MON_XP: Record<MonsterType, number> = {
 // Class skills: Q, E, R
 const CLASS_SKILLS: Record<string, SkillDef[]> = {
   Tank: [
-    { key: "Q", label: "Shield Bash",  color: "#90a4ae", dmgMult: 1.4, range: ATTACK_RANGE,   cooldown: 4,  aoe: false },
-    { key: "E", label: "Shockwave",    color: "#607d8b", dmgMult: 0.9, range: ATTACK_RANGE+3, cooldown: 8,  aoe: true  },
+    { key: "Q", label: "Shield Bash",   color: "#90a4ae", dmgMult: 1.4, range: ATTACK_RANGE,   cooldown: 4,  aoe: false },
+    { key: "E", label: "Shockwave",     color: "#607d8b", dmgMult: 0.9, range: ATTACK_RANGE+3, cooldown: 8,  aoe: true  },
     { key: "R", label: "Iron Fortress", color: "#cfd8dc", dmgMult: 2.5, range: ATTACK_RANGE+2, cooldown: 20, aoe: true  },
   ],
   Assassin: [
-    { key: "Q", label: "Backstab",     color: "#7c4dff", dmgMult: 2.2, range: ATTACK_RANGE,   cooldown: 5,  aoe: false },
-    { key: "E", label: "Shadow Step",  color: "#4a0080", dmgMult: 1.5, range: SKILL_RANGE,    cooldown: 10, aoe: false },
-    { key: "R", label: "Death Mark",   color: "#e040fb", dmgMult: 3.5, range: ATTACK_RANGE,   cooldown: 25, aoe: false },
+    { key: "Q", label: "Backstab",    color: "#7c4dff", dmgMult: 2.2, range: ATTACK_RANGE,   cooldown: 5,  aoe: false },
+    { key: "E", label: "Shadow Step", color: "#4a0080", dmgMult: 1.5, range: SKILL_RANGE,    cooldown: 10, aoe: false },
+    { key: "R", label: "Death Mark",  color: "#e040fb", dmgMult: 3.5, range: ATTACK_RANGE,   cooldown: 25, aoe: false },
   ],
   Mage: [
-    { key: "Q", label: "Fireball",     color: "#ff6d00", dmgMult: 1.8, range: SKILL_RANGE,    cooldown: 3,  aoe: false },
-    { key: "E", label: "Blizzard",     color: "#80d8ff", dmgMult: 1.2, range: SKILL_RANGE-4,  cooldown: 10, aoe: true  },
-    { key: "R", label: "Arcane Nuke",  color: "#aa00ff", dmgMult: 4.0, range: SKILL_RANGE,    cooldown: 28, aoe: true  },
+    { key: "Q", label: "Fireball",    color: "#ff6d00", dmgMult: 1.8, range: SKILL_RANGE,   cooldown: 3,  aoe: false },
+    { key: "E", label: "Blizzard",    color: "#80d8ff", dmgMult: 1.2, range: SKILL_RANGE-4, cooldown: 10, aoe: true  },
+    { key: "R", label: "Arcane Nuke", color: "#aa00ff", dmgMult: 4.0, range: SKILL_RANGE,   cooldown: 28, aoe: true  },
   ],
   Ranger: [
-    { key: "Q", label: "Arrow Shot",   color: "#76c442", dmgMult: 1.6, range: SKILL_RANGE+5,  cooldown: 3,  aoe: false },
-    { key: "E", label: "Rain of Arrows", color: "#388e3c", dmgMult: 1.0, range: SKILL_RANGE,  cooldown: 12, aoe: true  },
-    { key: "R", label: "Eagle Strike", color: "#b8ff59", dmgMult: 3.2, range: SKILL_RANGE+8,  cooldown: 22, aoe: false },
+    { key: "Q", label: "Arrow Shot",      color: "#76c442", dmgMult: 1.6, range: SKILL_RANGE+5, cooldown: 3,  aoe: false },
+    { key: "E", label: "Rain of Arrows",  color: "#388e3c", dmgMult: 1.0, range: SKILL_RANGE,   cooldown: 12, aoe: true  },
+    { key: "R", label: "Eagle Strike",    color: "#b8ff59", dmgMult: 3.2, range: SKILL_RANGE+8, cooldown: 22, aoe: false },
   ],
   Berserker: [
-    { key: "Q", label: "Whirlwind",    color: "#ff3d00", dmgMult: 1.3, range: ATTACK_RANGE+2, cooldown: 6,  aoe: true  },
-    { key: "E", label: "Bloodthirst",  color: "#b71c1c", dmgMult: 1.8, range: ATTACK_RANGE,   cooldown: 10, aoe: false },
-    { key: "R", label: "Berserker Rage", color: "#ff6e40", dmgMult: 3.8, range: ATTACK_RANGE+3, cooldown: 30, aoe: true },
+    { key: "Q", label: "Whirlwind",      color: "#ff3d00", dmgMult: 1.3, range: ATTACK_RANGE+2, cooldown: 6,  aoe: true  },
+    { key: "E", label: "Bloodthirst",    color: "#b71c1c", dmgMult: 1.8, range: ATTACK_RANGE,   cooldown: 10, aoe: false },
+    { key: "R", label: "Berserker Rage", color: "#ff6e40", dmgMult: 3.8, range: ATTACK_RANGE+3, cooldown: 30, aoe: true  },
   ],
   Paladin: [
-    { key: "Q", label: "Holy Strike",  color: "#ffd600", dmgMult: 1.5, range: ATTACK_RANGE,   cooldown: 4,  aoe: false },
-    { key: "E", label: "Consecration", color: "#ffab00", dmgMult: 1.0, range: ATTACK_RANGE+3, cooldown: 12, aoe: true  },
-    { key: "R", label: "Divine Wrath", color: "#fff9c4", dmgMult: 3.0, range: SKILL_RANGE,    cooldown: 24, aoe: true  },
+    { key: "Q", label: "Holy Strike",    color: "#ffd600", dmgMult: 1.5, range: ATTACK_RANGE,   cooldown: 4,  aoe: false },
+    { key: "E", label: "Consecration",   color: "#ffab00", dmgMult: 1.0, range: ATTACK_RANGE+3, cooldown: 12, aoe: true  },
+    { key: "R", label: "Divine Wrath",   color: "#fff9c4", dmgMult: 3.0, range: SKILL_RANGE,    cooldown: 24, aoe: true  },
   ],
 };
 const DEFAULT_SKILLS = CLASS_SKILLS.Tank;
 
-// Monster spawn list
+// Monster spawn list — positions match zones in bahamas_map_bg.png
 const SPAWN_LIST: { id: number; type: MonsterType; x: number; z: number }[] = [
-  // Palace Guards — center
-  { id: 1, type: "guard", x: 22, z: 8 },
-  { id: 2, type: "guard", x: -22, z: 8 },
-  { id: 3, type: "guard", x: 0, z: 32 },
-  { id: 4, type: "guard", x: 0, z: -32 },
-  // Troll Goblins — Troll Dimension E
-  { id: 5, type: "troll", x: 55, z: -20 },
-  { id: 6, type: "troll", x: 65, z: 8 },
-  { id: 7, type: "troll", x: 60, z: 35 },
-  { id: 8, type: "troll", x: 72, z: -40 },
-  // Exile Ghosts — Exile Forest NW
-  { id: 9,  type: "ghost", x: -48, z: -48 },
-  { id: 10, type: "ghost", x: -60, z: -58 },
-  { id: 11, type: "ghost", x: -40, z: -62 },
-  // Spam Bots — Spam Swamp SW
-  { id: 12, type: "spambot", x: -48, z: 48 },
-  { id: 13, type: "spambot", x: -60, z: 56 },
-  { id: 14, type: "spambot", x: -52, z: 40 },
-  // Ice Exiles — Banned Tundra N
-  { id: 15, type: "iceling", x: 0,   z: -52 },
-  { id: 16, type: "iceling", x: 20,  z: -60 },
-  { id: 17, type: "iceling", x: -18, z: -66 },
-  // Stream Slimes — Stream Colosseum SE
-  { id: 18, type: "slime", x: 48, z: 50 },
-  { id: 19, type: "slime", x: 60, z: 58 },
-  { id: 20, type: "slime", x: 54, z: 68 },
+  // Palace Guards — city center perimeter
+  { id: 1,  type: "guard",   x:  24,  z:  6  },
+  { id: 2,  type: "guard",   x: -24,  z:  6  },
+  { id: 3,  type: "guard",   x:   6,  z: -26 },
+  { id: 4,  type: "guard",   x:  -6,  z:  26 },
+  // Troll Goblins — Troll Dimension (east)
+  { id: 5,  type: "troll",   x:  58,  z: -18 },
+  { id: 6,  type: "troll",   x:  68,  z:  6  },
+  { id: 7,  type: "troll",   x:  62,  z:  34 },
+  { id: 8,  type: "troll",   x:  75,  z: -38 },
+  // Exile Ghosts — Exile Forest (NW)
+  { id: 9,  type: "ghost",   x: -50,  z: -46 },
+  { id: 10, type: "ghost",   x: -62,  z: -58 },
+  { id: 11, type: "ghost",   x: -42,  z: -62 },
+  // Spam Bots — Spam Swamp (SW)
+  { id: 12, type: "spambot", x: -50,  z:  48 },
+  { id: 13, type: "spambot", x: -62,  z:  57 },
+  { id: 14, type: "spambot", x: -54,  z:  38 },
+  // Ice Exiles — Banned Tundra (N)
+  { id: 15, type: "iceling", x:   2,  z: -54 },
+  { id: 16, type: "iceling", x:  22,  z: -62 },
+  { id: 17, type: "iceling", x: -16,  z: -68 },
+  // Stream Slimes — Stream Colosseum (SE)
+  { id: 18, type: "slime",   x:  50,  z:  52 },
+  { id: 19, type: "slime",   x:  62,  z:  60 },
+  { id: 20, type: "slime",   x:  56,  z:  70 },
 ];
 
 function makeMonster(def: typeof SPAWN_LIST[0]): MonsterRuntime {
@@ -158,7 +174,9 @@ function makeMonster(def: typeof SPAWN_LIST[0]): MonsterRuntime {
     hp: MON_HP[def.type], maxHp: MON_HP[def.type],
     alive: true, aggro: false,
     lastAttack: 0, lastPatrolChange: 0, floatOffset: Math.random() * Math.PI * 2,
-    patrolTarget: sp.clone().add(new THREE.Vector3((Math.random()-0.5)*10, 0, (Math.random()-0.5)*10)),
+    patrolTarget: sp.clone().add(new THREE.Vector3(
+      (Math.random()-0.5)*10, 0, (Math.random()-0.5)*10,
+    )),
   };
 }
 
@@ -176,132 +194,77 @@ function getZone(x: number, z: number) {
 }
 
 const ZONE_INFO: Record<string, { name: string; color: string; danger: string }> = {
-  city:      { name: "Bahamas City", color: "#ffd600", danger: "Safe Zone" },
-  exile:     { name: "The Exile Forest", color: "#3df7ff", danger: "Danger Lv.3" },
-  banned:    { name: "Banned Tundra", color: "#80d8ff", danger: "Danger Lv.3" },
-  troll:     { name: "Troll Dimension", color: "#ff2d8c", danger: "Danger Lv.5" },
-  stream:    { name: "Stream Colosseum", color: "#bd93f9", danger: "Danger Lv.4" },
-  spam:      { name: "Spam Swamp", color: "#39ff14", danger: "Danger Lv.3" },
-  grassland: { name: "The Bahamas Plains", color: "#76c442", danger: "Danger Lv.1" },
+  city:      { name: "Bahamas City",      color: "#ffd600", danger: "Safe Zone"    },
+  exile:     { name: "The Exile Forest",  color: "#3df7ff", danger: "Danger Lv.3" },
+  banned:    { name: "Banned Tundra",     color: "#80d8ff", danger: "Danger Lv.3" },
+  troll:     { name: "Troll Dimension",   color: "#ff2d8c", danger: "Danger Lv.5" },
+  stream:    { name: "Stream Colosseum",  color: "#bd93f9", danger: "Danger Lv.4" },
+  spam:      { name: "Spam Swamp",        color: "#39ff14", danger: "Danger Lv.3" },
+  grassland: { name: "Bahamas Plains",    color: "#76c442", danger: "Danger Lv.1" },
 };
 
-// ─── GROUND ───────────────────────────────────────────────────────────────────
+// ─── GROUND — uses the actual Bahamas Land map image ──────────────────────────
 
-function Ground() {
+function MapGround() {
+  const tex = useTexture(mapBg as string);
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
   return (
-    <>
-      {/* Bahamas Plains base */}
-      <mesh rotation={[-Math.PI/2,0,0]} position={[0,-0.05,0]} receiveShadow>
-        <planeGeometry args={[WORLD_SIZE, WORLD_SIZE]} />
-        <meshStandardMaterial color="#162d16" roughness={0.95} />
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
+      <planeGeometry args={[WORLD_SIZE, WORLD_SIZE, 1, 1]} />
+      <meshStandardMaterial map={tex} roughness={0.95} metalness={0} />
+    </mesh>
+  );
+}
+
+// ─── BUILDING SPRITE ─────────────────────────────────────────────────────────
+// Shows the actual bld_*.png image as a billboard above each building.
+
+function BldSprite({ src, pos, w = 9, h = 9 }: {
+  src: string; pos: [number, number, number]; w?: number; h?: number;
+}) {
+  const tex = useTexture(src);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return (
+    <Billboard position={pos}>
+      <mesh>
+        <planeGeometry args={[w, h]} />
+        <meshBasicMaterial map={tex} transparent alphaTest={0.08} depthWrite={false} />
       </mesh>
-      {/* City center — cobblestone */}
-      <mesh rotation={[-Math.PI/2,0,0]} position={[0,0,0]} receiveShadow>
-        <planeGeometry args={[60, 60]} />
-        <meshStandardMaterial color="#4a3c28" roughness={0.9} />
-      </mesh>
-      {/* City paths */}
-      <mesh rotation={[-Math.PI/2,0,0]} position={[0,0.01,0]}>
-        <planeGeometry args={[6, 60]} />
-        <meshStandardMaterial color="#5a5048" roughness={0.85} />
-      </mesh>
-      <mesh rotation={[-Math.PI/2,0,0]} position={[0,0.01,0]}>
-        <planeGeometry args={[60, 6]} />
-        <meshStandardMaterial color="#5a5048" roughness={0.85} />
-      </mesh>
-      {/* Exile Forest NW */}
-      <mesh rotation={[-Math.PI/2,0,0]} position={[-55,-0.02,-55]} receiveShadow>
-        <planeGeometry args={[70, 70]} />
-        <meshStandardMaterial color="#0a1a0a" roughness={0.95} />
-      </mesh>
-      {/* Banned Tundra N */}
-      <mesh rotation={[-Math.PI/2,0,0]} position={[8,-0.02,-58]} receiveShadow>
-        <planeGeometry args={[80, 60]} />
-        <meshStandardMaterial color="#cce0f0" roughness={0.8} />
-      </mesh>
-      {/* Troll Dimension E */}
-      <mesh rotation={[-Math.PI/2,0,0]} position={[62,-0.02,-5]} receiveShadow>
-        <planeGeometry args={[56, 110]} />
-        <meshStandardMaterial color="#1a0a2e" roughness={0.9} />
-      </mesh>
-      {/* Stream Colosseum SE */}
-      <mesh rotation={[-Math.PI/2,0,0]} position={[56,-0.02,58]} receiveShadow>
-        <planeGeometry args={[60, 50]} />
-        <meshStandardMaterial color="#3d1a5a" roughness={0.9} />
-      </mesh>
-      {/* Spam Swamp SW */}
-      <mesh rotation={[-Math.PI/2,0,0]} position={[-54,-0.02,54]} receiveShadow>
-        <planeGeometry args={[60, 58]} />
-        <meshStandardMaterial color="#1a2e14" roughness={0.95} />
-      </mesh>
-    </>
+    </Billboard>
   );
 }
 
 // ─── BAHAMAS CITY CENTER ──────────────────────────────────────────────────────
 
-function Building({ pos, size, wallCol, roofCol, label, labelCol = "#fff", emissive = "#000" }: {
-  pos: [number,number,number]; size: [number,number,number];
-  wallCol: string; roofCol: string;
-  label?: string; labelCol?: string; emissive?: string;
-}) {
-  const [bx, by, bz] = pos;
-  const [bw, bh, bd] = size;
-  return (
-    <group>
-      <mesh position={pos} castShadow receiveShadow>
-        <boxGeometry args={size} />
-        <meshStandardMaterial color={wallCol} roughness={0.8} emissive={emissive} emissiveIntensity={0.15} />
-      </mesh>
-      {/* Roof */}
-      <mesh position={[bx, by + bh/2 + bh*0.2, bz]} castShadow>
-        <coneGeometry args={[Math.max(bw,bd)*0.75, bh*0.5, 4]} />
-        <meshStandardMaterial color={roofCol} roughness={0.7} />
-      </mesh>
-      {/* Window glow front */}
-      <mesh position={[bx, by + 0.5, bz + bd/2 + 0.01]}>
-        <planeGeometry args={[2, 2]} />
-        <meshStandardMaterial color="#ffd080" emissive="#ffd080" emissiveIntensity={0.8} />
-      </mesh>
-      {label && (
-        <Billboard position={[bx, by + bh/2 + bh*0.55, bz]}>
-          <Text fontSize={0.8} color={labelCol} outlineWidth={0.04} outlineColor="#000" anchorX="center">
-            {label}
-          </Text>
-        </Billboard>
-      )}
-    </group>
-  );
-}
-
 function NattounPalace() {
   return (
     <group position={[0, 0, -18]}>
-      {/* Main palace body */}
-      <mesh position={[0, 6, 0]} castShadow receiveShadow>
+      {/* Main body */}
+      <mesh position={[0, 6, 0]} castShadow>
         <boxGeometry args={[22, 12, 14]} />
-        <meshStandardMaterial color="#7a6000" roughness={0.7} metalness={0.2} emissive="#604000" emissiveIntensity={0.2} />
+        <meshStandardMaterial color="#7a6000" roughness={0.7} metalness={0.15} emissive="#604000" emissiveIntensity={0.15} />
       </mesh>
-      {/* Golden roof */}
-      <mesh position={[0, 13.5, 0]} castShadow>
+      {/* Gold roof */}
+      <mesh position={[0, 13.5, 0]}>
         <coneGeometry args={[14, 6, 4]} />
         <meshStandardMaterial color="#ffd600" roughness={0.3} metalness={0.5} emissive="#806000" emissiveIntensity={0.3} />
       </mesh>
-      {/* Palace towers left/right */}
+      {/* Towers */}
       {[-10, 10].map((tx, i) => (
         <group key={i} position={[tx, 0, 0]}>
           <mesh position={[0, 7, 0]} castShadow>
-            <cylinderGeometry args={[2.5, 2.8, 14, 8]} />
-            <meshStandardMaterial color="#8a7000" roughness={0.7} metalness={0.2} />
+            <cylinderGeometry args={[2.5, 2.8, 14, 7]} />
+            <meshStandardMaterial color="#8a7000" roughness={0.7} metalness={0.15} />
           </mesh>
-          <mesh position={[0, 15, 0]} castShadow>
-            <coneGeometry args={[3.2, 4, 8]} />
+          <mesh position={[0, 15, 0]}>
+            <coneGeometry args={[3.2, 4, 7]} />
             <meshStandardMaterial color="#ffd600" roughness={0.3} metalness={0.5} />
           </mesh>
         </group>
       ))}
       {/* Gate arch */}
-      <mesh position={[0, 3.5, 7.5]} castShadow>
+      <mesh position={[0, 3.5, 7.5]}>
         <boxGeometry args={[6, 7, 1.5]} />
         <meshStandardMaterial color="#8a7010" roughness={0.7} />
       </mesh>
@@ -309,19 +272,10 @@ function NattounPalace() {
         <boxGeometry args={[3.5, 5, 2]} />
         <meshStandardMaterial color="#0a0800" />
       </mesh>
-      {/* NC symbols on palace */}
-      <Billboard position={[0, 12, 8]}>
-        <Text fontSize={2.2} color="#ffd600" outlineWidth={0.08} outlineColor="#000">
-          🏛 PALACE OF NATTOUN
-        </Text>
-      </Billboard>
-      <Billboard position={[-6, 5, 8]}>
-        <Text fontSize={1} color="#ffd600" outlineWidth={0.04} outlineColor="#000">
-          NC ONLY ZONE
-        </Text>
-      </Billboard>
-      {/* Palace glow */}
-      <pointLight position={[0, 8, 5]} intensity={3} color="#ffa000" distance={30} />
+      {/* Palace light */}
+      <pointLight position={[0, 8, 5]} intensity={2} color="#ffa000" distance={28} />
+      {/* Actual palace image sprite */}
+      <BldSprite src={bldPalace as string} pos={[0, 22, 0]} w={14} h={14} />
     </group>
   );
 }
@@ -329,13 +283,11 @@ function NattounPalace() {
 function StreamStudio() {
   return (
     <group position={[20, 0, 10]}>
-      {/* Studio building */}
-      <mesh position={[0, 4, 0]} castShadow receiveShadow>
+      <mesh position={[0, 4, 0]} castShadow>
         <boxGeometry args={[14, 8, 10]} />
-        <meshStandardMaterial color="#1a0a2e" roughness={0.7} emissive="#100020" emissiveIntensity={0.3} />
+        <meshStandardMaterial color="#1a0a2e" roughness={0.7} emissive="#100020" emissiveIntensity={0.25} />
       </mesh>
-      {/* Purple roof */}
-      <mesh position={[0, 9, 0]} castShadow>
+      <mesh position={[0, 9, 0]}>
         <boxGeometry args={[15, 2, 11]} />
         <meshStandardMaterial color="#2d0050" roughness={0.6} />
       </mesh>
@@ -346,91 +298,108 @@ function StreamStudio() {
           <meshStandardMaterial color="#888" />
         </mesh>
         <mesh position={[0, 1.8, 0]} rotation={[-0.8, 0, 0]}>
-          <coneGeometry args={[1.2, 0.4, 10, 1, true]} />
+          <coneGeometry args={[1.2, 0.4, 8, 1, true]} />
           <meshStandardMaterial color="#ccc" side={THREE.DoubleSide} />
         </mesh>
       </group>
-      {/* Screen on front */}
+      {/* Screen glow */}
       <mesh position={[0, 4, 5.1]}>
         <planeGeometry args={[8, 4]} />
         <meshStandardMaterial color="#0a00ff" emissive="#4400ff" emissiveIntensity={0.8} />
       </mesh>
-      {/* "LIVE" sign */}
-      <Billboard position={[0, 10, 0]}>
-        <Text fontSize={1.4} color="#ff0040" outlineWidth={0.05} outlineColor="#000">
-          🔴 LIVE — M3KKY STREAM
-        </Text>
+      <Billboard position={[0, 11, 0]}>
+        <Text fontSize={1.2} color="#ff0040" outlineWidth={0.04} outlineColor="#000">🔴 LIVE — M3KKY</Text>
       </Billboard>
-      <Billboard position={[0, 8.8, 6]}>
-        <Text fontSize={0.7} color="#bd93f9" outlineWidth={0.03} outlineColor="#000">
-          ON KICK.COM
-        </Text>
-      </Billboard>
-      <pointLight position={[0, 6, 4]} intensity={4} color="#6600ff" distance={25} />
+      <pointLight position={[0, 6, 4]} intensity={3} color="#6600ff" distance={22} />
+      <BldSprite src={bldStreamStudio as string} pos={[0, 19, 0]} w={11} h={11} />
     </group>
   );
 }
 
-function BahamasCity() {
+function CityBuilding({ pos, size, wallCol, roofCol, label, labelCol = "#fff", sprite }: {
+  pos: [number,number,number]; size: [number,number,number];
+  wallCol: string; roofCol: string; label: string; labelCol?: string; sprite: string;
+}) {
+  const [bx, by, bz] = pos;
+  const [bw, bh, bd] = size;
+  return (
+    <group>
+      <mesh position={pos} castShadow>
+        <boxGeometry args={size} />
+        <meshStandardMaterial color={wallCol} roughness={0.85} />
+      </mesh>
+      <mesh position={[bx, by + bh/2 + bh*0.18, bz]}>
+        <coneGeometry args={[Math.max(bw, bd)*0.72, bh*0.45, 4]} />
+        <meshStandardMaterial color={roofCol} roughness={0.7} />
+      </mesh>
+      {/* Window glow */}
+      <mesh position={[bx, by + 0.5, bz + bd/2 + 0.01]}>
+        <planeGeometry args={[1.8, 1.8]} />
+        <meshStandardMaterial color="#ffd080" emissive="#ffd080" emissiveIntensity={0.7} />
+      </mesh>
+      <Billboard position={[bx, by + bh/2 + bh*0.5, bz]}>
+        <Text fontSize={0.75} color={labelCol} outlineWidth={0.03} outlineColor="#000" anchorX="center">
+          {label}
+        </Text>
+      </Billboard>
+      {/* Building sprite image */}
+      <BldSprite src={sprite} pos={[bx, by + bh/2 + bh*0.9 + 5, bz]} w={8} h={8} />
+    </group>
+  );
+}
+
+const BahamasCity = memo(function BahamasCity() {
   return (
     <group>
       <NattounPalace />
       <StreamStudio />
-      {/* Court */}
-      <Building pos={[-20, 4.5, 10] as [number,number,number]} size={[12,9,10]} wallCol="#6b5c44" roofCol="#8b2222" label="⚖ Court" labelCol="#ff8888" />
-      {/* Bank / NC Exchange */}
-      <Building pos={[0, 4, 18] as [number,number,number]} size={[12,8,9]} wallCol="#5c4a00" roofCol="#ffd600" label="🏦 NC Bank" labelCol="#ffd600" emissive="#3a2800" />
-      {/* Museum */}
-      <Building pos={[-18, 3.5, -5] as [number,number,number]} size={[10,7,8]} wallCol="#4a3c60" roofCol="#7c4dff" label="🎭 Museum" labelCol="#bd93f9" />
-      {/* Police */}
-      <Building pos={[18, 3, -5] as [number,number,number]} size={[9,6,8]} wallCol="#1a2a4a" roofCol="#0040ff" label="🚔 Police" labelCol="#5599ff" />
-      {/* Library */}
-      <Building pos={[-8, 3, 18] as [number,number,number]} size={[9,6,8]} wallCol="#3a2a1a" roofCol="#5d4037" label="📚 Library" labelCol="#ff9966" />
-      {/* Post Office */}
-      <Building pos={[10, 3, 18] as [number,number,number]} size={[9,6,8]} wallCol="#2a3a1a" roofCol="#388e3c" label="📮 Post Office" labelCol="#69ff69" />
+      <CityBuilding pos={[-20, 4.5, 10]} size={[12,9,10]} wallCol="#6b5c44" roofCol="#8b2222" label="⚖ Court"       labelCol="#ff8888" sprite={bldCourt as string} />
+      <CityBuilding pos={[0, 4, 18]}     size={[12,8,9]}  wallCol="#5c4a00" roofCol="#ffd600" label="🏦 NC Bank"    labelCol="#ffd600" sprite={bldBank as string} />
+      <CityBuilding pos={[-18, 3.5, -5]} size={[10,7,8]}  wallCol="#4a3c60" roofCol="#7c4dff" label="🎭 Museum"     labelCol="#bd93f9" sprite={bldMuseum as string} />
+      <CityBuilding pos={[18, 3, -5]}    size={[9,6,8]}   wallCol="#1a2a4a" roofCol="#0040ff" label="🚔 Police"     labelCol="#5599ff" sprite={bldPolice as string} />
+      <CityBuilding pos={[-8, 3, 18]}    size={[9,6,8]}   wallCol="#3a2a1a" roofCol="#5d4037" label="📚 Library"    labelCol="#ff9966" sprite={bldLibrary as string} />
+      <CityBuilding pos={[10, 3, 18]}    size={[9,6,8]}   wallCol="#2a3a1a" roofCol="#388e3c" label="📮 Post"       labelCol="#69ff69" sprite={bldPostoffice as string} />
+      <CityBuilding pos={[-20, 3, -18]}  size={[9,6,8]}   wallCol="#1a2a3a" roofCol="#00acc1" label="🎮 Arcade"     labelCol="#00e5ff" sprite={bldArcade as string} />
+      <CityBuilding pos={[20, 3, -18]}   size={[9,6,8]}   wallCol="#2a1a1a" roofCol="#f44336" label="📡 Weather"    labelCol="#ff8a80" sprite={bldWeather as string} />
+      <CityBuilding pos={[0, 3, -18]}    size={[9,6,8]}   wallCol="#1a1a2a" roofCol="#ab47bc" label="🚪 OG Gate"    labelCol="#ce93d8" sprite={bldOgGate as string} />
+      <CityBuilding pos={[28, 3, 8]}     size={[9,6,8]}   wallCol="#1a3020" roofCol="#2e7d32" label="🎵 Anthem"     labelCol="#a5d6a7" sprite={bldAnthem as string} />
+      <CityBuilding pos={[-28, 3, 8]}    size={[9,6,8]}   wallCol="#3a2010" roofCol="#bf360c" label="📞 Service"    labelCol="#ffccbc" sprite={bldCustomerService as string} />
 
       {/* Central fountain */}
-      <group position={[0,0,0]}>
+      <group position={[0, 0, 0]}>
         <mesh position={[0, 0.4, 0]}>
-          <cylinderGeometry args={[3.5, 4, 0.8, 12]} />
+          <cylinderGeometry args={[3.5, 4, 0.8, 10]} />
           <meshStandardMaterial color="#5a5048" roughness={0.9} />
         </mesh>
         <mesh position={[0, 1.2, 0]}>
-          <cylinderGeometry args={[0.3, 0.3, 1.5, 8]} />
+          <cylinderGeometry args={[0.3, 0.3, 1.5, 6]} />
           <meshStandardMaterial color="#888" />
         </mesh>
         <mesh position={[0, 2.2, 0]}>
           <sphereGeometry args={[0.5, 8, 8]} />
           <meshStandardMaterial color="#3df7ff" emissive="#1080a0" emissiveIntensity={2} />
         </mesh>
-        <pointLight position={[0, 2, 0]} intensity={3} color="#3df7ff" distance={18} />
+        <pointLight position={[0, 2, 0]} intensity={2.5} color="#3df7ff" distance={16} />
       </group>
 
-      {/* City wall */}
-      {[
-        [0, 2, -32, 64, 4, 1.5, 0],
-        [0, 2, 32, 64, 4, 1.5, 0],
-        [-32, 2, 0, 1.5, 4, 64, 0],
-        [32, 2, 0, 1.5, 4, 64, 0],
-      ].map(([x,y,z,w,h,d], i) => (
-        <mesh key={i} position={[x,y,z] as [number,number,number]} castShadow>
-          <boxGeometry args={[w,h,d] as [number,number,number]} />
+      {/* City walls */}
+      {([
+        [0, 2, -32, 64, 4, 1.5],
+        [0, 2,  32, 64, 4, 1.5],
+        [-32, 2, 0, 1.5, 4, 64],
+        [ 32, 2, 0, 1.5, 4, 64],
+      ] as [number,number,number,number,number,number][]).map(([x,y,z,w,h,d], i) => (
+        <mesh key={i} position={[x,y,z]} castShadow>
+          <boxGeometry args={[w,h,d]} />
           <meshStandardMaterial color="#6a5040" roughness={0.95} />
         </mesh>
       ))}
 
-      {/* City entrance gate signs */}
-      <Billboard position={[0, 8, -33]}>
-        <Text fontSize={1.2} color="#ffd600" outlineWidth={0.05} outlineColor="#000">
-          🌴 BAHAMAS CITY 🌴
-        </Text>
-      </Billboard>
-
       {/* Lanterns */}
-      {[[-28,4,0],[28,4,0],[0,4,-28],[0,4,28],[-14,4,-28],[14,4,-28],[-14,4,28],[14,4,28],[-28,4,-14],[-28,4,14],[28,4,-14],[28,4,14]].map(([x,y,z], i) => (
-        <group key={i} position={[x,y,z] as [number,number,number]}>
+      {([[-28,4,0],[28,4,0],[0,4,-28],[0,4,28],[-14,4,-28],[14,4,-28],[-14,4,28],[14,4,28]] as [number,number,number][]).map(([x,y,z], i) => (
+        <group key={i} position={[x,y,z]}>
           <mesh position={[0,-2,0]}>
-            <cylinderGeometry args={[0.08,0.08,4,5]} />
+            <cylinderGeometry args={[0.08,0.08,4,4]} />
             <meshStandardMaterial color="#4a3828" />
           </mesh>
           <mesh position={[0,0.4,0]}>
@@ -439,152 +408,137 @@ function BahamasCity() {
           </mesh>
         </group>
       ))}
-      <pointLight position={[0,10,0]} intensity={3} color="#ffa000" distance={50} />
+      <Billboard position={[0, 10, -33]}>
+        <Text fontSize={1.4} color="#ffd600" outlineWidth={0.05} outlineColor="#000">🌴 BAHAMAS CITY 🌴</Text>
+      </Billboard>
+      <pointLight position={[0, 10, 0]} intensity={2} color="#ffa000" distance={55} />
     </group>
   );
-}
+});
 
-// ─── EXILE FOREST NW ─────────────────────────────────────────────────────────
+// ─── EXILE FOREST NW ──────────────────────────────────────────────────────────
 
-function ExileForest() {
-  const trees: [number,number,number][] = [
-    [-45,0,-45],[-38,0,-55],[-55,0,-38],[-62,0,-50],[-50,0,-62],
-    [-35,0,-65],[-65,0,-35],[-42,0,-35],[-58,0,-58],[-30,0,-50],
-    [-70,0,-45],[-48,0,-72],[-32,0,-40],[-72,0,-62],[-40,0,-48],
-  ];
-  const signs = [
-    { pos: [-42,0,-44] as [number,number,number], text: "EXILED FROM BAHAMAS" },
-    { pos: [-55,0,-55] as [number,number,number], text: "NO RETURN" },
-    { pos: [-38,0,-62] as [number,number,number], text: "YOU DISOBEYED NATTOUN" },
-  ];
+const EXILE_TREES: [number,number,number][] = [
+  [-45,0,-45],[-38,0,-55],[-55,0,-38],[-62,0,-50],[-50,0,-62],
+  [-35,0,-65],[-65,0,-35],[-42,0,-35],[-58,0,-58],[-30,0,-50],
+  [-70,0,-45],[-48,0,-72],[-32,0,-40],[-72,0,-62],[-40,0,-48],
+];
+
+const ExileForest = memo(function ExileForest() {
   return (
     <group>
-      {trees.map(([x,y,z], i) => (
+      {EXILE_TREES.map(([x,y,z], i) => (
         <group key={i} position={[x,y,z]}>
-          <mesh position={[0,2,0]} castShadow>
-            <cylinderGeometry args={[0.3,0.5,4,5]} />
+          <mesh position={[0,2,0]}>
+            <cylinderGeometry args={[0.3,0.5,4,4]} />
             <meshStandardMaterial color="#1a0a0a" roughness={0.95} />
           </mesh>
           <mesh position={[0,5.5,0]}>
-            <coneGeometry args={[3.5,5,6]} />
+            <coneGeometry args={[3.5,5,5]} />
             <meshStandardMaterial color="#0a1a0a" roughness={0.8} />
           </mesh>
           <mesh position={[0,8,0]}>
-            <coneGeometry args={[2.5,4.5,6]} />
+            <coneGeometry args={[2.5,4.5,5]} />
             <meshStandardMaterial color="#071407" roughness={0.8} />
           </mesh>
         </group>
       ))}
-      {/* Exile sign boards */}
-      {signs.map((s, i) => (
+      {/* Exile signs */}
+      {([
+        { pos: [-42,0,-44] as [number,number,number], text: "EXILED FROM BAHAMAS" },
+        { pos: [-55,0,-55] as [number,number,number], text: "NO RETURN" },
+        { pos: [-38,0,-62] as [number,number,number], text: "YOU DISOBEYED NATTOUN" },
+      ]).map((s, i) => (
         <group key={i} position={s.pos}>
           <mesh position={[0,1.5,0]}>
             <boxGeometry args={[4,2,0.15]} />
             <meshStandardMaterial color="#2a1a0a" />
           </mesh>
           <mesh position={[0,0.3,0]}>
-            <cylinderGeometry args={[0.1,0.1,1,5]} />
+            <cylinderGeometry args={[0.1,0.1,1,4]} />
             <meshStandardMaterial color="#3a2010" />
           </mesh>
           <Billboard position={[0,1.5,0.2]}>
-            <Text fontSize={0.4} color="#3df7ff" outlineWidth={0.02} outlineColor="#000" anchorX="center">
-              {s.text}
-            </Text>
+            <Text fontSize={0.4} color="#3df7ff" outlineWidth={0.02} outlineColor="#000" anchorX="center">{s.text}</Text>
           </Billboard>
         </group>
       ))}
-      {/* Will-o-wisps (ghost lights) */}
-      {[[-44,3,-48],[-60,4,-54],[-52,3.5,-62]].map(([x,y,z], i) => (
+      {/* Will-o-wisps */}
+      {([[-44,3,-48],[-60,4,-54],[-52,3.5,-62]] as [number,number,number][]).map(([x,y,z], i) => (
         <group key={i}>
-          <mesh position={[x,y,z] as [number,number,number]}>
-            <sphereGeometry args={[0.3,8,8]} />
+          <mesh position={[x,y,z]}>
+            <sphereGeometry args={[0.3,6,6]} />
             <meshStandardMaterial color="#3df7ff" emissive="#1080a0" emissiveIntensity={4} />
           </mesh>
-          <pointLight position={[x,y,z] as [number,number,number]} intensity={2} color="#3df7ff" distance={12} />
+          <pointLight position={[x,y,z]} intensity={1.5} color="#3df7ff" distance={10} />
         </group>
       ))}
       <Billboard position={[-52,22,-52]}>
-        <Text fontSize={2} color="#3df7ff" outlineWidth={0.06} outlineColor="#000">
-          THE EXILE FOREST
-        </Text>
+        <Text fontSize={2} color="#3df7ff" outlineWidth={0.06} outlineColor="#000">THE EXILE FOREST</Text>
       </Billboard>
-      <pointLight position={[-52,8,-52]} intensity={1.5} color="#001830" distance={50} />
     </group>
   );
-}
+});
 
-// ─── BANNED TUNDRA N ─────────────────────────────────────────────────────────
+// ─── BANNED TUNDRA N ──────────────────────────────────────────────────────────
 
-function BannedTundra() {
+const BannedTundra = memo(function BannedTundra() {
   const iceCitizens: [number,number,number][] = [
     [8,0,-48],[20,0,-55],[-10,0,-60],[30,0,-62],[-5,0,-72],
   ];
-  const iceRocks: [number,number,number][] = [
-    [15,0,-45],[-18,0,-60],[28,0,-62],[55,0,-42],[0,0,-75],
-  ];
   return (
     <group>
-      {/* Frozen citizen statues */}
       {iceCitizens.map(([x,y,z], i) => (
         <group key={i} position={[x,y+0.5,z]}>
-          {/* Body */}
           <mesh position={[0,0.8,0]}>
             <boxGeometry args={[0.6,1.2,0.3]} />
             <meshStandardMaterial color="#c0e8ff" roughness={0.1} metalness={0.3} transparent opacity={0.85} />
           </mesh>
-          {/* Head */}
           <mesh position={[0,1.7,0]}>
             <boxGeometry args={[0.5,0.5,0.5]} />
             <meshStandardMaterial color="#b0d8ef" roughness={0.1} metalness={0.3} transparent opacity={0.85} />
           </mesh>
-          {/* BANNED sign above head */}
           <Billboard position={[0,2.5,0]}>
-            <Text fontSize={0.35} color="#ff4444" outlineWidth={0.02} outlineColor="#000">
-              BANNED
-            </Text>
+            <Text fontSize={0.35} color="#ff4444" outlineWidth={0.02} outlineColor="#000">BANNED</Text>
           </Billboard>
         </group>
       ))}
       {/* Ice crystals */}
-      {iceRocks.map(([x,y,z], i) => (
-        <mesh key={i} position={[x,y+1.5,z]} castShadow>
+      {([
+        [15,0,-45],[-18,0,-60],[28,0,-62],[0,0,-75],
+      ] as [number,number,number][]).map(([x,y,z], i) => (
+        <mesh key={i} position={[x,y+1.5,z]}>
           <octahedronGeometry args={[1.5+i*0.2, 0]} />
           <meshStandardMaterial color="#a0d8f0" roughness={0.1} metalness={0.3} transparent opacity={0.8} />
         </mesh>
       ))}
       {/* Frozen lake */}
       <mesh rotation={[-Math.PI/2,0,0]} position={[10,0.05,-55]}>
-        <circleGeometry args={[14,24]} />
+        <circleGeometry args={[14,18]} />
         <meshStandardMaterial color="#90c8e8" roughness={0.05} metalness={0.1} transparent opacity={0.7} />
       </mesh>
-      {/* "YOU HAVE BEEN BANNED" mega sign */}
-      <group position={[0,0,-75]}>
+      {/* BANNED mega sign */}
+      <group position={[0,0,-76]}>
         <mesh position={[0,5,0]}>
           <boxGeometry args={[20,8,1]} />
           <meshStandardMaterial color="#1a0000" emissive="#400000" emissiveIntensity={0.5} />
         </mesh>
         <Billboard position={[0,5,1]}>
-          <Text fontSize={1.2} color="#ff0000" outlineWidth={0.05} outlineColor="#000">
-            ⛔ YOU HAVE BEEN BANNED ⛔
-          </Text>
+          <Text fontSize={1.2} color="#ff0000" outlineWidth={0.05} outlineColor="#000">⛔ YOU HAVE BEEN BANNED ⛔</Text>
         </Billboard>
         <Billboard position={[0,3.5,1]}>
-          <Text fontSize={0.55} color="#ff6666" outlineWidth={0.02} outlineColor="#000">
-            IP: 192.168.PRESIDENT.NATTOUN
-          </Text>
+          <Text fontSize={0.5} color="#ff6666" outlineWidth={0.02} outlineColor="#000">IP: 192.168.PRESIDENT.NATTOUN</Text>
         </Billboard>
       </group>
       <Billboard position={[8,20,-58]}>
-        <Text fontSize={2} color="#a0d8f0" outlineWidth={0.06} outlineColor="#0040a0">
-          BANNED TUNDRA
-        </Text>
+        <Text fontSize={2} color="#a0d8f0" outlineWidth={0.06} outlineColor="#0040a0">BANNED TUNDRA</Text>
       </Billboard>
-      <pointLight position={[8,8,-55]} intensity={1.5} color="#406080" distance={60} />
+      <pointLight position={[8,8,-55]} intensity={1.2} color="#406080" distance={55} />
     </group>
   );
-}
+});
 
-// ─── TROLL DIMENSION E ───────────────────────────────────────────────────────
+// ─── TROLL DIMENSION E ────────────────────────────────────────────────────────
 
 function TrollPortal() {
   const ref = useRef<THREE.Mesh>(null);
@@ -596,49 +550,36 @@ function TrollPortal() {
     }
   });
   return (
-    <group position={[65,0,-5]}>
-      <mesh position={[0,8,0]} castShadow>
-        <torusGeometry args={[7,0.9,10,22]} />
+    <group position={[65, 0, -5]}>
+      <mesh position={[0,8,0]}>
+        <torusGeometry args={[7,0.9,8,20]} />
         <meshStandardMaterial color="#2a0040" emissive="#ff0080" emissiveIntensity={1.5} roughness={0.3} metalness={0.8} />
       </mesh>
       <mesh ref={ref} position={[0,8,0.1]}>
-        <circleGeometry args={[6.5,22]} />
+        <circleGeometry args={[6.5,20]} />
         <meshStandardMaterial color="#600090" emissive="#ff2d8c" emissiveIntensity={2} transparent opacity={0.85} side={THREE.DoubleSide} />
       </mesh>
-      {[4,5,6].map((r,i) => (
-        <mesh key={i} position={[0,8,0.05*(i+1)]}>
-          <ringGeometry args={[r-0.2,r,22]} />
-          <meshBasicMaterial color="#ff00ff" transparent opacity={0.3-i*0.08} side={THREE.DoubleSide} />
-        </mesh>
-      ))}
-      {[-4,4].map((px,i) => (
-        <mesh key={i} position={[px,8,0]} castShadow>
+      {[-4,4].map((px, i) => (
+        <mesh key={i} position={[px,8,0]}>
           <boxGeometry args={[1.4,16,1.4]} />
           <meshStandardMaterial color="#1a0030" emissive="#3a0060" emissiveIntensity={0.6} roughness={0.3} metalness={0.9} />
         </mesh>
       ))}
-      <pointLight position={[0,8,3]} intensity={6} color="#ff00cc" distance={35} />
+      <pointLight position={[0,8,3]} intensity={5} color="#ff00cc" distance={32} />
     </group>
   );
 }
 
-function TrollDimension() {
+const TrollDimension = memo(function TrollDimension() {
   const deadTrees: [number,number,number][] = [
-    [48,0,-35],[58,0,-50],[72,0,-28],[50,0,22],[68,0,38],
-    [75,0,12],[52,0,-15],[46,0,52],[62,0,62],[78,0,48],
-  ];
-  const trollSigns = [
-    { pos: [50,0,-25] as [number,number,number], text: "L + RATIO + YOU FELL OFF" },
-    { pos: [58,0,15] as [number,number,number],  text: "SKILL ISSUE" },
-    { pos: [55,0,40] as [number,number,number],  text: "TOUCH GRASS" },
-    { pos: [72,0,-20] as [number,number,number], text: "NATTOUN WAS RIGHT" },
+    [48,0,-35],[58,0,-50],[72,0,-28],[50,0,22],[68,0,38],[75,0,12],[52,0,-15],
   ];
   return (
     <group>
       {deadTrees.map(([x,y,z], i) => (
         <group key={i} position={[x,y,z]}>
-          <mesh position={[0,3,0]} castShadow>
-            <cylinderGeometry args={[0.2,0.4,6,5]} />
+          <mesh position={[0,3,0]}>
+            <cylinderGeometry args={[0.2,0.4,6,4]} />
             <meshStandardMaterial color="#1a1020" roughness={0.95} />
           </mesh>
           {[1.2,2.4,3.8].map((h,j) => (
@@ -649,237 +590,195 @@ function TrollDimension() {
           ))}
         </group>
       ))}
-      {/* Troll face structures */}
-      {[[48,0,45],[70,-1,-55]].map(([x,y,z], i) => (
+      {/* Troll face statues */}
+      {([[48,0,45],[70,-1,-55]] as [number,number,number][]).map(([x,y,z], i) => (
         <group key={i} position={[x,y,z]}>
-          {/* Troll head */}
-          <mesh position={[0,3,0]} castShadow>
+          <mesh position={[0,3,0]}>
             <boxGeometry args={[6,5,5]} />
-            <meshStandardMaterial color="#4a1a4a" roughness={0.7} emissive="#300030" emissiveIntensity={0.3} />
+            <meshStandardMaterial color="#4a1a4a" roughness={0.7} emissive="#300030" emissiveIntensity={0.25} />
           </mesh>
-          {/* Eyes */}
-          {[-1.5,1.5].map((ex,ei) => (
+          {[-1.5,1.5].map((ex, ei) => (
             <mesh key={ei} position={[ex,3.5,2.6]}>
-              <sphereGeometry args={[0.7,8,8]} />
+              <sphereGeometry args={[0.7,7,7]} />
               <meshStandardMaterial color="#ff2d8c" emissive="#ff0060" emissiveIntensity={3} />
             </mesh>
           ))}
-          {/* Grin */}
           <mesh position={[0,1.5,2.6]}>
             <boxGeometry args={[3,0.6,0.2]} />
             <meshStandardMaterial color="#ff0040" emissive="#aa0020" emissiveIntensity={1} />
           </mesh>
         </group>
       ))}
-      {/* Troll signs */}
-      {trollSigns.map((s,i) => (
+      {/* Signs */}
+      {([
+        { pos: [50,0,-25] as [number,number,number], text: "L + RATIO + YOU FELL OFF" },
+        { pos: [58,0,15]  as [number,number,number], text: "SKILL ISSUE" },
+        { pos: [55,0,40]  as [number,number,number], text: "TOUCH GRASS" },
+        { pos: [72,0,-20] as [number,number,number], text: "NATTOUN WAS RIGHT" },
+      ]).map((s, i) => (
         <group key={i} position={s.pos}>
           <mesh position={[0,2.5,0]}>
             <boxGeometry args={[6,1.8,0.15]} />
             <meshStandardMaterial color="#1a0028" emissive="#2a0040" emissiveIntensity={0.3} />
           </mesh>
-          <mesh position={[0,0.7,0]}>
-            <cylinderGeometry args={[0.1,0.1,1.5,5]} />
-            <meshStandardMaterial color="#0d0818" />
-          </mesh>
           <Billboard position={[0,2.5,0.2]}>
-            <Text fontSize={0.42} color="#ff2d8c" outlineWidth={0.02} outlineColor="#000" anchorX="center">
-              {s.text}
-            </Text>
+            <Text fontSize={0.42} color="#ff2d8c" outlineWidth={0.02} outlineColor="#000" anchorX="center">{s.text}</Text>
           </Billboard>
         </group>
       ))}
       {/* Toxic puddles */}
-      {[[52,0.05,-25],[64,0.05,8],[57,0.05,32],[72,0.05,-38],[50,0.05,42]].map(([x,y,z],i) => (
-        <mesh key={i} rotation={[-Math.PI/2,0,0]} position={[x,y,z] as [number,number,number]}>
-          <circleGeometry args={[2+i*0.3,10]} />
+      {([[52,0.05,-25],[64,0.05,8],[57,0.05,32]] as [number,number,number][]).map(([x,y,z],i) => (
+        <mesh key={i} rotation={[-Math.PI/2,0,0]} position={[x,y,z]}>
+          <circleGeometry args={[2+i*0.3,8]} />
           <meshStandardMaterial color="#cc00ff" emissive="#800090" emissiveIntensity={1.5} transparent opacity={0.65} />
         </mesh>
       ))}
       <TrollPortal />
       <Billboard position={[62,24,-5]}>
-        <Text fontSize={2} color="#ff2d8c" outlineWidth={0.06} outlineColor="#000">
-          TROLL DIMENSION
-        </Text>
+        <Text fontSize={2} color="#ff2d8c" outlineWidth={0.06} outlineColor="#000">TROLL DIMENSION</Text>
       </Billboard>
-      <pointLight position={[62,10,-5]} intensity={3} color="#4a0060" distance={60} />
+      <pointLight position={[62,10,-5]} intensity={2.5} color="#4a0060" distance={55} />
     </group>
   );
-}
+});
 
 // ─── STREAM COLOSSEUM SE ──────────────────────────────────────────────────────
 
-function StreamColosseum() {
+const StreamColosseum = memo(function StreamColosseum() {
   const walls: [number,number,number,number,number,number][] = [
-    [56,5,42,  70,10,2],
-    [56,5,72,  70,10,2],
+    [56,5,42, 70,10,2],
+    [56,5,72, 70,10,2],
     [22,5,57,  2,10,32],
     [90,5,57,  2,10,32],
   ];
   return (
     <group>
-      {/* Colosseum walls */}
       {walls.map(([x,y,z,w,h,d], i) => (
-        <mesh key={i} position={[x,y,z] as [number,number,number]} castShadow>
-          <boxGeometry args={[w,h,d] as [number,number,number]} />
-          <meshStandardMaterial color="#2d1848" roughness={0.8} emissive="#1a0030" emissiveIntensity={0.2} />
+        <mesh key={i} position={[x,y,z]}>
+          <boxGeometry args={[w,h,d]} />
+          <meshStandardMaterial color="#2d1848" roughness={0.8} emissive="#1a0030" emissiveIntensity={0.18} />
         </mesh>
       ))}
-      {/* Corner towers */}
-      {[[24,0,44],[88,0,44],[24,0,70],[88,0,70]].map(([x,y,z],i) => (
+      {([[24,0,44],[88,0,44],[24,0,70],[88,0,70]] as [number,number,number][]).map(([x,y,z],i) => (
         <group key={i} position={[x,y,z]}>
-          <mesh position={[0,7,0]} castShadow>
-            <cylinderGeometry args={[3,3.5,14,8]} />
+          <mesh position={[0,7,0]}>
+            <cylinderGeometry args={[3,3.5,14,7]} />
             <meshStandardMaterial color="#3d1a5a" roughness={0.8} />
           </mesh>
           <mesh position={[0,15,0]}>
-            <coneGeometry args={[3.8,4,8]} />
+            <coneGeometry args={[3.8,4,7]} />
             <meshStandardMaterial color="#bd93f9" roughness={0.4} emissive="#4000a0" emissiveIntensity={0.4} />
           </mesh>
         </group>
       ))}
-      {/* Stage / streaming platform center */}
+      {/* Stage */}
       <group position={[56,0,57]}>
         <mesh position={[0,0.5,0]}>
           <boxGeometry args={[18,1,14]} />
           <meshStandardMaterial color="#3d2060" roughness={0.7} emissive="#200040" emissiveIntensity={0.4} />
         </mesh>
-        {/* Stage screens */}
         {[[-6,4,0],[6,4,0]].map(([sx,sy,sz],i) => (
-          <mesh key={i} position={[sx,sy,sz] as [number,number,number]}>
+          <mesh key={i} position={[sx,sy,sz]}>
             <boxGeometry args={[5,5,0.2]} />
             <meshStandardMaterial color="#200060" emissive="#6600ff" emissiveIntensity={1.2} />
           </mesh>
         ))}
         <Billboard position={[0,8,0]}>
-          <Text fontSize={1.2} color="#bd93f9" outlineWidth={0.05} outlineColor="#000">
-            🎮 STREAM ARENA 🎮
-          </Text>
+          <Text fontSize={1.2} color="#bd93f9" outlineWidth={0.05} outlineColor="#000">🎮 STREAM ARENA 🎮</Text>
         </Billboard>
         <Billboard position={[0,6.5,0]}>
-          <Text fontSize={0.6} color="#ff2d8c" outlineWidth={0.03} outlineColor="#000">
-            🔴 LIVE NOW
-          </Text>
+          <Text fontSize={0.6} color="#ff2d8c" outlineWidth={0.03} outlineColor="#000">🔴 LIVE NOW</Text>
         </Billboard>
-        <pointLight position={[0,5,0]} intensity={5} color="#8800ff" distance={30} />
+        <pointLight position={[0,5,0]} intensity={4} color="#8800ff" distance={28} />
       </group>
-      {/* Crowd seating rings */}
-      {[10,12,14].map((r,i) => (
-        <mesh key={i} rotation={[-Math.PI/2,0,0]} position={[56,0.1,57]}>
-          <ringGeometry args={[r,r+1.5,32]} />
-          <meshStandardMaterial color={["#4a0080","#3a0060","#2a0040"][i]} roughness={0.9} />
-        </mesh>
-      ))}
       <Billboard position={[56,24,57]}>
-        <Text fontSize={2} color="#bd93f9" outlineWidth={0.06} outlineColor="#000">
-          STREAM COLOSSEUM
-        </Text>
+        <Text fontSize={2} color="#bd93f9" outlineWidth={0.06} outlineColor="#000">STREAM COLOSSEUM</Text>
       </Billboard>
     </group>
   );
-}
+});
 
-// ─── SPAM SWAMP SW ───────────────────────────────────────────────────────────
+// ─── SPAM SWAMP SW ────────────────────────────────────────────────────────────
 
-function SpamSwamp() {
-  const trees: [number,number,number][] = [
-    [-42,0,42],[-55,0,48],[-48,0,58],[-62,0,44],[-38,0,55],[-65,0,62],[-52,0,70],
-  ];
-  const spamSigns = [
-    { pos: [-44,0,44] as [number,number,number], text: "CONGRATULATIONS!\nYOU WON 1000 NC" },
-    { pos: [-56,0,54] as [number,number,number], text: "CLICK HERE!!!\nFREE BAHAMAS COINS" },
-    { pos: [-48,0,65] as [number,number,number], text: "YOU HAVE (1) NEW MESSAGE\nFROM: NATTOUN_REAL" },
-  ];
+const SWAMP_TREES: [number,number,number][] = [
+  [-42,0,42],[-55,0,48],[-48,0,58],[-62,0,44],[-38,0,55],[-65,0,62],[-52,0,70],
+];
+
+const SpamSwamp = memo(function SpamSwamp() {
   return (
     <group>
-      {/* Toxic swamp trees */}
-      {trees.map(([x,y,z], i) => (
+      {SWAMP_TREES.map(([x,y,z], i) => (
         <group key={i} position={[x,y,z]}>
-          <mesh position={[0,2,0]} castShadow>
-            <cylinderGeometry args={[0.4,0.6,4,6]} />
+          <mesh position={[0,2,0]}>
+            <cylinderGeometry args={[0.4,0.6,4,5]} />
             <meshStandardMaterial color="#1a2e0a" roughness={0.95} />
           </mesh>
           <mesh position={[0,5,0]}>
-            <sphereGeometry args={[3,7,7]} />
+            <sphereGeometry args={[3,6,6]} />
             <meshStandardMaterial color="#1a3a0a" roughness={0.8} transparent opacity={0.9} />
           </mesh>
         </group>
       ))}
-      {/* Spam sign billboards */}
-      {spamSigns.map((s,i) => (
+      {([
+        { pos: [-44,0,44] as [number,number,number], text: "CONGRATULATIONS!\nYOU WON 1000 NC" },
+        { pos: [-56,0,54] as [number,number,number], text: "CLICK HERE!!!\nFREE BAHAMAS COINS" },
+        { pos: [-48,0,65] as [number,number,number], text: "YOU HAVE (1) NEW MESSAGE\nFROM: NATTOUN_REAL" },
+      ]).map((s, i) => (
         <group key={i} position={s.pos}>
           <mesh position={[0,3,0]}>
             <boxGeometry args={[7,3.5,0.2]} />
-            <meshStandardMaterial color="#0a1a0a" emissive="#002200" emissiveIntensity={0.4} />
-          </mesh>
-          <mesh position={[0,0.8,0]}>
-            <cylinderGeometry args={[0.1,0.12,1.8,5]} />
-            <meshStandardMaterial color="#1a2a0a" />
+            <meshStandardMaterial color="#0a1a0a" emissive="#002200" emissiveIntensity={0.3} />
           </mesh>
           <Billboard position={[0,3,0.2]}>
-            <Text fontSize={0.38} color="#39ff14" outlineWidth={0.02} outlineColor="#000" anchorX="center" anchorY="middle">
-              {s.text}
-            </Text>
+            <Text fontSize={0.38} color="#39ff14" outlineWidth={0.02} outlineColor="#000" anchorX="center" anchorY="middle">{s.text}</Text>
           </Billboard>
         </group>
       ))}
-      {/* Spam Bot factory */}
+      {/* Factory */}
       <group position={[-58,0,60]}>
-        <mesh position={[0,4,0]} castShadow>
+        <mesh position={[0,4,0]}>
           <boxGeometry args={[12,8,10]} />
-          <meshStandardMaterial color="#1a2a10" roughness={0.9} emissive="#002200" emissiveIntensity={0.3} />
+          <meshStandardMaterial color="#1a2a10" roughness={0.9} emissive="#002200" emissiveIntensity={0.25} />
         </mesh>
         <mesh position={[-2,9,0]}>
-          <cylinderGeometry args={[1,1,4,6]} />
+          <cylinderGeometry args={[1,1,4,5]} />
           <meshStandardMaterial color="#2a3a18" roughness={0.9} />
         </mesh>
         <mesh position={[-2,11.5,0]}>
-          <sphereGeometry args={[1.2,8,8]} />
+          <sphereGeometry args={[1.2,7,7]} />
           <meshStandardMaterial color="#39ff14" emissive="#1a8000" emissiveIntensity={2} />
         </mesh>
         <Billboard position={[0,9,6]}>
-          <Text fontSize={0.7} color="#39ff14" outlineWidth={0.03} outlineColor="#000">
-            SPAM BOT FACTORY
-          </Text>
+          <Text fontSize={0.7} color="#39ff14" outlineWidth={0.03} outlineColor="#000">SPAM BOT FACTORY</Text>
         </Billboard>
-        <pointLight position={[0,9,0]} intensity={3} color="#39ff14" distance={22} />
+        <pointLight position={[0,9,0]} intensity={2.5} color="#39ff14" distance={20} />
       </group>
-      {/* Murky toxic pools */}
-      {[[-42,0.05,45],[-58,0.05,52],[-50,0.05,60],[-65,0.05,48]].map(([x,y,z],i) => (
-        <mesh key={i} rotation={[-Math.PI/2,0,0]} position={[x,y,z] as [number,number,number]}>
-          <circleGeometry args={[4+i,10]} />
-          <meshStandardMaterial color="#1a4a0a" emissive="#0a3000" emissiveIntensity={0.5} roughness={0.1} transparent opacity={0.75} />
-        </mesh>
-      ))}
       <Billboard position={[-54,22,54]}>
-        <Text fontSize={2} color="#39ff14" outlineWidth={0.06} outlineColor="#002800">
-          SPAM SWAMP
-        </Text>
+        <Text fontSize={2} color="#39ff14" outlineWidth={0.06} outlineColor="#002800">SPAM SWAMP</Text>
       </Billboard>
-      <pointLight position={[-54,8,54]} intensity={2} color="#204010" distance={45} />
     </group>
   );
-}
+});
 
-// ─── FLOATING PARTICLES ───────────────────────────────────────────────────────
+// ─── AMBIENT PARTICLES ────────────────────────────────────────────────────────
 
 function Particles() {
-  const count = 200;
+  const count = 180;
   const pos = useRef(
-    Float32Array.from({ length: count*3 }, (_, i) => {
+    Float32Array.from({ length: count * 3 }, (_, i) => {
       const ax = i % 3;
-      if (ax === 1) return Math.random()*25+1;
-      return (Math.random()-0.5)*WORLD_SIZE*0.8;
+      if (ax === 1) return Math.random() * 25 + 1;
+      return (Math.random() - 0.5) * WORLD_SIZE * 0.8;
     })
   );
   const ref = useRef<THREE.Points>(null);
-  useFrame((s) => { if (ref.current) ref.current.rotation.y = s.clock.elapsedTime*0.015; });
+  useFrame((s) => { if (ref.current) ref.current.rotation.y = s.clock.elapsedTime * 0.015; });
   return (
     <points ref={ref}>
       <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[pos.current,3]} />
+        <bufferAttribute attach="attributes-position" args={[pos.current, 3]} />
       </bufferGeometry>
-      <pointsMaterial size={0.1} color="#ff2d8c" transparent opacity={0.45} sizeAttenuation />
+      <pointsMaterial size={0.1} color="#ff2d8c" transparent opacity={0.4} sizeAttenuation />
     </points>
   );
 }
@@ -889,8 +788,8 @@ function Particles() {
 function BorderWalls() {
   return (
     <>
-      {[[0,5,-HALF],[0,5,HALF],[-HALF,5,0],[HALF,5,0]].map(([x,y,z],i) => (
-        <mesh key={i} position={[x,y,z] as [number,number,number]} rotation={[0,i<2?0:Math.PI/2,0]}>
+      {([[0,5,-HALF],[0,5,HALF],[-HALF,5,0],[HALF,5,0]] as [number,number,number][]).map(([x,y,z],i) => (
+        <mesh key={i} position={[x,y,z]} rotation={[0,i<2?0:Math.PI/2,0]}>
           <planeGeometry args={[WORLD_SIZE,10]} />
           <meshStandardMaterial color="#080810" side={THREE.BackSide} />
         </mesh>
@@ -899,56 +798,371 @@ function BorderWalls() {
   );
 }
 
-// ─── OTHER PLAYERS ────────────────────────────────────────────────────────────
+// ─── OTHER PLAYERS (humanoid low-poly) ────────────────────────────────────────
 
 function OtherPlayer({ p }: { p: WorldPlayer }) {
-  const ref = useRef<THREE.Group>(null);
-  useFrame((_, dt) => { if (ref.current) ref.current.rotation.y += dt*0.6; });
+  const bodyRef = useRef<THREE.Group>(null);
+  const armLRef = useRef<THREE.Mesh>(null);
+  const armRRef = useRef<THREE.Mesh>(null);
+  const legLRef = useRef<THREE.Mesh>(null);
+  const legRRef = useRef<THREE.Mesh>(null);
+  useFrame((s) => {
+    const t = s.clock.elapsedTime;
+    // Walking animation
+    if (armLRef.current) armLRef.current.rotation.x = Math.sin(t*4)*0.5;
+    if (armRRef.current) armRRef.current.rotation.x = -Math.sin(t*4)*0.5;
+    if (legLRef.current) legLRef.current.rotation.x = -Math.sin(t*4)*0.5;
+    if (legRRef.current) legRRef.current.rotation.x = Math.sin(t*4)*0.5;
+  });
   const c = p.color;
+  const hpPct = p.hp / p.maxHp;
   return (
-    <group position={[p.x,p.y,p.z]}>
-      <group ref={ref}>
+    <group position={[p.x, p.y, p.z]}>
+      <group ref={bodyRef}>
         {/* Head */}
-        <mesh position={[0,2.12,0]} castShadow>
-          <boxGeometry args={[0.64,0.64,0.64]} />
-          <meshStandardMaterial color={c} emissive={c} emissiveIntensity={0.5} roughness={0.2} />
+        <mesh position={[0, 2.1, 0]}>
+          <sphereGeometry args={[0.32, 8, 8]} />
+          <meshStandardMaterial color={c} emissive={c} emissiveIntensity={0.4} roughness={0.3} />
         </mesh>
-        {/* Body */}
-        <mesh position={[0,1.38,0]}>
-          <boxGeometry args={[0.52,0.74,0.28]} />
-          <meshStandardMaterial color={c} emissive={c} emissiveIntensity={0.2} roughness={0.5} />
-        </mesh>
-        {[-0.38,0.38].map((ax,i) => (
-          <mesh key={i} position={[ax,1.38,0]}>
-            <boxGeometry args={[0.24,0.72,0.24]} />
-            <meshStandardMaterial color={c} emissive={c} emissiveIntensity={0.2} roughness={0.5} />
+        {/* Eyes */}
+        {[-0.13, 0.13].map((ex, i) => (
+          <mesh key={i} position={[ex, 2.14, 0.3]}>
+            <sphereGeometry args={[0.06, 5, 5]} />
+            <meshStandardMaterial color="white" emissive="white" emissiveIntensity={2} />
           </mesh>
         ))}
-        {[-0.14,0.14].map((lx,i) => (
-          <mesh key={i} position={[lx,0.64,0]}>
-            <boxGeometry args={[0.24,0.64,0.24]} />
-            <meshStandardMaterial color={c} emissive={c} emissiveIntensity={0.15} roughness={0.6} />
-          </mesh>
-        ))}
+        {/* Torso */}
+        <mesh position={[0, 1.35, 0]}>
+          <boxGeometry args={[0.55, 0.8, 0.3]} />
+          <meshStandardMaterial color={c} emissive={c} emissiveIntensity={0.2} roughness={0.6} />
+        </mesh>
+        {/* Arms */}
+        <mesh ref={armLRef} position={[-0.42, 1.38, 0]}>
+          <capsuleGeometry args={[0.1, 0.5, 3, 6]} />
+          <meshStandardMaterial color={c} roughness={0.6} />
+        </mesh>
+        <mesh ref={armRRef} position={[0.42, 1.38, 0]}>
+          <capsuleGeometry args={[0.1, 0.5, 3, 6]} />
+          <meshStandardMaterial color={c} roughness={0.6} />
+        </mesh>
+        {/* Legs */}
+        <mesh ref={legLRef} position={[-0.16, 0.62, 0]}>
+          <capsuleGeometry args={[0.1, 0.5, 3, 6]} />
+          <meshStandardMaterial color={c} roughness={0.7} />
+        </mesh>
+        <mesh ref={legRRef} position={[0.16, 0.62, 0]}>
+          <capsuleGeometry args={[0.1, 0.5, 3, 6]} />
+          <meshStandardMaterial color={c} roughness={0.7} />
+        </mesh>
       </group>
-      <Billboard position={[0,3.0,0]}>
-        <Text fontSize={0.34} color="white" outlineWidth={0.03} outlineColor="black" anchorX="center">
-          {p.username}
-        </Text>
+      {/* Name tag */}
+      <Billboard position={[0, 3.0, 0]}>
+        <Text fontSize={0.32} color="white" outlineWidth={0.03} outlineColor="black" anchorX="center">{p.username}</Text>
       </Billboard>
-      <mesh position={[0,3.35,0]}>
-        <planeGeometry args={[1,0.1]} />
-        <meshBasicMaterial color="#333" />
-      </mesh>
-      <mesh position={[-(0.5-(p.hp/p.maxHp)*0.5),3.35,0.001]}>
-        <planeGeometry args={[p.hp/p.maxHp,0.1]} />
-        <meshBasicMaterial color="#39ff14" />
-      </mesh>
+      {/* HP bar */}
+      <Billboard position={[0, 3.35, 0]}>
+        <mesh position={[0,0,0]}>
+          <planeGeometry args={[1, 0.09]} />
+          <meshBasicMaterial color="#333" />
+        </mesh>
+        <mesh position={[-(0.5-(hpPct*0.5)), 0, 0.001]}>
+          <planeGeometry args={[hpPct, 0.09]} />
+          <meshBasicMaterial color="#39ff14" />
+        </mesh>
+      </Billboard>
     </group>
   );
 }
 
-// ─── MONSTER COMPONENT ────────────────────────────────────────────────────────
+// ─── MONSTER ENTITY ───────────────────────────────────────────────────────────
+
+function MonsterBody({ type, body, accent, t }: {
+  type: MonsterType; body: string; accent: string; t: number;
+}) {
+  // Each monster type has a distinct low-poly humanoid or creature shape
+  switch (type) {
+    case "guard": return (
+      <>
+        {/* Armored torso */}
+        <mesh position={[0,1.4,0]} castShadow>
+          <boxGeometry args={[1.1,1.5,0.65]} />
+          <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.2} roughness={0.4} metalness={0.5} />
+        </mesh>
+        {/* Armored head with helmet */}
+        <mesh position={[0,2.5,0]} castShadow>
+          <boxGeometry args={[0.85,0.82,0.82]} />
+          <meshStandardMaterial color={body} roughness={0.4} metalness={0.5} />
+        </mesh>
+        {/* Helmet visor */}
+        <mesh position={[0,2.55,0.44]}>
+          <boxGeometry args={[0.65,0.25,0.08]} />
+          <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.5} />
+        </mesh>
+        {/* Helmet plume */}
+        <mesh position={[0,3.1,0]}>
+          <boxGeometry args={[0.18,0.55,0.18]} />
+          <meshStandardMaterial color="#cc0000" emissive="#880000" emissiveIntensity={0.5} />
+        </mesh>
+        {/* Arms — armored */}
+        {[-0.75,0.75].map((ax,i) => (
+          <mesh key={i} position={[ax,1.55,0]}>
+            <capsuleGeometry args={[0.18,0.9,3,6]} />
+            <meshStandardMaterial color={body} roughness={0.4} metalness={0.5} />
+          </mesh>
+        ))}
+        {/* Legs */}
+        {[-0.28,0.28].map((lx,i) => (
+          <mesh key={i} position={[lx,0.4,0]}>
+            <capsuleGeometry args={[0.18,0.65,3,6]} />
+            <meshStandardMaterial color={body} roughness={0.5} metalness={0.4} />
+          </mesh>
+        ))}
+        {/* Spear */}
+        <mesh position={[0.85,2.2,0]}>
+          <cylinderGeometry args={[0.06,0.06,3.5,5]} />
+          <meshStandardMaterial color="#999" roughness={0.3} metalness={0.8} />
+        </mesh>
+        <mesh position={[0.85,4.0,0]}>
+          <coneGeometry args={[0.2,0.7,5]} />
+          <meshStandardMaterial color="#ddd" roughness={0.2} metalness={0.9} />
+        </mesh>
+      </>
+    );
+
+    case "troll": return (
+      <>
+        {/* Stocky goblin body */}
+        <mesh position={[0,1.0,0]} castShadow>
+          <boxGeometry args={[1.0,1.2,0.7]} />
+          <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.3} roughness={0.8} />
+        </mesh>
+        {/* Big troll head */}
+        <mesh position={[0,2.1,0]} castShadow>
+          <sphereGeometry args={[0.52,8,8]} />
+          <meshStandardMaterial color={body} roughness={0.8} />
+        </mesh>
+        {/* Big ears */}
+        {[-0.65,0.65].map((ex,i) => (
+          <mesh key={i} position={[ex,2.1,0]} rotation={[0,0,i===0?0.6:-0.6]}>
+            <coneGeometry args={[0.22,0.55,5]} />
+            <meshStandardMaterial color={body} roughness={0.8} />
+          </mesh>
+        ))}
+        {/* Glowing eyes */}
+        {[-0.2,0.2].map((ex,i) => (
+          <mesh key={i} position={[ex,2.18,0.45]}>
+            <sphereGeometry args={[0.1,6,6]} />
+            <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={5} />
+          </mesh>
+        ))}
+        {/* Angry brow */}
+        <mesh position={[0,2.35,0.44]}>
+          <boxGeometry args={[0.5,0.1,0.12]} />
+          <meshStandardMaterial color="#300" />
+        </mesh>
+        {/* Stubby arms */}
+        {[-0.72,0.72].map((ax,i) => (
+          <mesh key={i} position={[ax,1.1,0]} rotation={[0,0,i===0?0.3:-0.3]}>
+            <capsuleGeometry args={[0.16,0.65,3,5]} />
+            <meshStandardMaterial color={body} roughness={0.8} />
+          </mesh>
+        ))}
+        {/* Legs */}
+        {[-0.24,0.24].map((lx,i) => (
+          <mesh key={i} position={[lx,0.25,0]}>
+            <capsuleGeometry args={[0.18,0.4,3,5]} />
+            <meshStandardMaterial color={body} roughness={0.8} />
+          </mesh>
+        ))}
+        {/* Club weapon */}
+        <mesh position={[0.85,1.4,0]} rotation={[0,0,-0.5]}>
+          <cylinderGeometry args={[0.1,0.22,1.4,5]} />
+          <meshStandardMaterial color="#3a2010" roughness={0.9} />
+        </mesh>
+      </>
+    );
+
+    case "ghost": {
+      const wave = Math.sin(t * 1.8) * 0.05;
+      return (
+        <>
+          {/* Flowing spectral body */}
+          <mesh position={[0, wave, 0]}>
+            <sphereGeometry args={[0.75,10,10]} />
+            <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.9} transparent opacity={0.72} roughness={0.2} />
+          </mesh>
+          {/* Hood / head */}
+          <mesh position={[0, 0.75+wave, 0]}>
+            <sphereGeometry args={[0.45,8,8]} />
+            <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.7} transparent opacity={0.8} />
+          </mesh>
+          {/* Wispy tail */}
+          <mesh position={[0, -1.0+wave, 0]}>
+            <coneGeometry args={[0.72, 1.5, 7, 1, true]} />
+            <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.5} transparent opacity={0.4} side={THREE.DoubleSide} />
+          </mesh>
+          {/* Glowing eyes */}
+          {[-0.22,0.22].map((ex,i) => (
+            <mesh key={i} position={[ex, 0.82+wave, 0.4]}>
+              <sphereGeometry args={[0.1,6,6]} />
+              <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={8} />
+            </mesh>
+          ))}
+          {/* Ghost arms — wispy */}
+          {[-0.9,0.9].map((ax,i) => (
+            <mesh key={i} position={[ax, -0.1+wave, 0]} rotation={[0,0,i===0?0.7:-0.7]}>
+              <capsuleGeometry args={[0.12,0.55,3,5]} />
+              <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.5} transparent opacity={0.55} />
+            </mesh>
+          ))}
+          <pointLight position={[0,0,0]} intensity={2} color={accent} distance={7} />
+        </>
+      );
+    }
+
+    case "spambot": return (
+      <>
+        {/* Boxy robot body */}
+        <mesh position={[0,0.9,0]} castShadow>
+          <boxGeometry args={[1.1,1.0,0.9]} />
+          <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.3} roughness={0.3} metalness={0.7} />
+        </mesh>
+        {/* Robot head */}
+        <mesh position={[0,1.85,0]}>
+          <boxGeometry args={[0.7,0.58,0.7]} />
+          <meshStandardMaterial color={body} roughness={0.3} metalness={0.7} />
+        </mesh>
+        {/* Antenna */}
+        <mesh position={[0,2.35,0]}>
+          <cylinderGeometry args={[0.04,0.04,0.6,4]} />
+          <meshStandardMaterial color="#ccc" metalness={0.8} />
+        </mesh>
+        <mesh position={[0,2.7,0]}>
+          <sphereGeometry args={[0.1,5,5]} />
+          <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={5} />
+        </mesh>
+        {/* Screen face */}
+        <mesh position={[0,1.88,0.36]}>
+          <planeGeometry args={[0.5,0.35]} />
+          <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={2} />
+        </mesh>
+        {/* Pixel eyes */}
+        {[-0.12,0.12].map((ex,i) => (
+          <mesh key={i} position={[ex,1.92,0.37]}>
+            <planeGeometry args={[0.1,0.08]} />
+            <meshStandardMaterial color="#000" />
+          </mesh>
+        ))}
+        {/* Mechanical arms */}
+        {[-0.75,0.75].map((ax,i) => (
+          <mesh key={i} position={[ax,0.95,0]}>
+            <boxGeometry args={[0.25,0.9,0.25]} />
+            <meshStandardMaterial color={body} roughness={0.3} metalness={0.7} />
+          </mesh>
+        ))}
+        {/* Treads/legs */}
+        {[-0.28,0.28].map((lx,i) => (
+          <mesh key={i} position={[lx,0.25,0]}>
+            <boxGeometry args={[0.35,0.5,0.6]} />
+            <meshStandardMaterial color="#0a1a0a" roughness={0.4} metalness={0.6} />
+          </mesh>
+        ))}
+        {/* Rotating wheels */}
+        {[0,1,2,3,4,5].map(i => {
+          const a = (i/6)*Math.PI*2;
+          return (
+            <mesh key={i} position={[Math.cos(a)*0.7,0.5,Math.sin(a)*0.7]} rotation={[0,a,0.6]}>
+              <cylinderGeometry args={[0.06,0.06,1,4]} />
+              <meshStandardMaterial color={body} roughness={0.3} metalness={0.6} />
+            </mesh>
+          );
+        })}
+      </>
+    );
+
+    case "iceling": return (
+      <>
+        {/* Crystal torso */}
+        <mesh position={[0,1.2,0]} castShadow>
+          <octahedronGeometry args={[0.7,0]} />
+          <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.3} roughness={0.05} metalness={0.4} transparent opacity={0.88} />
+        </mesh>
+        {/* Crystal head */}
+        <mesh position={[0,2.25,0]}>
+          <octahedronGeometry args={[0.42,0]} />
+          <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.4} roughness={0.05} metalness={0.4} transparent opacity={0.9} />
+        </mesh>
+        {/* Ice crown spikes */}
+        {[0,1,2,3,4].map(i => {
+          const a = (i/5)*Math.PI*2;
+          return (
+            <mesh key={i} position={[Math.cos(a)*0.35,2.75,Math.sin(a)*0.35]} rotation={[0.3,a,0]}>
+              <coneGeometry args={[0.08,0.45,4]} />
+              <meshStandardMaterial color="#d0f0ff" emissive="#80c8ff" emissiveIntensity={1.5} transparent opacity={0.85} />
+            </mesh>
+          );
+        })}
+        {/* Crystal arms */}
+        {[-0.65,0.65].map((ax,i) => (
+          <mesh key={i} position={[ax,1.4,0]} rotation={[0,0,i===0?0.4:-0.4]}>
+            <octahedronGeometry args={[0.22,0]} />
+            <meshStandardMaterial color={body} roughness={0.05} metalness={0.4} transparent opacity={0.85} />
+          </mesh>
+        ))}
+        {/* Ice shards orbiting */}
+        {[0,1,2,3].map(i => {
+          const a = (i/4)*Math.PI*2 + t * 0.8;
+          return (
+            <mesh key={i} position={[Math.cos(a)*0.9,1.2,Math.sin(a)*0.9]} rotation={[0,a,0.5]}>
+              <coneGeometry args={[0.1,0.6,4]} />
+              <meshStandardMaterial color="#c0e8ff" roughness={0.05} metalness={0.4} transparent opacity={0.8} />
+            </mesh>
+          );
+        })}
+      </>
+    );
+
+    case "slime": {
+      const pulse = 1 + Math.sin(t * 2.2) * 0.1;
+      return (
+        <>
+          {/* Main blob — pulsing */}
+          <mesh position={[0,0.7,0]} scale={[pulse, 1/pulse, pulse]}>
+            <sphereGeometry args={[0.72,10,10]} />
+            <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.5} roughness={0.2} transparent opacity={0.88} />
+          </mesh>
+          {/* Googly eyes */}
+          {[-0.24,0.24].map((ex,i) => (
+            <group key={i} position={[ex,0.88,0.62*pulse]}>
+              <mesh>
+                <sphereGeometry args={[0.16,6,6]} />
+                <meshStandardMaterial color="white" roughness={0.1} />
+              </mesh>
+              <mesh position={[0,0,0.12]}>
+                <sphereGeometry args={[0.09,5,5]} />
+                <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={4} />
+              </mesh>
+            </group>
+          ))}
+          {/* Mouth smile */}
+          <mesh position={[0,0.55,0.7*pulse]}>
+            <torusGeometry args={[0.18,0.04,4,8,Math.PI]} />
+            <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={2} />
+          </mesh>
+          {/* Mini blob drips */}
+          {[-0.5,0,0.5].map((dx,i) => (
+            <mesh key={i} position={[dx,-0.05+Math.sin(t*3+i)*0.05,0.5]}>
+              <sphereGeometry args={[0.14,5,5]} />
+              <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.4} transparent opacity={0.7} />
+            </mesh>
+          ))}
+        </>
+      );
+    }
+
+    default: return null;
+  }
+}
 
 function MonsterEntity({
   mon, onHit, playerHpCb,
@@ -959,29 +1173,26 @@ function MonsterEntity({
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const [body, accent] = MON_COL[mon.type];
-  const now = performance.now();
+  const tRef = useRef(0);
 
   useFrame((state, delta) => {
     if (!mon.alive || !groupRef.current) return;
+    tRef.current += delta;
     const dt = Math.min(delta, 0.05);
     const cam = state.camera;
     const dist = mon.pos.distanceTo(cam.position);
 
-    // Ghost floats
     if (mon.type === "ghost") {
-      mon.pos.y = 1.5 + Math.sin(state.clock.elapsedTime*1.2 + mon.floatOffset) * 0.6;
+      mon.pos.y = 1.5 + Math.sin(state.clock.elapsedTime * 1.2 + mon.floatOffset) * 0.6;
     }
 
-    // Aggro check
     if (dist < AGGRO_RANGE) mon.aggro = true;
-    if (dist > AGGRO_RANGE * 2.2) { mon.aggro = false; }
+    if (dist > AGGRO_RANGE * 2.2) mon.aggro = false;
 
     if (mon.aggro && dist > MON_ATK_RANGE) {
-      // Chase player
       const dir = new THREE.Vector3().subVectors(cam.position, mon.pos).setY(0).normalize();
       mon.pos.addScaledVector(dir, MON_SPEED[mon.type] * dt);
     } else if (!mon.aggro) {
-      // Patrol
       const dtp = mon.pos.distanceTo(mon.patrolTarget);
       if (dtp < 1 || performance.now() - mon.lastPatrolChange > 5000) {
         const sp = mon.spawnPos;
@@ -996,25 +1207,21 @@ function MonsterEntity({
       mon.pos.addScaledVector(dir, MON_SPEED[mon.type] * 0.4 * dt);
     }
 
-    // Clamp to world
     mon.pos.x = Math.max(-HALF+2, Math.min(HALF-2, mon.pos.x));
     mon.pos.z = Math.max(-HALF+2, Math.min(HALF-2, mon.pos.z));
     if (mon.type !== "ghost") mon.pos.y = 0;
 
-    // Apply position to mesh
     groupRef.current.position.copy(mon.pos);
 
-    // Face player
-    if (dist < AGGRO_RANGE*1.5) {
-      const angle = Math.atan2(cam.position.x-mon.pos.x, cam.position.z-mon.pos.z);
+    if (dist < AGGRO_RANGE * 1.5) {
+      const angle = Math.atan2(cam.position.x - mon.pos.x, cam.position.z - mon.pos.z);
       groupRef.current.rotation.y = angle;
     }
 
-    // Attack player
     if (mon.aggro && dist < MON_ATK_RANGE) {
-      const t = performance.now();
-      if (t - mon.lastAttack > 1800) {
-        mon.lastAttack = t;
+      const now = performance.now();
+      if (now - mon.lastAttack > 1800) {
+        mon.lastAttack = now;
         playerHpCb(MON_DMG[mon.type]);
       }
     }
@@ -1025,200 +1232,29 @@ function MonsterEntity({
 
   return (
     <group ref={groupRef} position={[mon.pos.x, mon.pos.y, mon.pos.z]}>
-      {mon.type === "troll" && (
-        <>
-          <mesh position={[0,1.2,0]} castShadow>
-            <boxGeometry args={[0.9,1.4,0.6]} />
-            <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.35} roughness={0.7} />
-          </mesh>
-          <mesh position={[0,2.2,0]} castShadow>
-            <boxGeometry args={[0.75,0.72,0.72]} />
-            <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.4} roughness={0.6} />
-          </mesh>
-          {/* Eyes */}
-          {[-0.18,0.18].map((ex,i) => (
-            <mesh key={i} position={[ex,2.28,0.38]}>
-              <sphereGeometry args={[0.1,6,6]} />
-              <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={4} />
-            </mesh>
-          ))}
-          {/* Arms */}
-          {[-0.62,0.62].map((ax,i) => (
-            <mesh key={i} position={[ax,1.4,0]}>
-              <boxGeometry args={[0.28,1.0,0.28]} />
-              <meshStandardMaterial color={body} roughness={0.7} />
-            </mesh>
-          ))}
-          {/* Legs */}
-          {[-0.22,0.22].map((lx,i) => (
-            <mesh key={i} position={[lx,0.35,0]}>
-              <boxGeometry args={[0.28,0.7,0.28]} />
-              <meshStandardMaterial color={body} roughness={0.8} />
-            </mesh>
-          ))}
-        </>
-      )}
-      {mon.type === "ghost" && (
-        <>
-          <mesh position={[0,0,0]}>
-            <sphereGeometry args={[0.8,10,10]} />
-            <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.8} transparent opacity={0.75} roughness={0.3} />
-          </mesh>
-          <mesh position={[0,-0.8,0]}>
-            <coneGeometry args={[0.8,1.2,6,1,true]} />
-            <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.5} transparent opacity={0.5} side={THREE.DoubleSide} />
-          </mesh>
-          {[-0.28,0.28].map((ex,i) => (
-            <mesh key={i} position={[ex,0.1,0.76]}>
-              <sphereGeometry args={[0.15,6,6]} />
-              <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={5} />
-            </mesh>
-          ))}
-          <pointLight position={[0,0,0]} intensity={2} color={accent} distance={6} />
-        </>
-      )}
-      {mon.type === "guard" && (
-        <>
-          <mesh position={[0,1.4,0]} castShadow>
-            <boxGeometry args={[1.1,1.6,0.65]} />
-            <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.25} roughness={0.5} metalness={0.4} />
-          </mesh>
-          <mesh position={[0,2.6,0]} castShadow>
-            <boxGeometry args={[0.85,0.82,0.82]} />
-            <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.3} roughness={0.5} metalness={0.4} />
-          </mesh>
-          {/* Helmet plume */}
-          <mesh position={[0,3.15,0]}>
-            <boxGeometry args={[0.2,0.6,0.2]} />
-            <meshStandardMaterial color="#ff0000" emissive="#aa0000" emissiveIntensity={0.5} />
-          </mesh>
-          {[-0.75,0.75].map((ax,i) => (
-            <mesh key={i} position={[ax,1.6,0]}>
-              <boxGeometry args={[0.32,1.2,0.32]} />
-              <meshStandardMaterial color={body} roughness={0.5} metalness={0.4} />
-            </mesh>
-          ))}
-          {[-0.28,0.28].map((lx,i) => (
-            <mesh key={i} position={[lx,0.4,0]}>
-              <boxGeometry args={[0.34,0.8,0.34]} />
-              <meshStandardMaterial color={body} roughness={0.5} metalness={0.4} />
-            </mesh>
-          ))}
-          {/* Spear */}
-          <mesh position={[0.82,2.2,0]}>
-            <cylinderGeometry args={[0.06,0.06,3.5,6]} />
-            <meshStandardMaterial color="#888" roughness={0.4} metalness={0.7} />
-          </mesh>
-          <mesh position={[0.82,4,0]}>
-            <coneGeometry args={[0.2,0.7,6]} />
-            <meshStandardMaterial color="#ccc" roughness={0.2} metalness={0.9} />
-          </mesh>
-        </>
-      )}
-      {mon.type === "spambot" && (
-        <>
-          <mesh position={[0,0.7,0]} castShadow>
-            <boxGeometry args={[1.2,0.7,1.2]} />
-            <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.4} roughness={0.4} metalness={0.6} />
-          </mesh>
-          {[0,1,2,3,4,5].map(i => {
-            const a = (i/6)*Math.PI*2;
-            return (
-              <group key={i} position={[Math.cos(a)*0.7,0.5,Math.sin(a)*0.7]} rotation={[0,a,0.6]}>
-                <mesh>
-                  <cylinderGeometry args={[0.06,0.06,1,5]} />
-                  <meshStandardMaterial color={body} roughness={0.5} metalness={0.5} />
-                </mesh>
-              </group>
-            );
-          })}
-          <mesh position={[0,1.3,0]}>
-            <boxGeometry args={[0.8,0.5,0.8]} />
-            <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.5} roughness={0.4} metalness={0.6} />
-          </mesh>
-          {[-0.2,0.2].map((ex,i) => (
-            <mesh key={i} position={[ex,1.45,0.42]}>
-              <sphereGeometry args={[0.1,6,6]} />
-              <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={5} />
-            </mesh>
-          ))}
-        </>
-      )}
-      {mon.type === "iceling" && (
-        <>
-          <mesh position={[0,1.2,0]} castShadow>
-            <boxGeometry args={[0.85,1.5,0.55]} />
-            <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.25} roughness={0.15} metalness={0.3} transparent opacity={0.9} />
-          </mesh>
-          <mesh position={[0,2.2,0]} castShadow>
-            <octahedronGeometry args={[0.55,0]} />
-            <meshStandardMaterial color={body} emissive={accent} emissiveIntensity={0.4} roughness={0.1} metalness={0.4} transparent opacity={0.85} />
-          </mesh>
-          {/* Ice shards */}
-          {[0,1,2,3].map(i => {
-            const a = (i/4)*Math.PI*2;
-            return (
-              <mesh key={i} position={[Math.cos(a)*0.6,1.2,Math.sin(a)*0.6]}>
-                <coneGeometry args={[0.12,0.8,4]} />
-                <meshStandardMaterial color="#c0e8ff" roughness={0.05} metalness={0.4} transparent opacity={0.8} />
-              </mesh>
-            );
-          })}
-        </>
-      )}
-      {mon.type === "slime" && (
-        <SLimeBody color={body} accent={accent} clock={0} />
-      )}
-
+      <MonsterBody type={mon.type} body={body} accent={accent} t={tRef.current} />
       {/* HP bar */}
-      <Billboard position={[0, mon.type==="ghost"?2.2:3.5, 0]}>
+      <Billboard position={[0, mon.type === "ghost" ? 2.4 : 3.6, 0]}>
         <mesh position={[0,0,0]}>
-          <planeGeometry args={[1.2,0.12]} />
+          <planeGeometry args={[1.3,0.13]} />
           <meshBasicMaterial color="#222" />
         </mesh>
-        <mesh position={[-(0.6-(hpPct*0.6)),0,0.001]}>
-          <planeGeometry args={[hpPct*1.2,0.12]} />
-          <meshBasicMaterial color={hpPct > 0.5 ? "#39ff14" : hpPct > 0.25 ? "#ffa000" : "#ff2200"} />
+        <mesh position={[-(0.65-(hpPct*0.65)),0,0.001]}>
+          <planeGeometry args={[hpPct*1.3,0.13]} />
+          <meshBasicMaterial color={hpPct>0.5?"#39ff14":hpPct>0.25?"#ffa000":"#ff2200"} />
         </mesh>
-        <Text position={[0,0.18,0]} fontSize={0.28} color="white" outlineWidth={0.02} outlineColor="#000" anchorX="center">
-          {mon.type.toUpperCase()} — {mon.hp}/{mon.maxHp}
+        <Text position={[0,0.2,0]} fontSize={0.26} color="white" outlineWidth={0.02} outlineColor="#000" anchorX="center">
+          {mon.type.toUpperCase()} {mon.hp}/{mon.maxHp}
         </Text>
       </Billboard>
     </group>
   );
 }
 
-function SLimeBody({ color, accent }: { color: string; accent: string; clock: number }) {
-  const ref = useRef<THREE.Mesh>(null);
-  useFrame((s) => {
-    if (!ref.current) return;
-    const t = s.clock.elapsedTime;
-    ref.current.scale.set(1+Math.sin(t*2)*0.08, 1-Math.sin(t*2)*0.08, 1+Math.sin(t*2)*0.08);
-  });
-  return (
-    <>
-      <mesh ref={ref} position={[0,0.7,0]} castShadow>
-        <sphereGeometry args={[0.7,10,10]} />
-        <meshStandardMaterial color={color} emissive={accent} emissiveIntensity={0.4} roughness={0.3} transparent opacity={0.88} />
-      </mesh>
-      {[-0.22,0.22].map((ex,i) => (
-        <mesh key={i} position={[ex,0.85,0.62]}>
-          <sphereGeometry args={[0.1,6,6]} />
-          <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={5} />
-        </mesh>
-      ))}
-    </>
-  );
-}
-
 // ─── PLAYER CONTROLLER (movement + combat) ────────────────────────────────────
 
 function PlayerController({
-  monstersRef,
-  onMonsterHit,
-  onPositionUpdate,
-  skills,
-  onSkillUse,
+  monstersRef, onMonsterHit, onPositionUpdate, skills, onSkillUse,
 }: {
   monstersRef: React.MutableRefObject<MonsterRuntime[]>;
   onMonsterHit: (id: number, dmg: number, x: number, y: number, z: number) => void;
@@ -1241,10 +1277,9 @@ function PlayerController({
     const dn = (e: KeyboardEvent) => {
       keys.current[e.code] = true;
       const now = performance.now();
-      // Skills
-      if (e.code === "KeyQ") { trySkill(0, now); }
-      if (e.code === "KeyE") { trySkill(1, now); }
-      if (e.code === "KeyR") { trySkill(2, now); }
+      if (e.code === "KeyQ") trySkill(0, now);
+      if (e.code === "KeyE") trySkill(1, now);
+      if (e.code === "KeyR") trySkill(2, now);
     };
     const up = (e: KeyboardEvent) => { keys.current[e.code] = false; };
     const click = () => { tryMelee(); };
@@ -1253,7 +1288,6 @@ function PlayerController({
       const now = performance.now();
       if (now - lastAttack.current < 600) return;
       lastAttack.current = now;
-      // Find closest alive monster in front within ATTACK_RANGE
       let bestId = -1, bestDist = ATTACK_RANGE;
       const camFwd = new THREE.Vector3();
       camera.getWorldDirection(camFwd);
@@ -1263,8 +1297,7 @@ function PlayerController({
         const dist = diff.length();
         if (dist > ATTACK_RANGE) continue;
         diff.normalize();
-        const dot = diff.dot(camFwd);
-        if (dot < 0.4) continue; // must be roughly in front
+        if (diff.dot(camFwd) < 0.4) continue;
         if (dist < bestDist) { bestDist = dist; bestId = m.id; }
       }
       if (bestId !== -1) {
@@ -1282,23 +1315,18 @@ function PlayerController({
       if (now - skillCooldowns.current[idx] < sk.cooldown*1000) return;
       skillCooldowns.current[idx] = now;
       onSkillUse(idx);
-
       const camFwd = new THREE.Vector3();
       camera.getWorldDirection(camFwd);
       const baseDmg = 25 + Math.floor(Math.random()*15);
-
       if (sk.aoe) {
-        // Hit all in range
         for (const m of monstersRef.current) {
           if (!m.alive) continue;
-          const dist = m.pos.distanceTo(camera.position);
-          if (dist > sk.range) continue;
+          if (m.pos.distanceTo(camera.position) > sk.range) continue;
           const dmg = Math.floor(baseDmg * sk.dmgMult * (0.8+Math.random()*0.4));
           const crit = Math.random() < 0.2;
-          onMonsterHit(m.id, crit ? Math.floor(dmg*2) : dmg, m.pos.x, m.pos.y+2, m.pos.z);
+          onMonsterHit(m.id, crit?Math.floor(dmg*2):dmg, m.pos.x, m.pos.y+2, m.pos.z);
         }
       } else {
-        // Hit closest in front within range
         let bestId = -1, bestDist = sk.range;
         for (const m of monstersRef.current) {
           if (!m.alive) continue;
@@ -1313,7 +1341,7 @@ function PlayerController({
           const m = monstersRef.current.find(x => x.id === bestId)!;
           const dmg = Math.floor(baseDmg * sk.dmgMult * (0.85+Math.random()*0.3));
           const crit = Math.random() < 0.25;
-          onMonsterHit(bestId, crit ? Math.floor(dmg*2) : dmg, m.pos.x, m.pos.y+2, m.pos.z);
+          onMonsterHit(bestId, crit?Math.floor(dmg*2):dmg, m.pos.x, m.pos.y+2, m.pos.z);
         }
       }
     };
@@ -1338,17 +1366,15 @@ function PlayerController({
     fwd.current.y = 0; fwd.current.normalize();
     right.current.crossVectors(fwd.current, up3.current).normalize();
 
-    if (k["KeyW"]||k["ArrowUp"])    camera.position.addScaledVector(fwd.current,   speed);
-    if (k["KeyS"]||k["ArrowDown"])  camera.position.addScaledVector(fwd.current,  -speed);
+    if (k["KeyW"]||k["ArrowUp"])    camera.position.addScaledVector(fwd.current,    speed);
+    if (k["KeyS"]||k["ArrowDown"])  camera.position.addScaledVector(fwd.current,   -speed);
     if (k["KeyA"]||k["ArrowLeft"])  camera.position.addScaledVector(right.current, -speed);
     if (k["KeyD"]||k["ArrowRight"]) camera.position.addScaledVector(right.current,  speed);
 
-    // Jump
     if ((k["Space"]||k["KeySpace"]) && onGround.current) {
       velY.current = JUMP_FORCE;
       onGround.current = false;
     }
-    // Gravity
     velY.current += GRAVITY * dt;
     camera.position.y += velY.current * dt;
     if (camera.position.y < PLAYER_H) {
@@ -1357,11 +1383,9 @@ function PlayerController({
       onGround.current = true;
     }
 
-    // World bounds
     camera.position.x = Math.max(-HALF+2, Math.min(HALF-2, camera.position.x));
     camera.position.z = Math.max(-HALF+2, Math.min(HALF-2, camera.position.z));
 
-    // Send position update
     const now = performance.now();
     if (now - lastSent.current > 180) {
       lastSent.current = now;
@@ -1374,11 +1398,10 @@ function PlayerController({
 // ─── WORLD SCENE ──────────────────────────────────────────────────────────────
 
 function WorldScene({
-  monstersRef, monsterReactStates, onMonsterHit, onPositionUpdate,
+  monstersRef, onMonsterHit, onPositionUpdate,
   onLockChange, otherPlayers, playerHpCb, skills, onSkillUse,
 }: {
   monstersRef: React.MutableRefObject<MonsterRuntime[]>;
-  monsterReactStates: { id: number; hp: number; maxHp: number; alive: boolean }[];
   onMonsterHit: (id: number, dmg: number, x: number, y: number, z: number) => void;
   onPositionUpdate: (x: number, y: number, z: number, rx: number) => void;
   onLockChange: (locked: boolean) => void;
@@ -1390,27 +1413,30 @@ function WorldScene({
   return (
     <>
       <color attach="background" args={["#06080e"]} />
-      <fog attach="fog" args={["#06080e", 55, 170]} />
-      <ambientLight intensity={0.3} color="#8090b0" />
-      <directionalLight position={[30,50,20]} intensity={0.8} color="#e0d8c0" castShadow
-        shadow-mapSize={[2048,2048]} shadow-camera-far={160} shadow-camera-left={-80}
-        shadow-camera-right={80} shadow-camera-top={80} shadow-camera-bottom={-80} />
+      <fog attach="fog" args={["#06080e", 60, 175]} />
+      <ambientLight intensity={0.45} color="#a0b0c8" />
+      <directionalLight position={[30,60,20]} intensity={0.8} color="#e8e0d0"
+        castShadow shadow-mapSize={[1024,1024]} shadow-camera-far={140}
+        shadow-camera-left={-70} shadow-camera-right={70}
+        shadow-camera-top={70} shadow-camera-bottom={-70} />
+      <Sky sunPosition={[0.2,0.05,1]} turbidity={10} rayleigh={2.5}
+        mieCoefficient={0.005} mieDirectionalG={0.7} />
 
-      <Sky sunPosition={[0.2,0.05,1]} turbidity={12} rayleigh={3} mieCoefficient={0.005}
-        mieDirectionalG={0.7} />
-
-      <Ground />
+      <Suspense fallback={null}>
+        <MapGround />
+      </Suspense>
       <BorderWalls />
       <Particles />
 
-      <BahamasCity />
-      <ExileForest />
-      <BannedTundra />
-      <TrollDimension />
-      <StreamColosseum />
-      <SpamSwamp />
+      <Suspense fallback={null}>
+        <BahamasCity />
+        <ExileForest />
+        <BannedTundra />
+        <TrollDimension />
+        <StreamColosseum />
+        <SpamSwamp />
+      </Suspense>
 
-      {/* Active monsters — synced to runtime ref */}
       {monstersRef.current.map((mon) => (
         <MonsterEntity key={mon.id} mon={mon} onHit={onMonsterHit} playerHpCb={playerHpCb} />
       ))}
@@ -1432,35 +1458,34 @@ function WorldScene({
   );
 }
 
-// ─── MINIMAP ──────────────────────────────────────────────────────────────────
+// ─── MINIMAP — uses the actual Bahamas Land map image ─────────────────────────
 
 function Minimap({ x, z }: { x: number; z: number }) {
-  const SIZE = 104;
+  const SIZE = 110;
   const half = WORLD_SIZE / 2;
-  const px = ((x+half)/WORLD_SIZE)*SIZE;
-  const py = ((z+half)/WORLD_SIZE)*SIZE;
-
-  const zones = [
-    { x: 0,  y: 0,  w: 38, h: 38, c: "#0a1a0a" }, // Exile NW
-    { x: 38, y: 0,  w: 44, h: 38, c: "#b0ccde" }, // Banned N
-    { x: 82, y: 0,  w: 22, h: 58, c: "#1a0a2e" }, // Troll E
-    { x: 30, y: 30, w: 40, h: 40, c: "#3e2e14" }, // City Center
-    { x: 82, y: 58, w: 22, h: 46, c: "#3d1a5a" }, // Stream SE
-    { x: 0,  y: 62, w: 36, h: 42, c: "#1a2e14" }, // Spam SW
-    { x: 0,  y: 38, w: 82, h: 24, c: "#162d16" }, // Plains
-  ];
+  const px = ((x + half) / WORLD_SIZE) * SIZE;
+  const py = ((z + half) / WORLD_SIZE) * SIZE;
 
   return (
-    <div className="relative overflow-hidden border border-white/20 bg-black/80"
+    <div className="relative overflow-hidden border border-white/25 bg-black/80"
       style={{ width: SIZE, height: SIZE }}>
-      {zones.map((z, i) => (
-        <div key={i} className="absolute"
-          style={{ left:z.x, top:z.y, width:z.w, height:z.h, background:z.c, opacity:0.9 }} />
-      ))}
-      <div className="absolute w-2.5 h-2.5 rounded-full bg-white z-10 -translate-x-1/2 -translate-y-1/2"
-        style={{ left: px, top: py, boxShadow: "0 0 8px #fff,0 0 4px #fff" }} />
-      <Compass className="absolute top-1 left-1 w-3 h-3 text-white/30" />
-      <div className="absolute bottom-0.5 left-0 right-0 text-center font-mono text-[7px] text-white/30 uppercase">
+      {/* Actual Bahamas Land map image */}
+      <img
+        src={mapBg as string}
+        alt="map"
+        draggable={false}
+        style={{ width: SIZE, height: SIZE, display: "block", opacity: 0.88, imageRendering: "pixelated" }}
+      />
+      {/* Player dot */}
+      <div
+        className="absolute rounded-full bg-white z-10 -translate-x-1/2 -translate-y-1/2"
+        style={{
+          left: px, top: py, width: 8, height: 8,
+          boxShadow: "0 0 0 2px #ff2d8c, 0 0 10px #fff",
+        }}
+      />
+      <Compass className="absolute top-1 left-1 w-3 h-3 text-white/40" />
+      <div className="absolute bottom-0.5 left-0 right-0 text-center font-mono text-[7px] text-white/35 uppercase pointer-events-none">
         BAHAMAS MAP
       </div>
     </div>
@@ -1492,7 +1517,6 @@ function HUD({
   const chatRef = useRef<HTMLDivElement>(null);
   const [, forceRender] = useState(0);
 
-  // Refresh skill cooldowns display every 100ms
   useEffect(() => {
     const id = setInterval(() => forceRender(n => n+1), 100);
     return () => clearInterval(id);
@@ -1531,7 +1555,7 @@ function HUD({
         </div>
       )}
 
-      {/* Click to play */}
+      {/* Click to play overlay */}
       {!locked && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-auto cursor-pointer"
           onClick={onClickToLock}>
@@ -1560,7 +1584,6 @@ function HUD({
             <span className="ml-auto text-yellow-400 font-mono text-[10px]">🏆 {kills}</span>
           </div>
           {origin && <div className="font-mono text-[9px] uppercase tracking-widest" style={{ color }}>{origin}</div>}
-          {/* HP */}
           <div className="space-y-0.5">
             <div className="flex items-center justify-between">
               <span className="text-red-400 font-mono text-[9px] uppercase">HP</span>
@@ -1571,7 +1594,6 @@ function HUD({
                 style={{ width: `${hpPct*100}%`, background: hpPct>0.5?"#39ff14":hpPct>0.25?"#ffa000":"#ff2200" }} />
             </div>
           </div>
-          {/* MP */}
           <div className="space-y-0.5">
             <div className="flex items-center justify-between">
               <span className="text-blue-400 font-mono text-[9px] uppercase">MP</span>
@@ -1581,17 +1603,14 @@ function HUD({
               <div className="h-full bg-blue-500 transition-all duration-150" style={{ width: `${mpPct*100}%` }} />
             </div>
           </div>
-          {/* XP */}
           <div className="flex items-center gap-2">
             <span className="text-yellow-400 font-mono text-[9px] uppercase">XP</span>
             <div className="flex-1 bg-black/50 h-1.5">
-              <div className="h-full bg-yellow-400" style={{ width: `${(xp%100)}%` }} />
+              <div className="h-full bg-yellow-400" style={{ width: `${xp%100}%` }} />
             </div>
             <span className="text-yellow-300 font-mono text-[9px]">Lv.{Math.floor(xp/100)+1}</span>
           </div>
         </div>
-
-        {/* Zone */}
         <div className="bg-black/70 border border-white/10 px-3 py-1.5">
           <div className="font-mono text-[11px] uppercase tracking-wider" style={{ color: zone.color }}>
             📍 {zone.name}
@@ -1615,11 +1634,8 @@ function HUD({
       {/* Bottom-center: Skills bar */}
       {locked && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 items-end">
-          {/* Auto attack indicator */}
           <div className="flex flex-col items-center gap-0.5">
-            <div className="w-12 h-12 bg-black/70 border-2 border-white/30 flex items-center justify-center text-white text-sm font-mono">
-              ⚔
-            </div>
+            <div className="w-12 h-12 bg-black/70 border-2 border-white/30 flex items-center justify-center text-white text-sm font-mono">⚔</div>
             <span className="text-white/40 font-mono text-[9px] uppercase">Click</span>
           </div>
           {skills.map((sk, i) => {
@@ -1628,9 +1644,9 @@ function HUD({
             return (
               <div key={i} className="flex flex-col items-center gap-0.5">
                 <div className="relative w-14 h-14">
-                  <div className={`w-full h-full border-2 flex flex-col items-center justify-center transition-all ${onCd ? "opacity-50" : "opacity-100 hover:scale-105"}`}
-                    style={{ background: onCd ? "#111" : `${sk.color}22`, borderColor: sk.color,
-                      boxShadow: onCd ? "none" : `0 0 12px ${sk.color}55` }}>
+                  <div className={`w-full h-full border-2 flex flex-col items-center justify-center transition-all ${onCd?"opacity-50":"opacity-100 hover:scale-105"}`}
+                    style={{ background: onCd?"#111":`${sk.color}22`, borderColor: sk.color,
+                      boxShadow: onCd?"none":`0 0 12px ${sk.color}55` }}>
                     <span className="font-mono text-[10px] font-bold text-white/80 uppercase">{sk.key}</span>
                     <span className="font-mono text-[8px] text-white/50 uppercase text-center px-0.5 leading-tight">{sk.label}</span>
                   </div>
@@ -1652,7 +1668,7 @@ function HUD({
         <div ref={chatRef} className="bg-black/65 border border-white/10 p-2 h-28 overflow-y-auto space-y-0.5">
           {chatMessages.map((m) => (
             <div key={m.id} className="font-mono text-[10px] leading-tight">
-              <span style={{ color: "#ff2d8c" }}>{m.username}: </span>
+              <span style={{ color:"#ff2d8c" }}>{m.username}: </span>
               <span className="text-white/80">{m.text}</span>
             </div>
           ))}
@@ -1702,14 +1718,14 @@ function HUD({
   );
 }
 
-// ─── DAMAGE NUMBERS OVERLAY ───────────────────────────────────────────────────
+// ─── DAMAGE NUMBERS ───────────────────────────────────────────────────────────
 
 function DamageNumbers({ nums }: { nums: DmgNumber[] }) {
   return (
     <div className="absolute inset-0 pointer-events-none z-30 overflow-hidden">
       {nums.map(n => (
         <div key={n.id}
-          className="absolute font-black font-mono text-lg select-none"
+          className="absolute font-black font-mono select-none"
           style={{
             left: n.x, top: n.y,
             color: n.crit ? "#ffd600" : "#ff4444",
@@ -1731,7 +1747,7 @@ function DamageNumbers({ nums }: { nums: DmgNumber[] }) {
   );
 }
 
-// ─── SKILL FLASH OVERLAY ─────────────────────────────────────────────────────
+// ─── SKILL FLASH ──────────────────────────────────────────────────────────────
 
 function SkillFlash({ color, label }: { color: string; label: string }) {
   return (
@@ -1755,7 +1771,6 @@ export default function OGWorld() {
   const [playerPos, setPlayerPos] = useState({ x: 0, z: 0 });
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  // Player stats
   const [hp, setHp] = useState(200);
   const [mp, setMp] = useState(100);
   const [kills, setKills] = useState(0);
@@ -1764,38 +1779,29 @@ export default function OGWorld() {
   const maxMp = 100;
   const [dead, setDead] = useState(false);
 
-  // Damage numbers (screen-space)
   const [dmgNums, setDmgNums] = useState<DmgNumber[]>([]);
   const dmgIdRef = useRef(0);
 
-  // Skill flash
   const [skillFlash, setSkillFlash] = useState<{ color: string; label: string } | null>(null);
   const [lastSkillUsed, setLastSkillUsed] = useState([0, 0, 0]);
 
-  // Monsters runtime state (mutable ref for game loop)
   const monstersRef = useRef<MonsterRuntime[]>(SPAWN_LIST.map(makeMonster));
-  // React state for re-renders (HP bar display)
   const [, forceMonsterRender] = useState(0);
-
-  // Skill cooldown ref (shared with PlayerController)
   const skillCooldownsRef = useRef([0, 0, 0]);
 
-  // Session data
-  const myId = sessionStorage.getItem("og_world_id") || "anon";
+  const myId       = sessionStorage.getItem("og_world_id")       || "anon";
   const myUsername = sessionStorage.getItem("og_world_username") || "Citizen";
-  const myColor = sessionStorage.getItem("og_world_color") || "#ff2d8c";
-  const myOrigin = sessionStorage.getItem("og_world_origin") || "Tank";
+  const myColor    = sessionStorage.getItem("og_world_color")    || "#ff2d8c";
+  const myOrigin   = sessionStorage.getItem("og_world_origin")   || "Tank";
   const skills = CLASS_SKILLS[myOrigin] || DEFAULT_SKILLS;
 
   // MP regen
   useEffect(() => {
-    const id = setInterval(() => {
-      setMp(m => Math.min(maxMp, m + 3));
-    }, 1200);
+    const id = setInterval(() => setMp(m => Math.min(maxMp, m + 3)), 1200);
     return () => clearInterval(id);
   }, []);
 
-  // Cleanup old damage numbers
+  // Clean damage numbers
   useEffect(() => {
     const id = setInterval(() => {
       const now = Date.now();
@@ -1809,15 +1815,12 @@ export default function OGWorld() {
     const id = setInterval(() => {
       let changed = false;
       for (const m of monstersRef.current) {
-        if (!m.alive) {
-          // Check if enough time has passed (we track alive=false as respawn timer using lastAttack)
-          if (performance.now() - m.lastAttack > RESPAWN_TIME) {
-            m.alive = true;
-            m.hp = m.maxHp;
-            m.pos.copy(m.spawnPos);
-            m.aggro = false;
-            changed = true;
-          }
+        if (!m.alive && performance.now() - m.lastAttack > RESPAWN_TIME) {
+          m.alive = true;
+          m.hp = m.maxHp;
+          m.pos.copy(m.spawnPos);
+          m.aggro = false;
+          changed = true;
         }
       }
       if (changed) forceMonsterRender(n => n+1);
@@ -1829,7 +1832,7 @@ export default function OGWorld() {
   const channelRef = useRef<any>(null);
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
-    const ch = supabase.channel("og-world-v2", { config: { presence: { key: myId } } });
+    const ch = supabase.channel("og-world-v3", { config: { presence: { key: myId } } });
     ch.on("presence", { event: "sync" }, () => {
       const state = ch.presenceState<WorldPlayer>();
       const others: WorldPlayer[] = [];
@@ -1855,7 +1858,7 @@ export default function OGWorld() {
   useEffect(() => {
     setChatMessages([
       { username: "Nattoun", text: `Welcome to Bahamas Land RPG, ${myUsername}! Don't die.`, id: 1 },
-      { username: "System", text: "Click → Attack enemies · Q/E/R → Use skills", id: 2 },
+      { username: "System",  text: "Click → Attack · Q/E/R → Skills · SHIFT → Sprint", id: 2 },
     ]);
   }, []);
 
@@ -1871,7 +1874,6 @@ export default function OGWorld() {
     setChatMessages(prev => [...prev.slice(-50), { username:myUsername, text, id:Date.now() }]);
   }, [myUsername]);
 
-  // Called when player hits a monster
   const handleMonsterHit = useCallback((id: number, dmg: number, wx: number, wy: number, wz: number) => {
     const mon = monstersRef.current.find(m => m.id === id);
     if (!mon || !mon.alive) return;
@@ -1879,7 +1881,7 @@ export default function OGWorld() {
     mon.hp = Math.max(0, mon.hp - dmg);
     if (mon.hp <= 0) {
       mon.alive = false;
-      mon.lastAttack = performance.now(); // reuse for respawn timer
+      mon.lastAttack = performance.now();
       mon.aggro = false;
       setKills(k => k+1);
       setXp(x => x + MON_XP[mon.type]);
@@ -1890,16 +1892,11 @@ export default function OGWorld() {
       }]);
     }
     forceMonsterRender(n => n+1);
-
-    // Spawn damage number at approximate screen position
-    // We can't project 3D→2D easily here, so we show it at random position near center
     const screenX = window.innerWidth/2 + (Math.random()-0.5)*180;
     const screenY = window.innerHeight/2 + (Math.random()-0.5)*80 - 40;
-    const newNum: DmgNumber = { id: ++dmgIdRef.current, x: screenX, y: screenY, val: dmg, crit, born: Date.now() };
-    setDmgNums(prev => [...prev.slice(-15), newNum]);
+    setDmgNums(prev => [...prev.slice(-15), { id: ++dmgIdRef.current, x:screenX, y:screenY, val:dmg, crit, born:Date.now() }]);
   }, [myUsername]);
 
-  // Called when a monster attacks the player
   const handlePlayerHit = useCallback((dmg: number) => {
     if (dead) return;
     setHp(h => {
@@ -1917,11 +1914,10 @@ export default function OGWorld() {
       }
       return newHp;
     });
-    // Show player damage number (red)
     const screenX = window.innerWidth/2 + (Math.random()-0.5)*60;
     const screenY = window.innerHeight/2 - 40;
     setDmgNums(prev => [...prev.slice(-15), {
-      id: ++dmgIdRef.current, x: screenX, y: screenY, val: dmg, crit: false, born: Date.now(),
+      id: ++dmgIdRef.current, x:screenX, y:screenY, val:dmg, crit:false, born:Date.now(),
     }]);
   }, [dead]);
 
@@ -1942,14 +1938,20 @@ export default function OGWorld() {
 
   return (
     <div className="fixed inset-0 bg-black overflow-hidden" ref={canvasRef}>
-      <Canvas shadows dpr={[1,1.5]}
-        camera={{ fov: 78, near: 0.1, far: 200, position: [0, PLAYER_H, 5] }}
-        gl={{ antialias: false, powerPreference: "high-performance",
-          toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.85 }}>
+      <Canvas
+        shadows
+        dpr={[1, 1.5]}
+        camera={{ fov: 75, near: 0.1, far: 200, position: [0, PLAYER_H, 5] }}
+        gl={{
+          antialias: false,
+          powerPreference: "high-performance",
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 0.9,
+        }}
+      >
         <Suspense fallback={null}>
           <WorldScene
             monstersRef={monstersRef}
-            monsterReactStates={monstersRef.current.map(m => ({ id:m.id, hp:m.hp, maxHp:m.maxHp, alive:m.alive }))}
             onMonsterHit={handleMonsterHit}
             onPositionUpdate={handlePositionUpdate}
             onLockChange={setLocked}
@@ -1964,14 +1966,13 @@ export default function OGWorld() {
       <DamageNumbers nums={dmgNums} />
       {skillFlash && <SkillFlash color={skillFlash.color} label={skillFlash.label} />}
 
-      {/* Death screen */}
       <AnimatePresence>
         {dead && (
           <motion.div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90"
             initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}>
             <motion.div initial={{ scale:0.6 }} animate={{ scale:1 }}
               className="text-red-500 font-black uppercase text-7xl"
-              style={{ textShadow: "0 0 40px red" }}>
+              style={{ textShadow:"0 0 40px red" }}>
               YOU DIED
             </motion.div>
             <div className="text-red-300 font-mono text-sm uppercase mt-4">
@@ -1994,7 +1995,7 @@ export default function OGWorld() {
         locked={locked} onClickToLock={handleClickToLock}
         onLeave={() => setLocation("/world")}
         playerX={playerPos.x} playerZ={playerPos.z}
-        onlineCount={otherPlayers.length+1}
+        onlineCount={otherPlayers.length + 1}
       />
     </div>
   );
