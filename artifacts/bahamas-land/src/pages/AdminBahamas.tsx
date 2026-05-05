@@ -59,6 +59,13 @@ export default function AdminBahamas() {
   const [interrogateAchId, setInterrogateAchId] = useState("");
   const [interrogateSending, setInterrogateSending] = useState(false);
 
+  // In-app confirm dialog (replaces window.confirm which is blocked in iframes)
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+
+  const withConfirm = (message: string, onConfirm: () => void) => {
+    setConfirmDialog({ message, onConfirm });
+  };
+
   useEffect(() => {
     if (!supabase) return;
     supabase.auth.getUser().then(({ data }) => {
@@ -168,11 +175,12 @@ export default function AdminBahamas() {
     await supabase.from("museum_items").update({ status }).eq("id", id);
     fetchItems(); fetchPendingCounts();
   };
-  const removeMuseum = async (id: string) => {
-    if (!supabase) return;
-    if (!confirm("Permanently delete this item?")) return;
-    await supabase.from("museum_items").delete().eq("id", id);
-    fetchItems(); fetchPendingCounts();
+  const removeMuseum = (id: string) => {
+    withConfirm("Permanently delete this item?", async () => {
+      if (!supabase) return;
+      await supabase.from("museum_items").delete().eq("id", id);
+      fetchItems(); fetchPendingCounts();
+    });
   };
 
   // Court actions
@@ -186,22 +194,24 @@ export default function AdminBahamas() {
     await supabase.from("court_verdicts").update({ pinned: !pinned }).eq("id", id);
     fetchItems();
   };
-  const removeCourt = async (id: string) => {
-    if (!supabase) return;
-    if (!confirm("Permanently delete this verdict?")) return;
-    await supabase.from("court_verdicts").delete().eq("id", id);
-    fetchItems(); fetchPendingCounts();
+  const removeCourt = (id: string) => {
+    withConfirm("Permanently delete this verdict?", async () => {
+      if (!supabase) return;
+      await supabase.from("court_verdicts").delete().eq("id", id);
+      fetchItems(); fetchPendingCounts();
+    });
   };
 
   // Player actions
-  const resetPlayer = async (username: string) => {
-    if (!supabase) return;
-    if (!confirm(`Reset ${username}'s achievements and coins?`)) return;
-    const { data, error } = await supabase.rpc("admin_reset_player", { p_username: username });
-    if (error) { showMsg(`Error: ${error.message}`); return; }
-    if (!data?.ok) { showMsg(`Reset failed: ${data?.reason ?? "unknown"}`); return; }
-    showMsg(`${username} has been reset.`);
-    fetchPlayers();
+  const resetPlayer = (username: string) => {
+    withConfirm(`Reset ${username}'s achievements and coins?`, async () => {
+      if (!supabase) return;
+      const { data, error } = await supabase.rpc("admin_reset_player", { p_username: username });
+      if (error) { showMsg(`Error: ${error.message}`); return; }
+      if (!data?.ok) { showMsg(`Reset failed: ${data?.reason ?? "unknown"} ${data?.debug_username ?? ""}`); return; }
+      showMsg(`${username} reset — kept citizen & tourist, coins → 1000.`);
+      fetchPlayers();
+    });
   };
 
   // Interrogation
@@ -222,39 +232,42 @@ export default function AdminBahamas() {
     setInterrogateAchId("");
   };
 
-  const banPlayer = async (username: string) => {
-    if (!supabase) return;
+  const banPlayer = (username: string) => {
     const reason = banReason[username] || "cheating";
-    if (!confirm(`Ban ${username} for: ${reason}?`)) return;
-    const { error } = await supabase.from("banned_users").insert({
-      username_lower: username.toLowerCase(),
-      original_username: username,
-      reason,
+    withConfirm(`Ban ${username} for: ${reason}?`, async () => {
+      if (!supabase) return;
+      const { error } = await supabase.from("banned_users").insert({
+        username_lower: username.toLowerCase(),
+        original_username: username,
+        reason,
+      });
+      if (error) { showMsg(`Error: ${error.message}`); return; }
+      await supabase.from("players").update({ secrets: [], coins: 0, updated_at: new Date().toISOString() }).eq("username", username);
+      showMsg(`${username} has been banned.`);
+      fetchPlayers();
+      fetchBans();
     });
-    if (error) { showMsg(`Error: ${error.message}`); return; }
-    await supabase.from("players").update({ secrets: [], coins: 0, updated_at: new Date().toISOString() }).eq("username", username);
-    showMsg(`${username} has been banned.`);
-    fetchPlayers();
-    fetchBans();
   };
 
-  const deletePlayer = async (username: string) => {
-    if (!supabase) return;
-    if (!confirm(`Permanently DELETE ${username}? This cannot be undone.`)) return;
-    const { error } = await supabase.from("players").delete().eq("username", username);
-    if (error) { showMsg(`Error: ${error.message}`); return; }
-    showMsg(`${username} deleted.`);
-    fetchPlayers();
+  const deletePlayer = (username: string) => {
+    withConfirm(`Permanently DELETE ${username}? This cannot be undone.`, async () => {
+      if (!supabase) return;
+      const { error } = await supabase.from("players").delete().eq("username", username);
+      if (error) { showMsg(`Error: ${error.message}`); return; }
+      showMsg(`${username} deleted.`);
+      fetchPlayers();
+    });
   };
 
   // Ban actions
-  const unbanUser = async (id: string, username: string) => {
-    if (!supabase) return;
-    if (!confirm(`Unban ${username}?`)) return;
-    const { error } = await supabase.from("banned_users").delete().eq("id", id);
-    if (error) { showMsg(`Error: ${error.message}`); return; }
-    showMsg(`${username} has been unbanned.`);
-    fetchBans();
+  const unbanUser = (id: string, username: string) => {
+    withConfirm(`Unban ${username}?`, async () => {
+      if (!supabase) return;
+      const { error } = await supabase.from("banned_users").delete().eq("id", id);
+      if (error) { showMsg(`Error: ${error.message}`); return; }
+      showMsg(`${username} has been unbanned.`);
+      fetchBans();
+    });
   };
 
   const filteredPlayers = players.filter((p) =>
@@ -718,6 +731,41 @@ export default function AdminBahamas() {
         )}
 
       </div>
+
+      {/* ── CONFIRM DIALOG ───────────────────────────────────────────── */}
+      <AnimatePresence>
+        {confirmDialog && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[1000] bg-black/80 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-black border-2 border-yellow-500 max-w-sm w-full p-6 space-y-5 shadow-[0_0_30px_rgba(234,179,8,0.3)]"
+            >
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
+                <p className="text-primary font-mono text-sm uppercase leading-relaxed">{confirmDialog.message}</p>
+              </div>
+              <div className="flex gap-3 pt-1">
+                <Button
+                  onClick={() => { confirmDialog.onConfirm(); setConfirmDialog(null); }}
+                  className="flex-1 bg-yellow-600 hover:bg-yellow-500 text-black font-bold uppercase tracking-widest"
+                >
+                  Confirm
+                </Button>
+                <Button
+                  onClick={() => setConfirmDialog(null)}
+                  variant="outline"
+                  className="flex-1 border-primary text-primary hover:bg-primary/20 uppercase"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── INTERROGATION MODAL ───────────────────────────────────────── */}
       <AnimatePresence>
