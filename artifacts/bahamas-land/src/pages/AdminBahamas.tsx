@@ -6,8 +6,9 @@ import { supabase, isSupabaseConfigured, ADMIN_EMAIL, RemoteMuseumItem, RemoteCo
 import nattounImg from "@assets/Nattoun_1777028672745.png";
 import {
   ShieldCheck, Trash2, Check, LogOut, AlertTriangle, Pin, PinOff,
-  Scale, Image as ImageIcon, Users, Ban, RefreshCw, ShieldOff, Search, Zap,
+  Scale, Image as ImageIcon, Users, Ban, RefreshCw, ShieldOff, Search, Zap, MessageSquare, X,
 } from "lucide-react";
+import { ACHIEVEMENTS } from "@/lib/achievements";
 
 type Section = "museum" | "court" | "players" | "bans" | "suspects";
 type Filter = "pending" | "approved" | "rejected";
@@ -52,6 +53,11 @@ export default function AdminBahamas() {
   const [bansLoading, setBansLoading] = useState(false);
 
   const [actionMsg, setActionMsg] = useState<string | null>(null);
+
+  // Interrogation
+  const [interrogateTarget, setInterrogateTarget] = useState<string | null>(null);
+  const [interrogateAchId, setInterrogateAchId] = useState("");
+  const [interrogateSending, setInterrogateSending] = useState(false);
 
   useEffect(() => {
     if (!supabase) return;
@@ -191,13 +197,29 @@ export default function AdminBahamas() {
   const resetPlayer = async (username: string) => {
     if (!supabase) return;
     if (!confirm(`Reset ${username}'s achievements and coins?`)) return;
-    const { error } = await supabase
-      .from("players")
-      .update({ secrets: [], coins: 1000, updated_at: new Date().toISOString() })
-      .eq("username", username);
+    const { data, error } = await supabase.rpc("admin_reset_player", { p_username: username });
     if (error) { showMsg(`Error: ${error.message}`); return; }
+    if (!data?.ok) { showMsg(`Reset failed: ${data?.reason ?? "unknown"}`); return; }
     showMsg(`${username} has been reset.`);
     fetchPlayers();
+  };
+
+  // Interrogation
+  const sendInterrogation = async () => {
+    if (!supabase || !interrogateTarget || !interrogateAchId) return;
+    setInterrogateSending(true);
+    const ach = ACHIEVEMENTS.find((a) => a.id === interrogateAchId);
+    const { data, error } = await supabase.rpc("admin_send_interrogation", {
+      p_username: interrogateTarget,
+      p_achievement_id: interrogateAchId,
+      p_achievement_name: ach ? `${ach.emoji} ${ach.name}` : interrogateAchId,
+    });
+    setInterrogateSending(false);
+    if (error) { showMsg(`Error: ${error.message}`); return; }
+    if (!data?.ok) { showMsg(`Interrogation failed: ${data?.reason ?? "unknown"}`); return; }
+    showMsg(`Interrogation sent to ${interrogateTarget}.`);
+    setInterrogateTarget(null);
+    setInterrogateAchId("");
   };
 
   const banPlayer = async (username: string) => {
@@ -525,6 +547,10 @@ export default function AdminBahamas() {
                           placeholder="Ban reason (optional)"
                           className="bg-black border-primary/40 text-primary font-mono text-xs h-8 flex-1 min-w-[150px]"
                         />
+                        <Button size="sm" onClick={() => { setInterrogateTarget(p.username); setInterrogateAchId(""); }}
+                          variant="outline" className="border-blue-500 text-blue-400 uppercase text-xs hover:bg-blue-500/10">
+                          <MessageSquare className="w-3 h-3 mr-1" /> Interrogate
+                        </Button>
                         <Button size="sm" onClick={() => resetPlayer(p.username)}
                           variant="outline" className="border-yellow-500 text-yellow-400 uppercase text-xs hover:bg-yellow-500/10">
                           <RefreshCw className="w-3 h-3 mr-1" /> Reset
@@ -615,6 +641,10 @@ export default function AdminBahamas() {
                           placeholder="Ban reason"
                           className="bg-black border-red-800/60 text-primary font-mono text-xs h-8 flex-1 min-w-[150px]"
                         />
+                        <Button size="sm" onClick={() => { setInterrogateTarget(p.username); setInterrogateAchId(""); }}
+                          variant="outline" className="border-blue-500 text-blue-400 uppercase text-xs hover:bg-blue-500/10">
+                          <MessageSquare className="w-3 h-3 mr-1" /> Interrogate
+                        </Button>
                         <Button size="sm" onClick={() => resetPlayer(p.username)}
                           variant="outline" className="border-yellow-500 text-yellow-400 uppercase text-xs hover:bg-yellow-500/10">
                           <RefreshCw className="w-3 h-3 mr-1" /> Reset
@@ -688,6 +718,71 @@ export default function AdminBahamas() {
         )}
 
       </div>
+
+      {/* ── INTERROGATION MODAL ───────────────────────────────────────── */}
+      <AnimatePresence>
+        {interrogateTarget && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[999] bg-black/80 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.85, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.85, opacity: 0 }}
+              className="bg-black border-2 border-blue-500 max-w-md w-full p-6 space-y-5 shadow-[0_0_40px_rgba(59,130,246,0.4)]"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-blue-400" />
+                  <h2 className="text-blue-400 font-black uppercase tracking-widest">Send Interrogation</h2>
+                </div>
+                <button onClick={() => setInterrogateTarget(null)} className="text-white/40 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="font-mono text-xs uppercase text-white/50">
+                Citizen: <span className="text-primary font-bold">{interrogateTarget}</span>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-white/50 font-mono text-xs uppercase">Achievement to question about:</label>
+                <select
+                  value={interrogateAchId}
+                  onChange={(e) => setInterrogateAchId(e.target.value)}
+                  className="w-full bg-black border border-primary/40 text-primary font-mono text-sm p-2 focus:border-primary focus:outline-none"
+                >
+                  <option value="">— Select achievement —</option>
+                  {ACHIEVEMENTS.map((a) => (
+                    <option key={a.id} value={a.id}>{a.emoji} {a.name} ({a.id})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  onClick={sendInterrogation}
+                  disabled={interrogateSending || !interrogateAchId}
+                  className="flex-1 bg-blue-700 hover:bg-blue-600 text-white font-bold uppercase tracking-widest"
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  {interrogateSending ? "Sending..." : "Send Interrogation"}
+                </Button>
+                <Button
+                  onClick={() => setInterrogateTarget(null)}
+                  variant="outline"
+                  className="border-primary text-primary hover:bg-primary/20 uppercase"
+                >
+                  Cancel
+                </Button>
+              </div>
+
+              <p className="text-white/20 font-mono text-[10px] text-center uppercase">
+                The citizen will see a mandatory response prompt on their next visit.
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
