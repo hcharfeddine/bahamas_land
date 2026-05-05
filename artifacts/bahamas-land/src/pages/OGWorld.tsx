@@ -2,7 +2,7 @@ import {
   Suspense, useRef, useState, useEffect, useCallback, memo, useMemo,
 } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { PointerLockControls, Sky, Text, Billboard } from "@react-three/drei";
+import { PointerLockControls, Sky, Text, Billboard, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useLocation } from "wouter";
@@ -20,7 +20,6 @@ type WorldPlayer = {
 };
 
 type ChatMsg = { username: string; text: string; id: number };
-
 type MonsterType = "troll" | "ghost" | "guard" | "spambot" | "iceling" | "slime";
 
 type MonsterRuntime = {
@@ -149,11 +148,58 @@ function getTerrainHeight(x: number, z: number): number {
   return h;
 }
 
+// ─── KENNEY GLB MODEL LOADER ─────────────────────────────────────────────────
+// Loads an actual Kenney.nl GLB file. scene.clone() ensures multiple instances
+// of the same model don't share geometry/material references.
+
+function KenneyModel({
+  path, pos, scale = 3.5, rotY = 0, label, labelColor = "#ffd600",
+}: {
+  path: string;
+  pos: [number, number, number];
+  scale?: number;
+  rotY?: number;
+  label?: string;
+  labelColor?: string;
+}) {
+  const { scene } = useGLTF(path);
+  const cloned = useMemo(() => {
+    const c = scene.clone(true);
+    c.traverse((n) => {
+      if ((n as THREE.Mesh).isMesh) {
+        const mesh = n as THREE.Mesh;
+        // Ensure shadow receiving, no casting (performance)
+        mesh.receiveShadow = true;
+        mesh.castShadow = false;
+      }
+    });
+    return c;
+  }, [scene]);
+
+  const [bx, , bz] = pos;
+  const groundY = getTerrainHeight(bx, bz);
+
+  return (
+    <>
+      <group position={[bx, groundY, bz]} rotation={[0, rotY, 0]} scale={scale}>
+        <primitive object={cloned} />
+      </group>
+      {label && (
+        <Billboard position={[bx, groundY + scale * 5.5, bz]}>
+          <Text fontSize={0.85} color={labelColor} outlineWidth={0.04} outlineColor="#000" anchorX="center">
+            {label}
+          </Text>
+        </Billboard>
+      )}
+    </>
+  );
+}
+
 // ─── VERTEX-COLORED TERRAIN ───────────────────────────────────────────────────
 
 const WorldTerrain = memo(function WorldTerrain() {
   const geo = useMemo(() => {
-    const segs = 48; // keep low for perf
+    const segs = 48;
     const g = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, segs, segs);
     const pos = g.attributes.position as THREE.BufferAttribute;
     const col: number[] = [];
@@ -197,9 +243,9 @@ function WaterPlane({ pos, w, d, color="#2a6a9a" }: { pos:[number,number,number]
   );
 }
 
-// ─── KENNEY-STYLE TREE (2-cone for perf) ─────────────────────────────────────
+// ─── PROCEDURAL TREES (instanced, for large zones) ───────────────────────────
 
-function KenneyTreeInstanced({ positions, leaf="#3a8a22", trunk="#7a5030" }: {
+function PineTreeInstanced({ positions, leaf="#3a8a22", trunk="#7a5030" }: {
   positions:[number,number,number][]; leaf?:string; trunk?:string;
 }) {
   const trRef = useRef<THREE.InstancedMesh>(null);
@@ -210,11 +256,11 @@ function KenneyTreeInstanced({ positions, leaf="#3a8a22", trunk="#7a5030" }: {
     positions.forEach(([x,y,z],i) => {
       const s = 0.82+Math.sin(i*2.3)*0.22;
       const ry = i*1.8;
-      d.position.set(x, y+0.9*s, z); d.rotation.set(0,ry,0); d.scale.setScalar(s); d.updateMatrix();
+      d.position.set(x,y+0.9*s,z); d.rotation.set(0,ry,0); d.scale.setScalar(s); d.updateMatrix();
       trRef.current?.setMatrixAt(i, d.matrix);
-      d.position.set(x, y+2.4*s, z); d.scale.setScalar(s); d.updateMatrix();
+      d.position.set(x,y+2.4*s,z); d.scale.setScalar(s); d.updateMatrix();
       c1Ref.current?.setMatrixAt(i, d.matrix);
-      d.position.set(x, y+3.8*s, z); d.scale.setScalar(s*0.8); d.updateMatrix();
+      d.position.set(x,y+3.8*s,z); d.scale.setScalar(s*0.8); d.updateMatrix();
       c2Ref.current?.setMatrixAt(i, d.matrix);
     });
     [trRef,c1Ref,c2Ref].forEach(r=>{ if(r.current){r.current.instanceMatrix.needsUpdate=true; r.current.computeBoundingSphere();}});
@@ -235,7 +281,7 @@ function KenneyTreeInstanced({ positions, leaf="#3a8a22", trunk="#7a5030" }: {
   );
 }
 
-function KenneyDeadTreeInstanced({ positions }: { positions:[number,number,number][] }) {
+function DeadTreeInstanced({ positions }: { positions:[number,number,number][] }) {
   const trRef = useRef<THREE.InstancedMesh>(null);
   const b1Ref = useRef<THREE.InstancedMesh>(null);
   useEffect(() => {
@@ -263,51 +309,7 @@ function KenneyDeadTreeInstanced({ positions }: { positions:[number,number,numbe
   );
 }
 
-// ─── KENNEY ROCK (instanced) ──────────────────────────────────────────────────
-
-function KenneyRockInstanced({ positions, color="#7a7870" }: { positions:[number,number,number][]; color?:string }) {
-  const ref = useRef<THREE.InstancedMesh>(null);
-  useEffect(() => {
-    const d = new THREE.Object3D();
-    positions.forEach(([x,y,z],i) => {
-      const s = 0.45+Math.sin(i*3.1)*0.3;
-      d.position.set(x, getTerrainHeight(x,z)+s*0.4, z);
-      d.rotation.set(Math.sin(i)*0.4, i*1.2, Math.cos(i)*0.3);
-      d.scale.set(s,s*0.7,s*1.1); d.updateMatrix();
-      ref.current?.setMatrixAt(i, d.matrix);
-    });
-    if(ref.current){ref.current.instanceMatrix.needsUpdate=true; ref.current.computeBoundingSphere();}
-  },[positions]);
-  return (
-    <instancedMesh ref={ref} args={[undefined,undefined,positions.length]}>
-      <dodecahedronGeometry args={[0.6,0]} /><meshStandardMaterial color={color} roughness={1} />
-    </instancedMesh>
-  );
-}
-
-// ─── KENNEY LAMP POST ────────────────────────────────────────────────────────
-
-function KenneyLamp({ pos, color="#ffd070" }: { pos:[number,number,number]; color?:string }) {
-  const h = getTerrainHeight(pos[0], pos[2]);
-  return (
-    <group position={[pos[0],h,pos[2]]}>
-      <mesh position={[0,2.5,0]}>
-        <cylinderGeometry args={[0.07,0.12,5,6]} />
-        <meshStandardMaterial color="#555" roughness={0.4} metalness={0.5} />
-      </mesh>
-      <mesh position={[0.55,5.0,0]}>
-        <cylinderGeometry args={[0.04,0.04,1.1,5]} />
-        <meshStandardMaterial color="#555" roughness={0.4} metalness={0.5} />
-      </mesh>
-      <mesh position={[0.55,5.5,0]}>
-        <sphereGeometry args={[0.22,7,7]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2.5} />
-      </mesh>
-    </group>
-  );
-}
-
-// ─── KENNEY WOOD SIGN ────────────────────────────────────────────────────────
+// ─── KENNEY SIGN ─────────────────────────────────────────────────────────────
 
 function KenneySign({ pos, text, textCol="#eee" }: { pos:[number,number,number]; text:string; textCol?:string }) {
   const h = getTerrainHeight(pos[0],pos[2]);
@@ -328,266 +330,29 @@ function KenneySign({ pos, text, textCol="#eee" }: { pos:[number,number,number];
   );
 }
 
-// ─── KENNEY.NL STYLE BUILDING ─────────────────────────────────────────────────
-// Flat-color, chunky, pyramid roof — exactly the Kenney city-kit aesthetic.
+// ─── LAMP POST ───────────────────────────────────────────────────────────────
 
-function KenneyBuilding({
-  pos, wallW=10, wallH=7, wallD=9,
-  wallColor="#ece5d8",
-  roofColor="#e07020",
-  roofSides=4,
-  trimColor="#d4c0a0",
-  accentColor="#ffd080",
-  label, labelColor="#222",
-  hasDome=false,
-}: {
-  pos:[number,number,number];
-  wallW?:number; wallH?:number; wallD?:number;
-  wallColor?:string; roofColor?:string; roofSides?:number;
-  trimColor?:string; accentColor?:string;
-  label:string; labelColor?:string;
-  hasDome?:boolean;
-}) {
-  const [bx,,bz] = pos;
-  const h = getTerrainHeight(bx,bz);
-  const halfH = wallH/2;
+function LampPost({ pos }: { pos:[number,number,number] }) {
+  const h = getTerrainHeight(pos[0], pos[2]);
   return (
-    <group position={[bx,h,bz]}>
-      {/* Foundation platform — slightly wider, darker */}
-      <mesh position={[0,0.25,0]}>
-        <boxGeometry args={[wallW+1.4,0.5,wallD+1.4]} />
-        <meshStandardMaterial color={trimColor} roughness={1} />
+    <group position={[pos[0],h,pos[2]]}>
+      <mesh position={[0,2.5,0]}>
+        <cylinderGeometry args={[0.07,0.12,5,6]} />
+        <meshStandardMaterial color="#555" roughness={0.4} metalness={0.5} />
       </mesh>
-      {/* Main wall body */}
-      <mesh position={[0,halfH+0.5,0]}>
-        <boxGeometry args={[wallW,wallH,wallD]} />
-        <meshStandardMaterial color={wallColor} roughness={1} />
+      <mesh position={[0.55,5.2,0]}>
+        <cylinderGeometry args={[0.04,0.04,1.1,5]} />
+        <meshStandardMaterial color="#555" roughness={0.4} metalness={0.5} />
       </mesh>
-      {/* Roof trim band */}
-      <mesh position={[0,wallH+0.75,0]}>
-        <boxGeometry args={[wallW+0.3,0.5,wallD+0.3]} />
-        <meshStandardMaterial color={trimColor} roughness={1} />
+      <mesh position={[0.55,5.7,0]}>
+        <sphereGeometry args={[0.22,7,7]} />
+        <meshStandardMaterial color="#ffd070" emissive="#ffd070" emissiveIntensity={2.5} />
       </mesh>
-      {/* Roof */}
-      {hasDome ? (
-        <mesh position={[0,wallH+1.5,0]}>
-          <sphereGeometry args={[Math.max(wallW,wallD)*0.52,10,10,0,Math.PI*2,0,Math.PI/2]} />
-          <meshStandardMaterial color={roofColor} roughness={0.8} />
-        </mesh>
-      ) : (
-        <mesh position={[0,wallH+1.5,0]}>
-          <coneGeometry args={[Math.max(wallW,wallD)*0.72,wallH*0.55,roofSides]} />
-          <meshStandardMaterial color={roofColor} roughness={0.9} />
-        </mesh>
-      )}
-      {/* Front door */}
-      <mesh position={[0,2.0,wallD/2+0.04]}>
-        <planeGeometry args={[2.0,3.2]} />
-        <meshStandardMaterial color="#2e1608" roughness={1} />
-      </mesh>
-      {/* Door frame */}
-      <mesh position={[0,2.0,wallD/2+0.03]}>
-        <boxGeometry args={[2.4,3.6,0.14]} />
-        <meshStandardMaterial color={trimColor} roughness={1} />
-      </mesh>
-      <mesh position={[0,2.0,wallD/2+0.06]}>
-        <planeGeometry args={[1.9,3.0]} />
-        <meshStandardMaterial color="#2e1608" roughness={1} />
-      </mesh>
-      {/* Windows — bright yellow squares, Kenney style */}
-      {(wallW > 7 ? [-wallW/4, wallW/4] : [0]).map((wx,i)=>(
-        <group key={i}>
-          {/* Window frame */}
-          <mesh position={[wx,halfH+1.0,wallD/2+0.03]}>
-            <boxGeometry args={[1.8,1.8,0.12]} />
-            <meshStandardMaterial color={trimColor} roughness={1} />
-          </mesh>
-          {/* Window glass — bright warm yellow, Kenney style */}
-          <mesh position={[wx,halfH+1.0,wallD/2+0.07]}>
-            <planeGeometry args={[1.3,1.3]} />
-            <meshStandardMaterial color={accentColor} emissive={accentColor} emissiveIntensity={0.6} />
-          </mesh>
-          {/* Cross divider */}
-          <mesh position={[wx,halfH+1.0,wallD/2+0.08]}>
-            <boxGeometry args={[0.08,1.3,0.04]} />
-            <meshStandardMaterial color={trimColor} roughness={1} />
-          </mesh>
-          <mesh position={[wx,halfH+1.0,wallD/2+0.08]}>
-            <boxGeometry args={[1.3,0.08,0.04]} />
-            <meshStandardMaterial color={trimColor} roughness={1} />
-          </mesh>
-        </group>
-      ))}
-      {/* Sign board above door */}
-      <mesh position={[0,wallH-0.5,wallD/2+0.1]}>
-        <boxGeometry args={[Math.min(wallW-1,5.5),0.9,0.15]} />
-        <meshStandardMaterial color={roofColor} roughness={0.9} />
-      </mesh>
-      <Billboard position={[0,wallH+1.5+wallH*0.42,0]}>
-        <Text fontSize={0.72} color={labelColor} outlineWidth={0.04} outlineColor="#000" anchorX="center">
-          {label}
-        </Text>
-      </Billboard>
     </group>
   );
 }
 
-// ─── NATTOUN PALACE (Kenney grand style) ──────────────────────────────────────
-
-function NattounPalace() {
-  const flagRef = useRef<THREE.Mesh>(null);
-  useFrame(s => { if(flagRef.current) flagRef.current.rotation.z = Math.sin(s.clock.elapsedTime*2.5)*0.14; });
-  const h = getTerrainHeight(0,-20);
-  return (
-    <group position={[0,h,-20]}>
-      {/* Grand staircase steps */}
-      {[0,1,2].map(step=>(
-        <mesh key={step} position={[0,step*0.45,8-step*1.2]}>
-          <boxGeometry args={[18-step*1.5,0.45,2.2]} />
-          <meshStandardMaterial color="#c8b898" roughness={1} />
-        </mesh>
-      ))}
-      {/* Main palace body */}
-      <mesh position={[0,8.5,0]}>
-        <boxGeometry args={[26,17,18]} />
-        <meshStandardMaterial color="#f0e8d0" roughness={1} />
-      </mesh>
-      {/* Roof trim */}
-      <mesh position={[0,17.5,0]}>
-        <boxGeometry args={[27,0.6,19]} />
-        <meshStandardMaterial color="#d4c0a0" roughness={1} />
-      </mesh>
-      {/* Grand pyramid roof — 4-sided, Kenney orange-gold */}
-      <mesh position={[0,20.5,0]}>
-        <coneGeometry args={[15.5,8,4]} />
-        <meshStandardMaterial color="#e8a020" roughness={0.9} />
-      </mesh>
-      {/* Four corner towers */}
-      {[[-13,-8],[13,-8],[-13,8],[13,8]].map(([tx,tz],i)=>(
-        <group key={i} position={[tx,0,tz]}>
-          {/* Tower cylinder */}
-          <mesh position={[0,10,0]}>
-            <cylinderGeometry args={[3.0,3.4,20,8]} />
-            <meshStandardMaterial color="#e8dfc8" roughness={1} />
-          </mesh>
-          {/* Tower battlement ring */}
-          <mesh position={[0,20.5,0]}>
-            <cylinderGeometry args={[3.2,3.2,1.4,8]} />
-            <meshStandardMaterial color="#d4c8a8" roughness={1} />
-          </mesh>
-          {/* Tower cone roof */}
-          <mesh position={[0,22.5,0]}>
-            <coneGeometry args={[3.5,5,8]} />
-            <meshStandardMaterial color="#e8a020" roughness={0.9} />
-          </mesh>
-          {/* Flag pole */}
-          <mesh position={[0,26,0]}>
-            <cylinderGeometry args={[0.07,0.09,2.5,5]} />
-            <meshStandardMaterial color="#999" />
-          </mesh>
-          {/* Flag */}
-          <mesh ref={i===0?flagRef:undefined} position={[0.8,26.8,0]}>
-            <planeGeometry args={[1.6,0.9]} />
-            <meshStandardMaterial color="#cc0022" side={THREE.DoubleSide} />
-          </mesh>
-        </group>
-      ))}
-      {/* Gate arch */}
-      <mesh position={[0,4.0,9.3]}>
-        <boxGeometry args={[7.5,8,0.7]} />
-        <meshStandardMaterial color="#d4c0a0" roughness={1} />
-      </mesh>
-      <mesh position={[0,3.5,9.45]}>
-        <boxGeometry args={[4.2,7,0.4]} />
-        <meshStandardMaterial color="#1a0a04" roughness={1} />
-      </mesh>
-      {/* Arch top (half cylinder) */}
-      <mesh position={[0,7.5,9.3]} rotation={[Math.PI/2,0,0]}>
-        <cylinderGeometry args={[2.1,2.1,0.7,8,1,false,0,Math.PI]} />
-        <meshStandardMaterial color="#d4c0a0" roughness={1} side={THREE.DoubleSide} />
-      </mesh>
-      {/* Entry torch pillars */}
-      {[-5,5].map((tx,i)=>(
-        <group key={i} position={[tx,6,9.4]}>
-          <mesh><cylinderGeometry args={[0.4,0.5,8,6]} /><meshStandardMaterial color="#d4c8a8" roughness={1} /></mesh>
-          <mesh position={[0,5,0]}><sphereGeometry args={[0.28,7,7]} /><meshStandardMaterial color="#ffcc00" emissive="#ff9900" emissiveIntensity={3} /></mesh>
-        </group>
-      ))}
-      {/* Front windows (large arched) */}
-      {[-8,8].map((wx,i)=>(
-        <group key={i} position={[wx,9,9.15]}>
-          <mesh><boxGeometry args={[2.5,5,0.18]} /><meshStandardMaterial color="#d4c0a0" roughness={1} /></mesh>
-          <mesh position={[0,0,0.1]}><planeGeometry args={[2.0,4.5]} /><meshStandardMaterial color="#ffd080" emissive="#ffc040" emissiveIntensity={0.5} /></mesh>
-        </group>
-      ))}
-      {/* Label */}
-      <Billboard position={[0,30,0]}>
-        <Text fontSize={1.8} color="#ffd600" outlineWidth={0.06} outlineColor="#000" anchorX="center">
-          🏛 NATTOUN PALACE 🏛
-        </Text>
-      </Billboard>
-      {/* Single warm point light for palace glow */}
-      <pointLight position={[0,12,5]} intensity={2.5} color="#ffaa00" distance={45} />
-    </group>
-  );
-}
-
-// ─── STREAM STUDIO (Kenney broadcast style) ───────────────────────────────────
-
-function StreamStudio() {
-  const screenRef = useRef<THREE.Mesh>(null);
-  useFrame(s => {
-    if(screenRef.current) (screenRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.7+Math.sin(s.clock.elapsedTime*3)*0.25;
-  });
-  const h = getTerrainHeight(22,11);
-  return (
-    <group position={[22,h,11]}>
-      {/* Foundation */}
-      <mesh position={[0,0.25,0]}>
-        <boxGeometry args={[19,0.5,15]} /><meshStandardMaterial color="#2a2a38" roughness={1} />
-      </mesh>
-      {/* Main body */}
-      <mesh position={[0,6,0]}>
-        <boxGeometry args={[17,12,13]} /><meshStandardMaterial color="#16082a" roughness={0.8} />
-      </mesh>
-      {/* Roof slab */}
-      <mesh position={[0,12.7,0]}>
-        <boxGeometry args={[18,1.4,14]} /><meshStandardMaterial color="#220a3a" roughness={0.8} />
-      </mesh>
-      {/* LED screen on front */}
-      <mesh ref={screenRef} position={[0,6.5,6.6]}>
-        <planeGeometry args={[13,8]} />
-        <meshStandardMaterial color="#0a0060" emissive="#4400ff" emissiveIntensity={0.7} />
-      </mesh>
-      {/* LIVE text on screen */}
-      <Billboard position={[0,8.5,7]}>
-        <Text fontSize={1.0} color="#ff0040" outlineWidth={0.04} outlineColor="#000">🔴 LIVE — M3KKY</Text>
-      </Billboard>
-      <Billboard position={[0,6.5,7]}>
-        <Text fontSize={0.52} color="#ffffff" outlineWidth={0.02} outlineColor="#000">BAHAMAS STREAMING</Text>
-      </Billboard>
-      {/* Satellite dish on roof */}
-      <group position={[5,14,-1]}>
-        <mesh position={[0,0,0]}><cylinderGeometry args={[0.09,0.09,2.2,5]} /><meshStandardMaterial color="#aaa" /></mesh>
-        <mesh position={[0,1.3,0]} rotation={[-0.7,0,0]}>
-          <coneGeometry args={[1.2,0.4,10,1,true]} /><meshStandardMaterial color="#ccc" side={THREE.DoubleSide} />
-        </mesh>
-      </group>
-      {/* Roof antenna */}
-      <mesh position={[-4,16,0]}><cylinderGeometry args={[0.06,0.06,4,4]} /><meshStandardMaterial color="#888" /></mesh>
-      {/* Corner neon rods */}
-      {[[-8,10],[8,10],[-8,-6],[8,-6]].map(([lx,lz],i)=>(
-        <mesh key={i} position={[lx,12.8,lz]}>
-          <boxGeometry args={[0.35,0.35,0.35]} />
-          <meshStandardMaterial color={["#ff0080","#8800ff","#00ccff","#ff4400"][i]} emissive={["#ff0080","#8800ff","#00ccff","#ff4400"][i]} emissiveIntensity={3} />
-        </mesh>
-      ))}
-      <pointLight position={[0,9,6]} intensity={2.5} color="#6600ff" distance={28} />
-    </group>
-  );
-}
-
-// ─── CITY FOUNTAIN ────────────────────────────────────────────────────────────
+// ─── CITY FOUNTAIN ───────────────────────────────────────────────────────────
 
 function CityFountain() {
   const jetRef = useRef<THREE.Mesh>(null);
@@ -609,36 +374,83 @@ function CityFountain() {
   );
 }
 
-// ─── BAHAMAS CITY CENTER ──────────────────────────────────────────────────────
+// ─── STREAM STUDIO SCREEN OVERLAY ────────────────────────────────────────────
+
+function StreamStudioOverlay() {
+  const screenRef = useRef<THREE.Mesh>(null);
+  useFrame(s => {
+    if(screenRef.current) (screenRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.7+Math.sin(s.clock.elapsedTime*3)*0.25;
+  });
+  const h = getTerrainHeight(22,11);
+  return (
+    <group position={[22,h,11]}>
+      {/* LED screen overlay on the front of the Kenney building */}
+      <mesh ref={screenRef} position={[0,8,7]}>
+        <planeGeometry args={[10,6]} />
+        <meshStandardMaterial color="#0a0060" emissive="#4400ff" emissiveIntensity={0.7} />
+      </mesh>
+      <Billboard position={[0,10,7.2]}>
+        <Text fontSize={0.9} color="#ff0040" outlineWidth={0.03} outlineColor="#000">🔴 LIVE — M3KKY</Text>
+      </Billboard>
+      <Billboard position={[0,8.2,7.2]}>
+        <Text fontSize={0.48} color="#fff" outlineWidth={0.02} outlineColor="#000">BAHAMAS STREAMING</Text>
+      </Billboard>
+      <pointLight position={[0,10,5]} intensity={2.5} color="#6600ff" distance={28} />
+    </group>
+  );
+}
+
+// ─── BAHAMAS CITY (uses real Kenney GLB buildings) ────────────────────────────
 
 const BahamasCity = memo(function BahamasCity() {
   return (
     <group>
-      <NattounPalace />
-      <StreamStudio />
-      {/* Kenney.nl style buildings — flat matte colors, pyramid roofs */}
-      <KenneyBuilding pos={[-21,0,10]}  wallW={12} wallH={9}  wallD={10} wallColor="#e0d8c8" roofColor="#bb2222" roofSides={4} trimColor="#c8b8a0" accentColor="#ffd080" label="⚖ Court"    labelColor="#cc0000" />
-      <KenneyBuilding pos={[0,0,21]}    wallW={13} wallH={8}  wallD={10} wallColor="#ece8d8" roofColor="#d4a800" roofSides={4} trimColor="#d4c8a0" accentColor="#ffd060" label="🏦 NC Bank"  labelColor="#8a6000" hasDome />
-      <KenneyBuilding pos={[-19,0,-7]}  wallW={11} wallH={8}  wallD={9}  wallColor="#dce8f0" roofColor="#3355aa" roofSides={4} trimColor="#c0ccd8" accentColor="#ffffff" label="🎭 Museum"   labelColor="#334499" />
-      <KenneyBuilding pos={[19,0,-7]}   wallW={10} wallH={7}  wallD={9}  wallColor="#d8e0f0" roofColor="#223388" roofSides={4} trimColor="#c0c8e0" accentColor="#aaccff" label="🚔 Police"   labelColor="#1122aa" />
-      <KenneyBuilding pos={[-9,0,21]}   wallW={10} wallH={7}  wallD={9}  wallColor="#f0e8d8" roofColor="#885522" roofSides={4} trimColor="#d4c8a8" accentColor="#ffcc88" label="📚 Library"  labelColor="#664400" />
-      <KenneyBuilding pos={[11,0,21]}   wallW={10} wallH={7}  wallD={9}  wallColor="#e8f0e0" roofColor="#228833" roofSides={4} trimColor="#c8d8c0" accentColor="#88ff88" label="📮 Post"     labelColor="#115522" />
-      <KenneyBuilding pos={[-23,0,-20]} wallW={10} wallH={7}  wallD={9}  wallColor="#1a1a28" roofColor="#aa00ff" roofSides={4} trimColor="#2a2038" accentColor="#dd00ff" label="🎮 Arcade"   labelColor="#ee00ff" />
-      <KenneyBuilding pos={[23,0,-20]}  wallW={10} wallH={7}  wallD={9}  wallColor="#e8f4f8" roofColor="#009999" roofSides={4} trimColor="#c8d8e0" accentColor="#00dddd" label="📡 Weather"  labelColor="#006666" />
-      <KenneyBuilding pos={[0,0,-21]}   wallW={10} wallH={7}  wallD={9}  wallColor="#1a1828" roofColor="#880099" roofSides={4} trimColor="#241830" accentColor="#cc00ee" label="🚪 OG Gate"  labelColor="#cc00ee" />
-      <KenneyBuilding pos={[30,0,9]}    wallW={10} wallH={7}  wallD={9}  wallColor="#e4f0e4" roofColor="#1a7030" roofSides={4} trimColor="#c4d8c4" accentColor="#88ee88" label="🎵 Anthem"   labelColor="#115522" />
-      <KenneyBuilding pos={[-30,0,9]}   wallW={10} wallH={7}  wallD={9}  wallColor="#f4ece4" roofColor="#994422" roofSides={4} trimColor="#d8c8b8" accentColor="#ffaa66" label="📞 Service"  labelColor="#882211" />
+      {/* ── NATTOUN PALACE — skyscraper-b is the tallest, most grand ── */}
+      <KenneyModel
+        path="/models/kenney/building-skyscraper-b.glb"
+        pos={[0, 0, -20]} scale={5.5} rotY={Math.PI}
+        label="🏛 NATTOUN PALACE 🏛" labelColor="#ffd600"
+      />
+      {/* Flanking palace towers */}
+      <KenneyModel path="/models/kenney/building-skyscraper-a.glb" pos={[-14,0,-18]} scale={4} rotY={Math.PI} />
+      <KenneyModel path="/models/kenney/building-skyscraper-a.glb" pos={[14,0,-18]} scale={4} rotY={Math.PI} />
+
+      {/* ── STREAM STUDIO — skyscraper-c with LED overlay ── */}
+      <KenneyModel
+        path="/models/kenney/building-skyscraper-c.glb"
+        pos={[22,0,11]} scale={4.5} rotY={-Math.PI/2}
+        label="📺 STREAM STUDIO" labelColor="#bd93f9"
+      />
+      <StreamStudioOverlay />
+
+      {/* ── CITY BUILDINGS — genuine Kenney commercial GLBs ── */}
+      <KenneyModel path="/models/kenney/building-a.glb" pos={[-21,0,10]} scale={3.5} label="⚖ Court"     labelColor="#ff4444" />
+      <KenneyModel path="/models/kenney/building-b.glb" pos={[0,0,21]}   scale={3.5} label="🏦 NC Bank"   labelColor="#ffd600" />
+      <KenneyModel path="/models/kenney/building-c.glb" pos={[-19,0,-7]} scale={3.5} label="🎭 Museum"    labelColor="#80d8ff" />
+      <KenneyModel path="/models/kenney/building-d.glb" pos={[19,0,-7]}  scale={3.5} label="🚔 Police"    labelColor="#4488ff" />
+      <KenneyModel path="/models/kenney/building-e.glb" pos={[-9,0,21]}  scale={3.5} label="📚 Library"   labelColor="#ffaa44" />
+      <KenneyModel path="/models/kenney/building-f.glb" pos={[11,0,21]}  scale={3.5} label="📮 Post"      labelColor="#44cc44" />
+      <KenneyModel path="/models/kenney/building-g.glb" pos={[-23,0,-20]} scale={3.5} label="🎮 Arcade"   labelColor="#ee00ff" />
+      <KenneyModel path="/models/kenney/building-h.glb" pos={[23,0,-20]} scale={3.5} label="📡 Weather"   labelColor="#00dddd" />
+      <KenneyModel path="/models/kenney/building-i.glb" pos={[0,0,-21]}  scale={3.5} label="🚪 OG Gate"   labelColor="#cc00ee" />
+      <KenneyModel path="/models/kenney/building-j.glb" pos={[30,0,9]}   scale={3.5} label="🎵 Anthem"    labelColor="#88ee88" />
+      <KenneyModel path="/models/kenney/building-k.glb" pos={[-30,0,9]}  scale={3.5} label="📞 Service"   labelColor="#ffaa66" />
+
+      {/* Suburban-style smaller buildings around the edges */}
+      <KenneyModel path="/models/kenney/suburban-building-type-a.glb" pos={[-32,0,22]} scale={3} rotY={Math.PI/2} />
+      <KenneyModel path="/models/kenney/suburban-building-type-b.glb" pos={[32,0,22]}  scale={3} rotY={-Math.PI/2} />
+      <KenneyModel path="/models/kenney/suburban-building-type-c.glb" pos={[-32,0,-5]} scale={3} rotY={Math.PI/2} />
+      <KenneyModel path="/models/kenney/suburban-building-type-d.glb" pos={[32,0,-5]}  scale={3} rotY={-Math.PI/2} />
 
       {/* Central fountain */}
       <CityFountain />
 
-      {/* City walls — Kenney stone color */}
+      {/* City wall — Kenney stone color */}
       {([[0,2.5,-35,72,5,2.2],[0,2.5,35,72,5,2.2],[-35,2.5,0,2.2,5,72],[35,2.5,0,2.2,5,72]] as [number,number,number,number,number,number][]).map(([x,y,z,w,hh,d],i)=>(
         <mesh key={i} position={[x,y,z]}>
           <boxGeometry args={[w,hh,d]} /><meshStandardMaterial color="#7a6858" roughness={1} />
         </mesh>
       ))}
-      {/* Wall battlements */}
       {([-24,-14,-4,6,16,26] as number[]).map((wx,i)=>(
         <group key={i}>
           <mesh position={[wx,5.5,-35]}><boxGeometry args={[3.5,1.8,2.2]} /><meshStandardMaterial color="#8a7868" roughness={1} /></mesh>
@@ -646,18 +458,34 @@ const BahamasCity = memo(function BahamasCity() {
         </group>
       ))}
 
-      {/* Street lamps — Kenney style */}
-      {([[-26,0,0],[26,0,0],[0,0,-26],[0,0,26],[-14,0,-26],[14,0,-26],[-14,0,26],[14,0,26]] as [number,number,number][]).map((p,i)=>(
-        <KenneyLamp key={i} pos={p} />
+      {/* Street lamps */}
+      {([ [-26,0,0],[26,0,0],[0,0,-26],[0,0,26],
+          [-14,0,-26],[14,0,-26],[-14,0,26],[14,0,26] ] as [number,number,number][]).map((p,i)=>(
+        <LampPost key={i} pos={p} />
       ))}
 
       {/* Corner bushes */}
-      {([[-32,0,-32],[32,0,-32],[-32,0,32],[32,0,32]] as [number,number,number][]).map((p,i)=>(
+      {([ [-32,0,-32],[32,0,-32],[-32,0,32],[32,0,32] ] as [number,number,number][]).map((p,i)=>(
         <group key={i} position={[p[0],getTerrainHeight(p[0],p[2]),p[2]]}>
           <mesh position={[0,0.7,0]}><sphereGeometry args={[1.1,6,6]} /><meshStandardMaterial color="#4a9a22" roughness={1} /></mesh>
           <mesh position={[0.9,0.5,0.6]}><sphereGeometry args={[0.72,6,6]} /><meshStandardMaterial color="#3a8018" roughness={1} /></mesh>
         </group>
       ))}
+
+      {/* Kenney trees near city — use the suburban tree GLBs */}
+      <KenneyModel path="/models/kenney/suburban-tree-large.glb" pos={[-38,0,8]}  scale={4} />
+      <KenneyModel path="/models/kenney/suburban-tree-small.glb" pos={[-40,0,20]} scale={3.5} />
+      <KenneyModel path="/models/kenney/suburban-tree-large.glb" pos={[40,0,25]}  scale={4} />
+      <KenneyModel path="/models/kenney/suburban-tree-small.glb" pos={[38,0,-25]} scale={3.5} />
+      <KenneyModel path="/models/kenney/suburban-tree-large.glb" pos={[0,0,42]}   scale={4} />
+      <KenneyModel path="/models/kenney/suburban-tree-small.glb" pos={[-10,0,44]} scale={3.5} />
+      <KenneyModel path="/models/kenney/suburban-tree-large.glb" pos={[10,0,44]}  scale={4} />
+
+      {/* Kenney fences around city perimeter */}
+      <KenneyModel path="/models/kenney/suburban-fence-3x3.glb" pos={[-30,0,35]} scale={2.5} />
+      <KenneyModel path="/models/kenney/suburban-fence-3x3.glb" pos={[30,0,35]}  scale={2.5} />
+      <KenneyModel path="/models/kenney/suburban-fence-3x3.glb" pos={[-30,0,-35]} scale={2.5} rotY={Math.PI} />
+      <KenneyModel path="/models/kenney/suburban-fence-3x3.glb" pos={[30,0,-35]}  scale={2.5} rotY={Math.PI} />
 
       {/* City name */}
       <Billboard position={[0,6,-38]}>
@@ -678,22 +506,15 @@ const EXILE_TREES: [number,number,number][] = [
 const ExileForest = memo(function ExileForest() {
   return (
     <group>
-      <KenneyDeadTreeInstanced positions={EXILE_TREES} />
-      <KenneyRockInstanced positions={[[-48,0,-50],[-58,0,-38],[-40,0,-60],[-70,0,-48],[-52,0,-66]] as [number,number,number][]} color="#2a2420" />
-      {([[-44,0,-42],[-50,0,-50],[-58,0,-44],[-36,0,-58],[-66,0,-54]] as [number,number,number][]).map((p,i)=>(
-        <group key={i} position={[p[0],getTerrainHeight(p[0],p[2]),p[2]]}>
-          <mesh position={[0,0.6,0]}><sphereGeometry args={[0.85,6,6]} /><meshStandardMaterial color="#1a2e10" roughness={1} /></mesh>
-        </group>
-      ))}
+      <DeadTreeInstanced positions={EXILE_TREES} />
+      {([[–48,0,-50],[–58,0,-38],[–40,0,-60],[–70,0,-48],[–52,0,-66]] as [number,number,number][]).map((p,i)=>{ const h=getTerrainHeight(p[0],p[2]); return (<group key={i} position={[p[0],h,p[2]]}><mesh position={[0,0.6,0]}><sphereGeometry args={[0.85,6,6]} /><meshStandardMaterial color="#1a2e10" roughness={1} /></mesh></group>); })}
       <KenneySign pos={[-42,0,-44]} text="EXILED FROM BAHAMAS" textCol="#3df7ff" />
       <KenneySign pos={[-55,0,-55]} text="NO RETURN" textCol="#ff4444" />
       <KenneySign pos={[-38,0,-62]} text="YOU DISOBEYED NATTOUN" textCol="#3df7ff" />
       {([[-44,3,-48],[-60,4,-54],[-52,3.5,-62]] as [number,number,number][]).map(([x,y,z],i)=>(
-        <group key={i}>
-          <mesh position={[x,getTerrainHeight(x,z)+y,z]}>
-            <sphereGeometry args={[0.26,6,6]} /><meshStandardMaterial color="#3df7ff" emissive="#10a0c0" emissiveIntensity={5} />
-          </mesh>
-        </group>
+        <mesh key={i} position={[x,getTerrainHeight(x,z)+y,z]}>
+          <sphereGeometry args={[0.26,6,6]} /><meshStandardMaterial color="#3df7ff" emissive="#10a0c0" emissiveIntensity={5} />
+        </mesh>
       ))}
       <Billboard position={[-52,22,-52]}>
         <Text fontSize={2} color="#3df7ff" outlineWidth={0.06} outlineColor="#000">THE EXILE FOREST</Text>
@@ -709,7 +530,7 @@ const BannedTundra = memo(function BannedTundra() {
   const citizens: [number,number,number][] = [[8,0,-48],[20,0,-55],[-10,0,-60],[30,0,-62],[-5,0,-72]];
   return (
     <group>
-      {citizens.map(([x,y,z],i)=>{
+      {citizens.map(([x,,z],i)=>{
         const h = getTerrainHeight(x,z);
         return (
           <group key={i} position={[x,h,z]}>
@@ -734,7 +555,6 @@ const BannedTundra = memo(function BannedTundra() {
         );
       })}
       <WaterPlane pos={[10,getTerrainHeight(10,-55)+0.15,-55]} w={26} d={22} color="#90c8e8" />
-      <KenneyRockInstanced positions={[[18,0,-48],[-8,0,-58],[25,0,-68],[5,0,-75],[-20,0,-65]] as [number,number,number][]} color="#d8eeff" />
       <group position={[0,getTerrainHeight(0,-76),-76]}>
         <mesh position={[0,6,0]}>
           <boxGeometry args={[22,8,1.6]} /><meshStandardMaterial color="#1a0000" roughness={1} />
@@ -782,15 +602,15 @@ function TrollPortal() {
   );
 }
 
-const TROLL_DEAD_TREES: [number,number,number][] = [
+const TROLL_DEAD: [number,number,number][] = [
   [48,0,-35],[58,0,-50],[72,0,-28],[50,0,22],[68,0,38],[75,0,12],[52,0,-15],[80,0,-15],[62,0,-42],
 ];
 
 const TrollDimension = memo(function TrollDimension() {
   return (
     <group>
-      <KenneyDeadTreeInstanced positions={TROLL_DEAD_TREES} />
-      {([[48,0,45],[70,0,-55]] as [number,number,number][]).map(([x,y,z],i)=>{
+      <DeadTreeInstanced positions={TROLL_DEAD} />
+      {([[48,0,45],[70,0,-55]] as [number,number,number][]).map(([x,,z],i)=>{
         const h = getTerrainHeight(x,z);
         return (
           <group key={i} position={[x,h,z]}>
@@ -800,17 +620,15 @@ const TrollDimension = memo(function TrollDimension() {
                 <sphereGeometry args={[0.55,7,7]} /><meshStandardMaterial color="#ff2d8c" emissive="#ff0060" emissiveIntensity={4} />
               </mesh>
             ))}
-            <mesh position={[0,2.0,2.65]}><boxGeometry args={[2.2,0.5,0.2]} /><meshStandardMaterial color="#ff0040" emissive="#aa0020" emissiveIntensity={1.2} /></mesh>
           </group>
         );
       })}
-      {([[52,0,-25],[64,0,8],[57,0,32]] as [number,number,number][]).map(([x,y,z],i)=>(
+      {([[52,0,-25],[64,0,8],[57,0,32]] as [number,number,number][]).map(([x,,z],i)=>(
         <WaterPlane key={i} pos={[x,getTerrainHeight(x,z)+0.2,z]} w={5} d={5} color="#cc00ff" />
       ))}
       <KenneySign pos={[50,0,-25]} text="L + RATIO" textCol="#ff2d8c" />
       <KenneySign pos={[58,0,15]} text="SKILL ISSUE" textCol="#ff2d8c" />
       <KenneySign pos={[72,0,-20]} text="NATTOUN WAS RIGHT" textCol="#ff2d8c" />
-      <KenneyRockInstanced positions={[[55,0,-32],[70,0,15],[60,0,-50],[80,0,40]] as [number,number,number][]} color="#280838" />
       <TrollPortal />
       <Billboard position={[62,24,-5]}>
         <Text fontSize={2} color="#ff2d8c" outlineWidth={0.06} outlineColor="#000">TROLL DIMENSION</Text>
@@ -820,7 +638,7 @@ const TrollDimension = memo(function TrollDimension() {
   );
 });
 
-// ─── STREAM COLOSSEUM SE ──────────────────────────────────────────────────────
+// ─── STREAM COLOSSEUM SE ─────────────────────────────────────────────────────
 
 const StreamColosseum = memo(function StreamColosseum() {
   const scrRef = useRef<THREE.Mesh>(null);
@@ -828,31 +646,19 @@ const StreamColosseum = memo(function StreamColosseum() {
   const ah = getTerrainHeight(56,57);
   return (
     <group>
-      {/* Arena floor */}
       <mesh rotation={[-Math.PI/2,0,0]} position={[56,ah+0.05,57]}>
         <circleGeometry args={[30,20]} /><meshStandardMaterial color="#1a0c2e" roughness={1} />
       </mesh>
-      {/* Kenney-style colosseum walls (4 sides) */}
       {([[56,5,42,72,10,2.5],[56,5,72,72,10,2.5],[24,5,57,2.5,10,32],[88,5,57,2.5,10,32]] as [number,number,number,number,number,number][]).map(([x,y,z,w,hh,d],i)=>(
         <mesh key={i} position={[x,ah+hh/2,z]}>
           <boxGeometry args={[w,hh,d]} /><meshStandardMaterial color="#2d1848" roughness={1} />
         </mesh>
       ))}
-      {/* Kenney corner towers — cylinder + cone roof */}
-      {([[24,44],[88,44],[24,70],[88,70]] as [number,number][]).map(([tx,tz],i)=>{
-        const th = getTerrainHeight(tx,tz);
-        return (
-          <group key={i} position={[tx,th,tz]}>
-            <mesh position={[0,10,0]}>
-              <cylinderGeometry args={[3.2,3.8,20,8]} /><meshStandardMaterial color="#3d1a5a" roughness={1} />
-            </mesh>
-            <mesh position={[0,21,0]}>
-              <coneGeometry args={[4.2,6,8]} /><meshStandardMaterial color="#bd93f9" roughness={0.8} />
-            </mesh>
-          </group>
-        );
-      })}
-      {/* Stage */}
+      {/* Corner towers using Kenney suburban buildings */}
+      <KenneyModel path="/models/kenney/suburban-building-type-e.glb" pos={[24,0,44]} scale={3} rotY={Math.PI/4} />
+      <KenneyModel path="/models/kenney/suburban-building-type-e.glb" pos={[88,0,44]} scale={3} rotY={-Math.PI/4} />
+      <KenneyModel path="/models/kenney/suburban-building-type-e.glb" pos={[24,0,70]} scale={3} rotY={Math.PI*0.75} />
+      <KenneyModel path="/models/kenney/suburban-building-type-e.glb" pos={[88,0,70]} scale={3} rotY={-Math.PI*0.75} />
       <mesh position={[56,ah+1,57]}><boxGeometry args={[18,2,14]} /><meshStandardMaterial color="#3d2060" roughness={1} /></mesh>
       <mesh ref={scrRef} position={[56,ah+6,45]}>
         <boxGeometry args={[14,8,0.5]} /><meshStandardMaterial color="#200060" emissive="#6600ff" emissiveIntensity={1} />
@@ -873,33 +679,16 @@ const SWAMP_TREES: [number,number,number][] = [
 const SpamSwamp = memo(function SpamSwamp() {
   return (
     <group>
-      <KenneyTreeInstanced positions={SWAMP_TREES} leaf="#142208" trunk="#1a0e04" />
+      <PineTreeInstanced positions={SWAMP_TREES} leaf="#142208" trunk="#1a0e04" />
       <WaterPlane pos={[-52,getTerrainHeight(-52,52)+0.3,52]} w={22} d={18} color="#1a4010" />
-      {([[-46,0,46],[-54,0,50],[-42,0,60],[-60,0,64]] as [number,number,number][]).map((p,i)=>{
-        const mh = getTerrainHeight(p[0],p[2]);
-        return (
-          <group key={i} position={[p[0],mh,p[2]]}>
-            <mesh position={[0,0.3,0]}><cylinderGeometry args={[0.09,0.13,0.55,5]} /><meshStandardMaterial color="#d0b898" roughness={1} /></mesh>
-            <mesh position={[0,0.62,0]}><sphereGeometry args={[0.38,7,7]} /><meshStandardMaterial color="#cc2222" roughness={1} /></mesh>
-          </group>
-        );
-      })}
-      {/* Spam Bot Factory — Kenney industrial style */}
-      <group position={[-58,getTerrainHeight(-58,60),60]}>
-        <mesh position={[0,0.3,0]}><boxGeometry args={[16,0.6,14]} /><meshStandardMaterial color="#1a2a10" roughness={1} /></mesh>
-        <mesh position={[0,6.5,0]}><boxGeometry args={[15,13,13]} /><meshStandardMaterial color="#102208" roughness={1} /></mesh>
-        <mesh position={[0,13.5,0]}><boxGeometry args={[16,1.4,14]} /><meshStandardMaterial color="#1a3010" roughness={1} /></mesh>
-        {[-3.5,3.5].map((cx,i)=>(
-          <group key={i} position={[cx,15,0]}>
-            <mesh><cylinderGeometry args={[0.9,1.1,4.5,7]} /><meshStandardMaterial color="#1a2a10" roughness={1} /></mesh>
-            <mesh position={[0,3.5,0]}><sphereGeometry args={[1.1,7,7]} /><meshStandardMaterial color="#39ff14" emissive="#1a8000" emissiveIntensity={2.5} /></mesh>
-          </group>
-        ))}
-        <Billboard position={[0,16,8]}><Text fontSize={0.7} color="#39ff14" outlineWidth={0.03} outlineColor="#000">SPAM BOT FACTORY</Text></Billboard>
-      </group>
+      {/* Spam Factory using Kenney skyscraper */}
+      <KenneyModel
+        path="/models/kenney/building-skyscraper-d.glb"
+        pos={[-58,0,60]} scale={4} rotY={Math.PI/2}
+        label="SPAM BOT FACTORY" labelColor="#39ff14"
+      />
       <KenneySign pos={[-44,0,44]} text="FREE BAHAMAS COINS" textCol="#39ff14" />
       <KenneySign pos={[-56,0,54]} text="CLICK HERE!!!" textCol="#39ff14" />
-      <KenneyRockInstanced positions={[[-45,0,55],[-62,0,48],[-50,0,70],[-68,0,62]] as [number,number,number][]} color="#1a2a10" />
       <Billboard position={[-54,22,54]}><Text fontSize={2} color="#39ff14" outlineWidth={0.06} outlineColor="#002800">SPAM SWAMP</Text></Billboard>
       <pointLight position={[-54,8,54]} intensity={2} color="#103010" distance={55} />
     </group>
@@ -926,7 +715,6 @@ function BorderMountains() {
       const x=Math.cos(t)*rad, z=Math.sin(t)*rad;
       arr.push({ pos:[x,getTerrainHeight(x,z),z] as [number,number,number], h:20+Math.sin(i*1.6)*9, r:9+Math.sin(i*2.2)*3.5, ci:i%3 });
     }
-    // 4 corner giants
     const corners:number[][] = [[-HALF+8,-HALF+8],[HALF-8,-HALF+8],[-HALF+8,HALF-8],[HALF-8,HALF-8]];
     corners.forEach(([x,z])=>arr.push({ pos:[x,getTerrainHeight(x,z),z] as [number,number,number], h:34, r:12, ci:0 }));
     return arr;
@@ -1084,7 +872,6 @@ function MonsterEntity({ mon, onHit, playerHpCb }: {
     const dist = mon.pos.distanceTo(cam.position);
 
     if(mon.type==="ghost") mon.pos.y = 1.5+Math.sin(state.clock.elapsedTime*1.2+mon.floatOffset)*0.6;
-
     if(dist < AGGRO_RANGE) mon.aggro = true;
     if(dist > AGGRO_RANGE*2.2) mon.aggro = false;
 
@@ -1263,7 +1050,6 @@ function WorldScene({ monstersRef, onMonsterHit, onPositionUpdate, onLockChange,
       <color attach="background" args={["#1e2e44"]} />
       <fog attach="fog" args={["#1e2e44",75,190]} />
 
-      {/* Performance-friendly lighting: 1 shadow caster + ambient only */}
       <ambientLight intensity={0.6} color="#d0dce8" />
       <directionalLight
         position={[35,70,25]} intensity={1.2} color="#f0e8d8"
@@ -1273,30 +1059,19 @@ function WorldScene({ monstersRef, onMonsterHit, onPositionUpdate, onLockChange,
         shadow-camera-left={-70} shadow-camera-right={70}
         shadow-camera-top={70} shadow-camera-bottom={-70}
       />
-      {/* Soft warm fill — NO shadows */}
       <directionalLight position={[-20,15,0]} intensity={0.2} color="#ffcc80" />
 
-      {/* Sky */}
       <Sky sunPosition={[0.3,0.18,1]} turbidity={5} rayleigh={1.8} mieCoefficient={0.003} mieDirectionalG={0.72} />
 
-      {/* Terrain */}
       <WorldTerrain />
-
-      {/* Water */}
       <WaterPlane pos={[0,0.4,0]} w={8} d={8} color="#2a7acc" />
-
-      {/* Border mountains */}
       <BorderMountains />
-
-      {/* Particles */}
       <Particles />
 
-      {/* Plains trees — instanced */}
       <Suspense fallback={null}>
-        <KenneyTreeInstanced positions={PLAINS_TREES} leaf="#2e7a1a" />
+        <PineTreeInstanced positions={PLAINS_TREES} leaf="#2e7a1a" />
       </Suspense>
 
-      {/* Zone content */}
       <Suspense fallback={null}>
         <BahamasCity />
         <ExileForest />
@@ -1306,18 +1081,15 @@ function WorldScene({ monstersRef, onMonsterHit, onPositionUpdate, onLockChange,
         <SpamSwamp />
       </Suspense>
 
-      {/* Direction signs */}
       <KenneySign pos={[0,0,37]} text="↑ BAHAMAS PLAINS" textCol="#76c442" />
       <KenneySign pos={[37,0,0]} text="→ TROLL DIMENSION" textCol="#ff2d8c" />
       <KenneySign pos={[-37,0,0]} text="← EXILE FOREST" textCol="#3df7ff" />
       <KenneySign pos={[0,0,-37]} text="↓ BANNED TUNDRA" textCol="#80d8ff" />
 
-      {/* Monsters */}
       {monstersRef.current.map(mon=>(
         <MonsterEntity key={mon.id} mon={mon} onHit={onMonsterHit} playerHpCb={playerHpCb} />
       ))}
 
-      {/* Other players */}
       {otherPlayers.map(p=><OtherPlayer key={p.id} p={p} />)}
 
       <PlayerController monstersRef={monstersRef} onMonsterHit={onMonsterHit} onPositionUpdate={onPositionUpdate} skills={skills} onSkillUse={onSkillUse} />
@@ -1394,7 +1166,6 @@ function HUD({ username,color,origin,hp,maxHp,mp,maxMp,kills,xp,skills,skillCool
         </motion.div>
       </div>}
 
-      {/* Player stats */}
       <div className="absolute top-3 left-3 flex flex-col gap-1.5 pointer-events-auto min-w-[188px]">
         <div className="bg-black/80 border border-white/15 px-3 py-2.5 space-y-2" style={{boxShadow:`0 0 18px ${color}22`}}>
           <div className="flex items-center gap-2">
@@ -1423,13 +1194,11 @@ function HUD({ username,color,origin,hp,maxHp,mp,maxMp,kills,xp,skills,skillCool
         </div>
       </div>
 
-      {/* Top right */}
       <div className="absolute top-3 right-3 flex gap-2 pointer-events-auto">
         <div className="bg-black/70 border border-white/10 px-3 py-2 flex items-center gap-2"><Users className="w-3 h-3 text-pink-400" /><span className="text-pink-300 font-mono text-xs">{onlineCount} online</span></div>
         <button onClick={onLeave} className="bg-black/70 border border-red-500/40 px-3 py-2 text-red-400 hover:bg-red-900/30 transition flex items-center gap-1"><LogOut className="w-3 h-3" /></button>
       </div>
 
-      {/* Skill bar */}
       {locked&&<div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 items-end">
         <div className="flex flex-col items-center gap-0.5">
           <div className="w-12 h-12 bg-black/70 border-2 border-white/30 flex items-center justify-center text-white text-sm font-mono">⚔</div>
@@ -1450,7 +1219,6 @@ function HUD({ username,color,origin,hp,maxHp,mp,maxMp,kills,xp,skills,skillCool
         );})}
       </div>}
 
-      {/* Chat */}
       <div className="absolute bottom-3 left-3 w-72 space-y-1.5 pointer-events-auto">
         <div ref={chatRef} className="bg-black/65 border border-white/10 p-2 h-28 overflow-y-auto space-y-0.5">
           {chatMessages.map(m=><div key={m.id} className="font-mono text-[10px] leading-tight"><span style={{color:"#ff2d8c"}}>{m.username}: </span><span className="text-white/80">{m.text}</span></div>)}
@@ -1467,7 +1235,6 @@ function HUD({ username,color,origin,hp,maxHp,mp,maxMp,kills,xp,skills,skillCool
         ):(locked&&<button onClick={()=>setShowChat(true)} className="text-white/30 font-mono text-[10px] uppercase hover:text-primary transition">[T] Chat</button>)}
       </div>
 
-      {/* Minimap */}
       <div className="absolute bottom-3 right-3 pointer-events-none"><Minimap x={playerX} z={playerZ} /></div>
 
       {locked&&<div className="absolute top-3 left-1/2 -translate-x-1/2 pointer-events-none">
@@ -1495,8 +1262,6 @@ function DamageNumbers({ nums }: { nums:DmgNumber[] }) {
   );
 }
 
-// ─── SKILL FLASH ──────────────────────────────────────────────────────────────
-
 function SkillFlash({ color,label }: { color:string; label:string }) {
   return (
     <motion.div className="absolute inset-0 pointer-events-none z-25 flex items-center justify-center"
@@ -1505,6 +1270,25 @@ function SkillFlash({ color,label }: { color:string; label:string }) {
     </motion.div>
   );
 }
+
+// ─── PRELOAD all Kenney GLBs for zero-wait loading ───────────────────────────
+
+const KENNEY_PRELOADS = [
+  "/models/kenney/building-a.glb","/models/kenney/building-b.glb",
+  "/models/kenney/building-c.glb","/models/kenney/building-d.glb",
+  "/models/kenney/building-e.glb","/models/kenney/building-f.glb",
+  "/models/kenney/building-g.glb","/models/kenney/building-h.glb",
+  "/models/kenney/building-i.glb","/models/kenney/building-j.glb",
+  "/models/kenney/building-k.glb",
+  "/models/kenney/building-skyscraper-a.glb","/models/kenney/building-skyscraper-b.glb",
+  "/models/kenney/building-skyscraper-c.glb","/models/kenney/building-skyscraper-d.glb",
+  "/models/kenney/suburban-building-type-a.glb","/models/kenney/suburban-building-type-b.glb",
+  "/models/kenney/suburban-building-type-c.glb","/models/kenney/suburban-building-type-d.glb",
+  "/models/kenney/suburban-building-type-e.glb",
+  "/models/kenney/suburban-tree-large.glb","/models/kenney/suburban-tree-small.glb",
+  "/models/kenney/suburban-fence-3x3.glb",
+];
+KENNEY_PRELOADS.forEach(p => useGLTF.preload(p));
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 
