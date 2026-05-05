@@ -39,13 +39,19 @@ export default defineConfig({
     dedupe: ["react", "react-dom"],
   },
   root: path.resolve(import.meta.dirname),
+  optimizeDeps: {
+    include: ["phaser"],
+  },
   build: {
     outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
     target: "es2020",
     cssCodeSplit: true,
     sourcemap: false,
-    chunkSizeWarningLimit: 1500,
+    chunkSizeWarningLimit: 3000,
+    commonjsOptions: {
+      include: [/phaser/, /node_modules/],
+    },
     // NOTE: do NOT add a custom `manualChunks` here. Splitting React /
     // react-dom / @tanstack / wouter into separate chunks can cause a
     // circular-init / TDZ failure on production builds and renders the
