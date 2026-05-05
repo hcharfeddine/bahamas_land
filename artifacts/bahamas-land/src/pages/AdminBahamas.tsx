@@ -378,10 +378,10 @@ export default function AdminBahamas() {
           {([
             { key: "museum", icon: <ImageIcon className="w-4 h-4" />, label: "Museum", badge: pendingCounts.museum },
             { key: "court", icon: <Scale className="w-4 h-4" />, label: "Court", badge: pendingCounts.court },
-            { key: "players", icon: <Users className="w-4 h-4" />, label: "Citizens" },
+            { key: "players", icon: <Users className="w-4 h-4" />, label: "Citizens", badge: undefined },
             { key: "suspects", icon: <Zap className="w-4 h-4" />, label: "Suspects", badge: suspiciousPlayers.length },
             { key: "bans", icon: <Ban className="w-4 h-4" />, label: "Bans", badge: bans.length },
-          ] as const).map(({ key, icon, label, badge }) => (
+          ] as const).map(({ key, icon, label, badge }: { key: Section; icon: React.ReactNode; label: string; badge: number | undefined }) => (
             <Button
               key={key}
               onClick={() => setSection(key as Section)}

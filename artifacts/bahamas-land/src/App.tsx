@@ -42,6 +42,8 @@ const Anthem = lazy(() => import("@/pages/Anthem"));
 const CoinFlip = lazy(() => import("@/pages/CoinFlip"));
 const Ranking = lazy(() => import("@/pages/Ranking"));
 const CustomerService = lazy(() => import("@/pages/CustomerService"));
+const OGGate = lazy(() => import("@/pages/OGGate"));
+const OGWorld = lazy(() => import("@/pages/OGWorld"));
 const BaskoutaChemin = lazy(() =>
   import("@/pages/Chemin").then((m) => ({ default: m.BaskoutaChemin })),
 );
@@ -123,6 +125,8 @@ function Router() {
         <Route path="/coinflip" component={CoinFlip} />
         <Route path="/ranking" component={Ranking} />
         <Route path="/customer-service" component={CustomerService} />
+        <Route path="/og-gate" component={OGGate} />
+        <Route path="/og-world" component={OGWorld} />
         <Route path="/baskouta" component={BaskoutaChemin} />
         <Route path="/177" component={YearChemin} />
         <Route path="/freem3kky" component={FreedomChemin} />
