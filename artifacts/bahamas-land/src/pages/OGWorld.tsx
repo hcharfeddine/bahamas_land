@@ -203,17 +203,332 @@ const ZONE_INFO: Record<string, { name: string; color: string; danger: string }>
   grassland: { name: "Bahamas Plains",    color: "#76c442", danger: "Danger Lv.1" },
 };
 
-// ─── GROUND — uses the actual Bahamas Land map image ──────────────────────────
+// ─── KENNEY.NL TILE TEXTURE GENERATOR ────────────────────────────────────────
+// Generates canvas textures that exactly match Kenney's prototype tile style:
+// solid color base + subtle inner tile highlight + dark grid lines.
 
-function MapGround() {
-  const tex = useTexture(mapBg as string);
-  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+function kenneyTile(
+  baseColor: string,
+  tileSize = 64,
+  canvasSize = 512,
+): string {
+  const c = document.createElement("canvas");
+  c.width = canvasSize;
+  c.height = canvasSize;
+  const ctx = c.getContext("2d")!;
+
+  // Base fill
+  ctx.fillStyle = baseColor;
+  ctx.fillRect(0, 0, canvasSize, canvasSize);
+
+  // Inner tile highlight (top-left lighter edge) — Kenney style
+  for (let tx = 0; tx < canvasSize; tx += tileSize) {
+    for (let ty = 0; ty < canvasSize; ty += tileSize) {
+      ctx.fillStyle = "rgba(255,255,255,0.09)";
+      ctx.fillRect(tx + 1, ty + 1, tileSize - 2, 3);
+      ctx.fillRect(tx + 1, ty + 1, 3, tileSize - 2);
+      // Bottom-right shadow
+      ctx.fillStyle = "rgba(0,0,0,0.06)";
+      ctx.fillRect(tx + 1, ty + tileSize - 4, tileSize - 2, 3);
+      ctx.fillRect(tx + tileSize - 4, ty + 1, 3, tileSize - 2);
+    }
+  }
+
+  // Grid lines (Kenney's characteristic look)
+  ctx.strokeStyle = "rgba(0,0,0,0.20)";
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i <= canvasSize; i += tileSize) {
+    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvasSize); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvasSize, i); ctx.stroke();
+  }
+
+  return c.toDataURL();
+}
+
+// Pre-generate all zone tile data URLs once at module load time
+const KT = {
+  grass:   kenneyTile("#7ec850"),   // Kenney bright grass green
+  city:    kenneyTile("#9b8b7a"),   // Kenney cobblestone/stone
+  path:    kenneyTile("#c8a870"),   // Kenney sandy path
+  forest:  kenneyTile("#2e5a1e"),   // Kenney dark forest floor
+  tundra:  kenneyTile("#c0dff0"),   // Kenney snow/ice
+  troll:   kenneyTile("#1a0a2e"),   // dark cursed ground
+  swamp:   kenneyTile("#1e3a14"),   // Kenney bog green
+  arena:   kenneyTile("#2a1848"),   // Kenney arena stone purple
+  sand:    kenneyTile("#d4b882"),   // Kenney desert sand
+  water:   kenneyTile("#2a70a0"),   // Kenney water blue
+};
+
+// A single ground zone plane with a pre-baked Kenney tile texture data URL
+function KenneyZone({
+  dataUrl, x, z, w, d, y = -0.01,
+}: {
+  dataUrl: string; x: number; z: number; w: number; d: number; y?: number;
+}) {
+  const tex = useTexture(dataUrl);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(w / 8, d / 8); // 1 tile = 8 world units
   tex.colorSpace = THREE.SRGBColorSpace;
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
-      <planeGeometry args={[WORLD_SIZE, WORLD_SIZE, 1, 1]} />
-      <meshStandardMaterial map={tex} roughness={0.95} metalness={0} />
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[x, y, z]} receiveShadow>
+      <planeGeometry args={[w, d, 1, 1]} />
+      <meshStandardMaterial map={tex} roughness={0.92} metalness={0} />
     </mesh>
+  );
+}
+
+// ─── KENNEY ZONED GROUND — one tile texture per game zone ─────────────────────
+// Zone layout matches ZONE_INFO: city center, exile NW, tundra N, troll E,
+// stream SE, swamp SW, grassland/plains everywhere else.
+
+function KenneyZonedGround() {
+  return (
+    <group>
+      {/* === OUTER PLAINS — bright Kenney grass === */}
+      {/* Full world base (rendered first, everything overlaps on top) */}
+      <KenneyZone dataUrl={KT.grass} x={0}   z={0}   w={WORLD_SIZE} d={WORLD_SIZE} y={-0.05} />
+
+      {/* === BAHAMAS CITY CENTER — cobblestone === */}
+      <KenneyZone dataUrl={KT.city}   x={0}   z={0}   w={68}  d={68}  y={0.00} />
+
+      {/* === EXILE FOREST — dark forest floor (NW quadrant) === */}
+      <KenneyZone dataUrl={KT.forest} x={-57} z={-57} w={74}  d={74}  y={0.01} />
+
+      {/* === BANNED TUNDRA — icy snow (N strip) === */}
+      <KenneyZone dataUrl={KT.tundra} x={10}  z={-64} w={74}  d={52}  y={0.01} />
+
+      {/* === TROLL DIMENSION — dark cursed (E) === */}
+      <KenneyZone dataUrl={KT.troll}  x={62}  z={0}   w={72}  d={WORLD_SIZE} y={0.01} />
+
+      {/* === STREAM COLOSSEUM — arena stone (SE) === */}
+      <KenneyZone dataUrl={KT.arena}  x={56}  z={57}  w={70}  d={56}  y={0.02} />
+
+      {/* === SPAM SWAMP — bog green (SW) === */}
+      <KenneyZone dataUrl={KT.swamp}  x={-54} z={54}  w={66}  d={62}  y={0.01} />
+
+      {/* === SANDY PATHS — Kenney dirt roads connecting zones === */}
+      {/* East road to Troll */}
+      <KenneyZone dataUrl={KT.path}   x={30}  z={0}   w={30}  d={8}   y={0.03} />
+      {/* North road to Tundra */}
+      <KenneyZone dataUrl={KT.path}   x={0}   z={-42} w={8}   d={30}  y={0.03} />
+      {/* NW road to Exile */}
+      <KenneyZone dataUrl={KT.path}   x={-30} z={-30} w={8}   d={36}  y={0.03} />
+      {/* SW road to Swamp */}
+      <KenneyZone dataUrl={KT.path}   x={-28} z={30}  w={8}   d={30}  y={0.03} />
+      {/* SE road to Stream */}
+      <KenneyZone dataUrl={KT.path}   x={28}  z={38}  w={8}   d={26}  y={0.03} />
+
+      {/* === WATER FEATURES === */}
+      {/* Fountain pool in city center */}
+      <KenneyZone dataUrl={KT.water}  x={0}   z={0}   w={8}   d={8}   y={0.02} />
+      {/* Frozen lake in tundra */}
+      <KenneyZone dataUrl={KT.water}  x={10}  z={-55} w={24}  d={20}  y={0.02} />
+      {/* Swamp toxic pools */}
+      <KenneyZone dataUrl={KT.swamp}  x={-50} z={52}  w={16}  d={16}  y={0.04} />
+    </group>
+  );
+}
+
+// ─── KENNEY NATURE KIT PROPS ──────────────────────────────────────────────────
+// Round-canopy tree: brown stick + spherical canopy, Kenney nature kit style.
+
+function KenneyTree({
+  pos, scale = 1, leafColor = "#5aaa22", trunkColor = "#8B5E3C",
+}: {
+  pos: [number,number,number]; scale?: number; leafColor?: string; trunkColor?: string;
+}) {
+  return (
+    <group position={pos} scale={scale}>
+      {/* Trunk */}
+      <mesh position={[0, 1.2, 0]} castShadow>
+        <cylinderGeometry args={[0.22, 0.32, 2.4, 6]} />
+        <meshStandardMaterial color={trunkColor} roughness={0.95} />
+      </mesh>
+      {/* Main canopy sphere */}
+      <mesh position={[0, 3.5, 0]} castShadow>
+        <sphereGeometry args={[1.8, 8, 8]} />
+        <meshStandardMaterial color={leafColor} roughness={0.85} />
+      </mesh>
+      {/* Secondary canopy blobs (Kenney layered look) */}
+      <mesh position={[-0.9, 3.0, 0.5]}>
+        <sphereGeometry args={[1.2, 7, 7]} />
+        <meshStandardMaterial color={leafColor} roughness={0.85} />
+      </mesh>
+      <mesh position={[0.8, 3.1, -0.5]}>
+        <sphereGeometry args={[1.1, 7, 7]} />
+        <meshStandardMaterial color={leafColor} roughness={0.85} />
+      </mesh>
+    </group>
+  );
+}
+
+// Kenney-style dark/dead tree (for Exile Forest & Troll Dimension)
+function KenneyDeadTree({ pos, scale = 1 }: { pos: [number,number,number]; scale?: number }) {
+  return (
+    <group position={pos} scale={scale}>
+      <mesh position={[0, 3, 0]} castShadow>
+        <cylinderGeometry args={[0.2, 0.38, 6, 5]} />
+        <meshStandardMaterial color="#1a1018" roughness={0.95} />
+      </mesh>
+      {/* Bare branches */}
+      {[1.4, 2.8, 4.0].map((h, j) => (
+        <mesh key={j} position={[Math.cos(j*2.1)*1.4, h, Math.sin(j*2.1)*1.4]}
+          rotation={[0.35, j*2.1, 0.2]}>
+          <cylinderGeometry args={[0.07, 0.13, 2.6, 4]} />
+          <meshStandardMaterial color="#0d0c18" roughness={0.95} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// Kenney-style rock
+function KenneyRock({ pos, scale = 1, color = "#8a8880" }: {
+  pos: [number,number,number]; scale?: number; color?: string;
+}) {
+  return (
+    <mesh position={pos} scale={scale} rotation={[Math.random()*0.4, Math.random()*Math.PI, 0]}>
+      <dodecahedronGeometry args={[0.6, 0]} />
+      <meshStandardMaterial color={color} roughness={0.9} />
+    </mesh>
+  );
+}
+
+// Kenney-style wooden crate
+function KenneyCrate({ pos, color = "#c8902a" }: { pos: [number,number,number]; color?: string }) {
+  return (
+    <group position={pos}>
+      <mesh castShadow>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color={color} roughness={0.8} />
+      </mesh>
+      {/* Wood cross strips */}
+      {[[1,0,0],[0,1,0],[0,0,1]].map(([rx,ry,rz],i) => (
+        <mesh key={i} rotation={[rx*Math.PI/2, ry*Math.PI/2, rz*Math.PI/2]}>
+          <planeGeometry args={[0.9, 0.12]} />
+          <meshStandardMaterial color="#8b5e1a" roughness={0.9} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// Kenney-style barrel
+function KenneyBarrel({ pos, color = "#9b6e3a" }: { pos: [number,number,number]; color?: string }) {
+  return (
+    <group position={pos}>
+      <mesh castShadow>
+        <cylinderGeometry args={[0.4, 0.4, 0.9, 8]} />
+        <meshStandardMaterial color={color} roughness={0.85} />
+      </mesh>
+      {/* Metal hoops */}
+      {[-0.25, 0.1, 0.25].map((y, i) => (
+        <mesh key={i} position={[0, y, 0]}>
+          <torusGeometry args={[0.42, 0.04, 4, 10]} />
+          <meshStandardMaterial color="#555" roughness={0.4} metalness={0.5} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// Kenney-style street lamp
+function KenneyLamp({ pos, color = "#ffd080" }: { pos: [number,number,number]; color?: string }) {
+  return (
+    <group position={pos}>
+      <mesh position={[0, 2, 0]}>
+        <cylinderGeometry args={[0.07, 0.09, 4, 5]} />
+        <meshStandardMaterial color="#555" roughness={0.5} metalness={0.5} />
+      </mesh>
+      <mesh position={[0, 4.2, 0]}>
+        <sphereGeometry args={[0.28, 7, 7]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2.5} />
+      </mesh>
+      <pointLight position={[0, 4.2, 0]} intensity={1.5} color={color} distance={12} />
+    </group>
+  );
+}
+
+// Kenney-style fence segment (brown plank)
+function KenneyFence({ pos, rot = 0 }: { pos: [number,number,number]; rot?: number }) {
+  return (
+    <group position={pos} rotation={[0, rot, 0]}>
+      {/* Posts */}
+      {[-1, 1].map((px, i) => (
+        <mesh key={i} position={[px, 0.65, 0]}>
+          <boxGeometry args={[0.14, 1.3, 0.14]} />
+          <meshStandardMaterial color="#8b5e3c" roughness={0.9} />
+        </mesh>
+      ))}
+      {/* Rails */}
+      {[0.2, 0.7].map((ry, i) => (
+        <mesh key={i} position={[0, ry, 0]}>
+          <boxGeometry args={[2.1, 0.1, 0.08]} />
+          <meshStandardMaterial color="#a06e44" roughness={0.9} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// Kenney-style small flower
+function KenneyFlower({ pos, color = "#ffdd00" }: { pos: [number,number,number]; color?: string }) {
+  return (
+    <group position={pos}>
+      <mesh position={[0, 0.2, 0]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.4, 4]} />
+        <meshStandardMaterial color="#3aaa3a" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 0.42, 0]}>
+        <sphereGeometry args={[0.13, 5, 5]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.4} roughness={0.6} />
+      </mesh>
+    </group>
+  );
+}
+
+// Kenney-style mushroom (for swamp)
+function KenneyMushroom({ pos }: { pos: [number,number,number] }) {
+  return (
+    <group position={pos}>
+      <mesh position={[0, 0.25, 0]}>
+        <cylinderGeometry args={[0.1, 0.12, 0.5, 5]} />
+        <meshStandardMaterial color="#d8c0a0" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 0.58, 0]}>
+        <sphereGeometry args={[0.32, 7, 7]} />
+        <meshStandardMaterial color="#cc2222" roughness={0.7} />
+      </mesh>
+      {/* Mushroom spots */}
+      {[[-0.1,0.72,0.22],[0.12,0.68,0.24]].map(([mx,my,mz],i) => (
+        <mesh key={i} position={[mx,my,mz]}>
+          <sphereGeometry args={[0.06,4,4]} />
+          <meshStandardMaterial color="#fff" roughness={0.8} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// Kenney-style bush (rounded shrub)
+function KenneyBush({ pos, color = "#3a8a1a", scale = 1 }: {
+  pos: [number,number,number]; color?: string; scale?: number;
+}) {
+  return (
+    <group position={pos} scale={scale}>
+      <mesh position={[0, 0.6, 0]}>
+        <sphereGeometry args={[0.8, 7, 7]} />
+        <meshStandardMaterial color={color} roughness={0.88} />
+      </mesh>
+      <mesh position={[0.5, 0.45, 0.2]}>
+        <sphereGeometry args={[0.55, 6, 6]} />
+        <meshStandardMaterial color={color} roughness={0.88} />
+      </mesh>
+      <mesh position={[-0.4, 0.5, -0.2]}>
+        <sphereGeometry args={[0.5, 6, 6]} />
+        <meshStandardMaterial color={color} roughness={0.88} />
+      </mesh>
+    </group>
   );
 }
 
@@ -395,19 +710,34 @@ const BahamasCity = memo(function BahamasCity() {
         </mesh>
       ))}
 
-      {/* Lanterns */}
-      {([[-28,4,0],[28,4,0],[0,4,-28],[0,4,28],[-14,4,-28],[14,4,-28],[-14,4,28],[14,4,28]] as [number,number,number][]).map(([x,y,z], i) => (
-        <group key={i} position={[x,y,z]}>
-          <mesh position={[0,-2,0]}>
-            <cylinderGeometry args={[0.08,0.08,4,4]} />
-            <meshStandardMaterial color="#4a3828" />
-          </mesh>
-          <mesh position={[0,0.4,0]}>
-            <boxGeometry args={[0.5,0.7,0.5]} />
-            <meshStandardMaterial color="#ffd080" emissive="#ffd080" emissiveIntensity={2.5} transparent opacity={0.9} />
-          </mesh>
-        </group>
+      {/* Kenney street lamps along city walls */}
+      {([[-28,0,0],[28,0,0],[0,0,-28],[0,0,28],[-14,0,-28],[14,0,-28],[-14,0,28],[14,0,28]] as [number,number,number][]).map(([x,_y,z], i) => (
+        <KenneyLamp key={i} pos={[x,0,z]} color="#ffd080" />
       ))}
+
+      {/* Kenney flowers in the plaza */}
+      {([
+        [4,0,4],[-4,0,4],[4,0,-4],[-4,0,-4],
+        [6,0,0],[-6,0,0],[0,0,6],[0,0,-6],
+      ] as [number,number,number][]).map((p, i) => (
+        <KenneyFlower key={i} pos={p} color={["#ffdd00","#ff4466","#ffffff","#ff8800"][i%4]} />
+      ))}
+
+      {/* Kenney crates and barrels near market buildings */}
+      <KenneyCrate pos={[-15,0.5,22]} />
+      <KenneyCrate pos={[-13,0.5,22]} />
+      <KenneyBarrel pos={[-11,0.45,22]} />
+      <KenneyBarrel pos={[15,0.45,22]} />
+      <KenneyCrate pos={[17,0.5,22]} />
+
+      {/* Kenney bushes at city corners */}
+      {([[-30,0,-30],[30,0,-30],[-30,0,30],[30,0,30]] as [number,number,number][]).map((p,i) => (
+        <KenneyBush key={i} pos={p} color="#4a9a22" />
+      ))}
+
+      {/* Kenney rocks at city entrance */}
+      <KenneyRock pos={[-6,0.4,33]} />
+      <KenneyRock pos={[6,0.4,33]} />
       <Billboard position={[0, 10, -33]}>
         <Text fontSize={1.4} color="#ffd600" outlineWidth={0.05} outlineColor="#000">🌴 BAHAMAS CITY 🌴</Text>
       </Billboard>
@@ -427,21 +757,19 @@ const EXILE_TREES: [number,number,number][] = [
 const ExileForest = memo(function ExileForest() {
   return (
     <group>
+      {/* Kenney dead/dark trees — spooky bare branches */}
       {EXILE_TREES.map(([x,y,z], i) => (
-        <group key={i} position={[x,y,z]}>
-          <mesh position={[0,2,0]}>
-            <cylinderGeometry args={[0.3,0.5,4,4]} />
-            <meshStandardMaterial color="#1a0a0a" roughness={0.95} />
-          </mesh>
-          <mesh position={[0,5.5,0]}>
-            <coneGeometry args={[3.5,5,5]} />
-            <meshStandardMaterial color="#0a1a0a" roughness={0.8} />
-          </mesh>
-          <mesh position={[0,8,0]}>
-            <coneGeometry args={[2.5,4.5,5]} />
-            <meshStandardMaterial color="#071407" roughness={0.8} />
-          </mesh>
-        </group>
+        <KenneyDeadTree key={i} pos={[x,y,z]} scale={0.85 + (i%3)*0.2} />
+      ))}
+      {/* Dense undergrowth bushes in Kenney style */}
+      {([
+        [-44,0,-42],[-50,0,-50],[-58,0,-44],[-36,0,-58],[-66,0,-54],[-42,0,-68],
+      ] as [number,number,number][]).map((p, i) => (
+        <KenneyBush key={i} pos={p} color="#1e3a14" scale={0.8+i*0.1} />
+      ))}
+      {/* Kenney rocks scattered around */}
+      {([[-48,0.5,-50],[-58,0.5,-38],[-40,0.5,-60],[-70,0.5,-48]] as [number,number,number][]).map((p,i) => (
+        <KenneyRock key={i} pos={p} color="#3a3430" scale={1.2} />
       ))}
       {/* Exile signs */}
       {([
@@ -576,19 +904,17 @@ const TrollDimension = memo(function TrollDimension() {
   ];
   return (
     <group>
+      {/* Kenney dead trees — twisted and corrupted */}
       {deadTrees.map(([x,y,z], i) => (
-        <group key={i} position={[x,y,z]}>
-          <mesh position={[0,3,0]}>
-            <cylinderGeometry args={[0.2,0.4,6,4]} />
-            <meshStandardMaterial color="#1a1020" roughness={0.95} />
-          </mesh>
-          {[1.2,2.4,3.8].map((h,j) => (
-            <mesh key={j} position={[Math.cos(j*2.1)*1.5,h,Math.sin(j*2.1)*1.5]} rotation={[0.4,j*2.1,0.2]}>
-              <cylinderGeometry args={[0.08,0.15,3,4]} />
-              <meshStandardMaterial color="#0d0818" roughness={0.95} />
-            </mesh>
-          ))}
-        </group>
+        <KenneyDeadTree key={i} pos={[x,y,z]} scale={1.1 + (i%3)*0.15} />
+      ))}
+      {/* Purple toxic barrels (Kenney style) */}
+      {([[55,0.45,-30],[64,0.45,20],[60,0.45,42]] as [number,number,number][]).map((p,i) => (
+        <KenneyBarrel key={i} pos={p} color="#4a0060" />
+      ))}
+      {/* Kenney crates with troll loot */}
+      {([[50,0.5,10],[70,0.5,-42]] as [number,number,number][]).map((p,i) => (
+        <KenneyCrate key={i} pos={p} color="#2a0040" />
       ))}
       {/* Troll face statues */}
       {([[48,0,45],[70,-1,-55]] as [number,number,number][]).map(([x,y,z], i) => (
@@ -707,17 +1033,13 @@ const SWAMP_TREES: [number,number,number][] = [
 const SpamSwamp = memo(function SpamSwamp() {
   return (
     <group>
+      {/* Kenney bog trees — round dark canopy (swamp style) */}
       {SWAMP_TREES.map(([x,y,z], i) => (
-        <group key={i} position={[x,y,z]}>
-          <mesh position={[0,2,0]}>
-            <cylinderGeometry args={[0.4,0.6,4,5]} />
-            <meshStandardMaterial color="#1a2e0a" roughness={0.95} />
-          </mesh>
-          <mesh position={[0,5,0]}>
-            <sphereGeometry args={[3,6,6]} />
-            <meshStandardMaterial color="#1a3a0a" roughness={0.8} transparent opacity={0.9} />
-          </mesh>
-        </group>
+        <KenneyTree key={i} pos={[x,y,z]} leafColor="#1e4a0a" trunkColor="#2a1a0a" scale={0.9 + (i%3)*0.15} />
+      ))}
+      {/* Kenney mushrooms scattered around */}
+      {([[-46,0,46],[-54,0,50],[-42,0,60],[-60,0,64],[-50,0,70]] as [number,number,number][]).map((p,i) => (
+        <KenneyMushroom key={i} pos={p} />
       ))}
       {([
         { pos: [-44,0,44] as [number,number,number], text: "CONGRATULATIONS!\nYOU WON 1000 NC" },
@@ -1422,11 +1744,23 @@ function WorldScene({
       <Sky sunPosition={[0.2,0.05,1]} turbidity={10} rayleigh={2.5}
         mieCoefficient={0.005} mieDirectionalG={0.7} />
 
+      {/* Kenney zoned ground — canvas-generated tile textures, no Suspense needed */}
       <Suspense fallback={null}>
-        <MapGround />
+        <KenneyZonedGround />
       </Suspense>
       <BorderWalls />
       <Particles />
+
+      {/* Kenney-style trees on the grassland plains */}
+      <Suspense fallback={null}>
+        {([
+          [-38,0,8],[-40,0,20],[-38,0,-8],[40,0,25],[38,0,-25],
+          [0,0,40],[10,0,42],[-10,0,42],[20,0,38],[-20,0,38],
+        ] as [number,number,number][]).map((p,i) => (
+          <KenneyTree key={i} pos={p} scale={0.7+i*0.05}
+            leafColor={["#5aaa22","#4a9a18","#62b828"][i%3]} />
+        ))}
+      </Suspense>
 
       <Suspense fallback={null}>
         <BahamasCity />
