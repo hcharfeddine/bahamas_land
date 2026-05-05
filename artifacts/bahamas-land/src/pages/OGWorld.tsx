@@ -109,7 +109,7 @@ function TownZone() {
     <group>
       {/* Well in center */}
       <mesh position={[0, 0.5, 0]} castShadow>
-        <cylinderGeometry args={[2, 2.2, 1, 16]} />
+        <cylinderGeometry args={[2, 2.2, 1, 10]} />
         <meshStandardMaterial color="#6b5c48" roughness={0.9} />
       </mesh>
       <mesh position={[0, 1.4, 0]}>
@@ -174,18 +174,17 @@ function TownZone() {
         </group>
       ))}
 
-      {/* Town lanterns */}
+      {/* Town lanterns — emissive glow only, no per-lantern pointLight */}
       {lanternPositions.map((pos, i) => (
         <group key={i} position={pos}>
           <mesh position={[0, -2, 0]}>
-            <cylinderGeometry args={[0.08, 0.08, 4, 6]} />
+            <cylinderGeometry args={[0.08, 0.08, 4, 5]} />
             <meshStandardMaterial color="#4a3828" />
           </mesh>
           <mesh position={[0, 0.4, 0]}>
             <boxGeometry args={[0.5, 0.7, 0.5]} />
-            <meshStandardMaterial color="#ffd080" emissive="#ffd080" emissiveIntensity={1.5} transparent opacity={0.8} />
+            <meshStandardMaterial color="#ffd080" emissive="#ffd080" emissiveIntensity={2.5} transparent opacity={0.9} />
           </mesh>
-          <pointLight position={[0, 0.4, 0]} intensity={1.2} color="#ffa030" distance={12} />
         </group>
       ))}
 
@@ -230,19 +229,19 @@ function Tree({ position, scale = 1 }: { position: [number,number,number]; scale
   return (
     <group position={position} scale={scale}>
       <mesh position={[0, 2 * scale, 0]} castShadow>
-        <cylinderGeometry args={[0.3, 0.5, 4, 8]} />
+        <cylinderGeometry args={[0.3, 0.5, 4, 6]} />
         <meshStandardMaterial color="#3d2010" roughness={0.95} />
       </mesh>
-      <mesh position={[0, 5.5 * scale, 0]} castShadow>
-        <coneGeometry args={[3.5, 5, 8]} />
+      <mesh position={[0, 5.5 * scale, 0]}>
+        <coneGeometry args={[3.5, 5, 6]} />
         <meshStandardMaterial color="#1a3d1a" roughness={0.8} />
       </mesh>
-      <mesh position={[0, 8 * scale, 0]} castShadow>
-        <coneGeometry args={[2.5, 4.5, 8]} />
+      <mesh position={[0, 8 * scale, 0]}>
+        <coneGeometry args={[2.5, 4.5, 6]} />
         <meshStandardMaterial color="#0d2e0d" roughness={0.8} />
       </mesh>
-      <mesh position={[0, 10 * scale, 0]} castShadow>
-        <coneGeometry args={[1.5, 3.5, 8]} />
+      <mesh position={[0, 10 * scale, 0]}>
+        <coneGeometry args={[1.5, 3.5, 6]} />
         <meshStandardMaterial color="#164a16" roughness={0.8} />
       </mesh>
     </group>
@@ -286,7 +285,7 @@ function ForestZone() {
         ))}
         <pointLight position={[0, 1.5, 0]} intensity={3} color="#ff6020" distance={15} />
         <mesh position={[0, 1.2, 0]}>
-          <sphereGeometry args={[0.3, 8, 8]} />
+          <sphereGeometry args={[0.3, 6, 6]} />
           <meshStandardMaterial color="#ff8020" emissive="#ff6010" emissiveIntensity={3} />
         </mesh>
       </group>
@@ -395,19 +394,19 @@ function GatePortal() {
     <group position={[60, 0, -10]}>
       {/* Portal frame */}
       <mesh position={[0, 7, 0]} castShadow>
-        <torusGeometry args={[6, 0.8, 16, 32]} />
+        <torusGeometry args={[6, 0.8, 10, 20]} />
         <meshStandardMaterial color="#2a0040" emissive="#4a0060" emissiveIntensity={1} roughness={0.3} metalness={0.8} />
       </mesh>
       {/* Portal inner glow */}
       <mesh ref={ref} position={[0, 7, 0.1]}>
-        <circleGeometry args={[5.5, 32]} />
+        <circleGeometry args={[5.5, 20]} />
         <meshStandardMaterial color="#4a0080" emissive="#8800cc" emissiveIntensity={2}
           transparent opacity={0.8} side={THREE.DoubleSide} />
       </mesh>
       {/* Energy rings */}
       {[3, 4, 5].map((r, i) => (
         <mesh key={i} position={[0, 7, 0.05 * (i + 1)]}>
-          <ringGeometry args={[r - 0.15, r, 32]} />
+          <ringGeometry args={[r - 0.15, r, 20]} />
           <meshBasicMaterial color="#cc00ff" transparent opacity={0.3 - i * 0.08} side={THREE.DoubleSide} />
         </mesh>
       ))}
@@ -433,13 +432,13 @@ function DeadTree({ position }: { position: [number,number,number] }) {
   return (
     <group position={position}>
       <mesh position={[0, 3, 0]} castShadow>
-        <cylinderGeometry args={[0.2, 0.4, 6, 6]} />
+        <cylinderGeometry args={[0.2, 0.4, 6, 5]} />
         <meshStandardMaterial color="#1a1020" roughness={0.95} />
       </mesh>
       {[1.2, 2.4, 3.8].map((h, i) => (
         <mesh key={i} position={[Math.cos(i * 2.1) * 1.5, h, Math.sin(i * 2.1) * 1.5]}
-          rotation={[0.4, i * 2.1, 0.2]} castShadow>
-          <cylinderGeometry args={[0.08, 0.15, 3, 5]} />
+          rotation={[0.4, i * 2.1, 0.2]}>
+          <cylinderGeometry args={[0.08, 0.15, 3, 4]} />
           <meshStandardMaterial color="#0d0818" roughness={0.95} />
         </mesh>
       ))}
@@ -461,16 +460,13 @@ function CorruptedZone() {
     <group>
       {deadTrees.map((pos, i) => <DeadTree key={i} position={pos} />)}
 
-      {/* Toxic puddles */}
+      {/* Toxic puddles — emissive only, shared zone light handles glow */}
       {toxicPuddles.map(([x, y, z], i) => (
         <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[x, y, z]}>
-          <circleGeometry args={[2 + i * 0.4, 16]} />
-          <meshStandardMaterial color="#00ff44" emissive="#00cc33" emissiveIntensity={0.8}
+          <circleGeometry args={[2 + i * 0.4, 10]} />
+          <meshStandardMaterial color="#00ff44" emissive="#00cc33" emissiveIntensity={1.5}
             transparent opacity={0.6} roughness={0.1} />
         </mesh>
-      ))}
-      {toxicPuddles.map(([x, y, z], i) => (
-        <pointLight key={i} position={[x, y + 0.5, z]} intensity={1.2} color="#00ff44" distance={10} />
       ))}
 
       {/* Cracked earth fissures */}
@@ -764,6 +760,10 @@ function PlayerController({
   const { camera } = useThree();
   const keys = useRef<Record<string, boolean>>({});
   const lastSent = useRef(0);
+  // Pre-allocate vectors outside the frame loop to avoid GC pressure
+  const fwd = useRef(new THREE.Vector3());
+  const right = useRef(new THREE.Vector3());
+  const up = useRef(new THREE.Vector3(0, 1, 0));
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => { keys.current[e.code] = true; };
@@ -778,16 +778,19 @@ function PlayerController({
 
   useFrame((_, delta) => {
     const k = keys.current;
-    const forward = new THREE.Vector3();
-    camera.getWorldDirection(forward);
-    forward.y = 0; forward.normalize();
-    const right = new THREE.Vector3();
-    right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+    // Delta-time clamped to avoid huge jumps on tab-switch
+    const dt = Math.min(delta, 0.05);
+    const speed = MOVE_SPEED * dt * 60;
 
-    if (k["KeyW"] || k["ArrowUp"]) camera.position.addScaledVector(forward, MOVE_SPEED);
-    if (k["KeyS"] || k["ArrowDown"]) camera.position.addScaledVector(forward, -MOVE_SPEED);
-    if (k["KeyA"] || k["ArrowLeft"]) camera.position.addScaledVector(right, -MOVE_SPEED);
-    if (k["KeyD"] || k["ArrowRight"]) camera.position.addScaledVector(right, MOVE_SPEED);
+    camera.getWorldDirection(fwd.current);
+    fwd.current.y = 0;
+    fwd.current.normalize();
+    right.current.crossVectors(fwd.current, up.current).normalize();
+
+    if (k["KeyW"] || k["ArrowUp"])    camera.position.addScaledVector(fwd.current,   speed);
+    if (k["KeyS"] || k["ArrowDown"])  camera.position.addScaledVector(fwd.current,  -speed);
+    if (k["KeyA"] || k["ArrowLeft"])  camera.position.addScaledVector(right.current, -speed);
+    if (k["KeyD"] || k["ArrowRight"]) camera.position.addScaledVector(right.current,  speed);
 
     const half = WORLD_SIZE / 2 - 2;
     camera.position.x = Math.max(-half, Math.min(half, camera.position.x));
@@ -819,8 +822,8 @@ function WorldScene({
       <fog attach="fog" args={["#080814", 50, 150]} />
       <ambientLight intensity={0.25} color="#8090a0" />
       <directionalLight position={[30, 40, 20]} intensity={0.6} color="#e0d0c0" castShadow
-        shadow-mapSize={[2048, 2048]} shadow-camera-far={180} shadow-camera-left={-90}
-        shadow-camera-right={90} shadow-camera-top={90} shadow-camera-bottom={-90} />
+        shadow-mapSize={[1024, 1024]} shadow-camera-far={140} shadow-camera-left={-70}
+        shadow-camera-right={70} shadow-camera-top={70} shadow-camera-bottom={-70} />
 
       <BiomeGround />
       <BorderWalls />
@@ -1127,8 +1130,9 @@ export default function OGWorld() {
     <div className="fixed inset-0 bg-black overflow-hidden" ref={canvasRef}>
       <Canvas
         shadows
-        camera={{ fov: 75, near: 0.1, far: 200, position: [0, 1.7, 5] }}
-        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.9 }}
+        dpr={[1, 1.5]}
+        camera={{ fov: 75, near: 0.1, far: 180, position: [0, 1.7, 5] }}
+        gl={{ antialias: false, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.9 }}
       >
         <Suspense fallback={null}>
           <WorldScene
