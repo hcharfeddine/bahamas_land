@@ -725,11 +725,8 @@ const BannedTundra = memo(function BannedTundra() {
           </group>
         );
       })}
-      {([15,0,-45,-18,0,-60,28,0,-62,0,0,-75,-28,0,-52] as unknown as [number,number,number][]).map(([x,y,z],i)=>{
-        if (x === undefined) return null;
-        const parsed: [number,number,number][] = [[15,0,-45],[-18,0,-60],[28,0,-62],[0,0,-75],[-28,0,-52]];
-        if (i >= parsed.length) return null;
-        const [px,py,pz] = parsed[i]; const ph = getTerrainHeight(px,pz);
+      {([[15,-45],[-18,-60],[28,-62],[0,-75],[-28,-52]] as [number,number][]).map(([px,pz],i)=>{
+        const ph = getTerrainHeight(px,pz);
         return (
           <mesh key={i} position={[px,ph+2.2+i*0.2,pz]}>
             <octahedronGeometry args={[1.5+i*0.15,0]} /><meshStandardMaterial color="#a0d8f0" roughness={0.05} transparent opacity={0.82} />
