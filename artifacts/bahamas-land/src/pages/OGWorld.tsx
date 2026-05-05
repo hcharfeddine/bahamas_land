@@ -606,7 +606,7 @@ function SwampZone() {
       {/* Murky water patches */}
       {[[-42, 0, 45], [-58, 0, 52], [-50, 0, 60], [-65, 0, 48]].map(([x, y, z], i) => (
         <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.02, z]}>
-          <ellipseGeometry args={[5 + i, 3 + i * 0.5, 12]} />
+          <planeGeometry args={[10 + i * 2, 6 + i]} />
           <meshStandardMaterial color="#1a2c10" roughness={0.2} transparent opacity={0.7} />
         </mesh>
       ))}
@@ -682,27 +682,73 @@ function Particles() {
   );
 }
 
-// ─── Other players ────────────────────────────────────────────────────────────
+// ─── Other players (Minecraft-style blocky avatar) ────────────────────────────
 
 function OtherPlayer({ player }: { player: WorldPlayer }) {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
   useFrame((_, delta) => {
-    if (meshRef.current) meshRef.current.rotation.y += delta * 0.8;
+    if (groupRef.current) groupRef.current.rotation.y += delta * 0.6;
   });
+
+  const col = player.color;
+  const colDark = col; // same color, emissive handles depth
+
   return (
-    <group position={[player.x, player.y + 1, player.z]}>
-      <mesh ref={meshRef} castShadow>
-        <capsuleGeometry args={[0.4, 1.2, 8, 16]} />
-        <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.4} roughness={0.3} />
-      </mesh>
-      <Billboard position={[0, 1.6, 0]}>
-        <Text fontSize={0.35} color="white" outlineWidth={0.03} outlineColor="black" anchorX="center" anchorY="middle">
+    <group position={[player.x, player.y, player.z]}>
+      <group ref={groupRef}>
+        {/* Head */}
+        <mesh position={[0, 2.12, 0]} castShadow>
+          <boxGeometry args={[0.64, 0.64, 0.64]} />
+          <meshStandardMaterial color={col} emissive={col} emissiveIntensity={0.55} roughness={0.2} metalness={0.1} />
+        </mesh>
+        {/* Body */}
+        <mesh position={[0, 1.38, 0]} castShadow>
+          <boxGeometry args={[0.52, 0.74, 0.28]} />
+          <meshStandardMaterial color={colDark} emissive={col} emissiveIntensity={0.25} roughness={0.5} />
+        </mesh>
+        {/* Left arm */}
+        <mesh position={[-0.38, 1.38, 0]} castShadow>
+          <boxGeometry args={[0.24, 0.72, 0.24]} />
+          <meshStandardMaterial color={colDark} emissive={col} emissiveIntensity={0.2} roughness={0.5} />
+        </mesh>
+        {/* Right arm */}
+        <mesh position={[0.38, 1.38, 0]} castShadow>
+          <boxGeometry args={[0.24, 0.72, 0.24]} />
+          <meshStandardMaterial color={colDark} emissive={col} emissiveIntensity={0.2} roughness={0.5} />
+        </mesh>
+        {/* Left leg */}
+        <mesh position={[-0.14, 0.64, 0]} castShadow>
+          <boxGeometry args={[0.24, 0.64, 0.24]} />
+          <meshStandardMaterial color={colDark} emissive={col} emissiveIntensity={0.15} roughness={0.6} />
+        </mesh>
+        {/* Right leg */}
+        <mesh position={[0.14, 0.64, 0]} castShadow>
+          <boxGeometry args={[0.24, 0.64, 0.24]} />
+          <meshStandardMaterial color={colDark} emissive={col} emissiveIntensity={0.15} roughness={0.6} />
+        </mesh>
+      </group>
+
+      {/* Nametag (fixed, doesn't rotate) */}
+      <Billboard position={[0, 2.9, 0]}>
+        <Text fontSize={0.34} color="white" outlineWidth={0.03} outlineColor="black" anchorX="center" anchorY="middle">
           {player.username}
         </Text>
       </Billboard>
-      <mesh position={[0, -1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+
+      {/* HP bar */}
+      <mesh position={[0, 3.24, 0]}>
+        <planeGeometry args={[1, 0.1]} />
+        <meshBasicMaterial color="#333" />
+      </mesh>
+      <mesh position={[-(0.5 - (player.hp / player.maxHp) * 0.5), 3.24, 0.001]}>
+        <planeGeometry args={[player.hp / player.maxHp, 0.1]} />
+        <meshBasicMaterial color="#39ff14" />
+      </mesh>
+
+      {/* Ground glow */}
+      <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.6, 16]} />
-        <meshBasicMaterial color={player.color} transparent opacity={0.3} />
+        <meshBasicMaterial color={col} transparent opacity={0.3} />
       </mesh>
     </group>
   );

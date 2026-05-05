@@ -161,500 +161,415 @@ function cycle<T>(arr: readonly T[], current: T, dir: 1 | -1): T {
   return arr[(idx + dir + arr.length) % arr.length];
 }
 
-// ── Weapon SVGs per class ─────────────────────────────────────────────────────
+// ── Weapon SVGs per class (blocky pixel style) ───────────────────────────────
 
-function WeaponSVG({ origin, cx, bodyTopY, bodyW, skinTone, accentColor, armorColor }: {
-  origin: OriginClass; cx: number; bodyTopY: number; bodyW: number; skinTone: string; accentColor: string; armorColor: string;
+function WeaponSVG({ origin, lHand, rHand, armY, accentColor, armorColor }: {
+  origin: OriginClass; lHand: number; rHand: number; armY: number; accentColor: string; armorColor: string;
 }) {
-  const handR = cx + bodyW / 2 + 22;
-  const handL = cx - bodyW / 2 - 22;
-  const wY = bodyTopY + 20;
+  const wY = armY + 28;
 
   if (origin === "Tank") {
     return (
       <g>
-        {/* Sword right */}
-        <rect x={handR - 3} y={wY - 50} width={6} height={70} rx={2} fill="#c0c0c0" />
-        <rect x={handR - 12} y={wY - 12} width={24} height={6} rx={2} fill="#888" />
-        <polygon points={`${handR},${wY - 60} ${handR - 5},${wY - 50} ${handR + 5},${wY - 50}`} fill="#e0e0e0" />
-        {/* Shield left */}
-        <ellipse cx={handL} cy={wY} rx={22} ry={28} fill={armorColor} stroke={accentColor} strokeWidth={2} />
-        <rect x={handL - 14} y={wY - 18} width={28} height={36} rx={6} fill={armorColor} stroke={accentColor} strokeWidth={1.5} />
-        <line x1={handL} y1={wY - 18} x2={handL} y2={wY + 18} stroke={accentColor} strokeWidth={2} />
-        <line x1={handL - 14} y1={wY} x2={handL + 14} y2={wY} stroke={accentColor} strokeWidth={2} />
+        {/* Sword (right hand) - blocky */}
+        <rect x={rHand - 4} y={wY - 68} width={8} height={88} fill="#c0c0c0" />
+        <rect x={rHand - 4} y={wY - 68} width={8} height={8} fill="#e8e8e8" />
+        <rect x={rHand - 16} y={wY - 22} width={32} height={8} fill="#888" />
+        <rect x={rHand - 4} y={wY + 14} width={8} height={12} fill="#7a6040" />
+        {/* Shield (left hand) */}
+        <rect x={lHand - 24} y={wY - 36} width={44} height={52} fill={armorColor} />
+        <rect x={lHand - 24} y={wY - 36} width={44} height={52} fill="none" stroke={accentColor} strokeWidth={3} />
+        <rect x={lHand - 8} y={wY - 36} width={10} height={52} fill={accentColor} opacity={0.5} />
+        <rect x={lHand - 24} y={wY - 8} width={44} height={10} fill={accentColor} opacity={0.5} />
+        <rect x={lHand - 5} y={wY - 5} width={10} height={10} fill={accentColor} />
       </g>
     );
   }
   if (origin === "Assassin") {
     return (
       <g>
-        {/* Dual blades */}
-        <rect x={handR - 2} y={wY - 48} width={4} height={55} rx={1} fill="#9c27b0" opacity={0.9} />
-        <polygon points={`${handR},${wY - 58} ${handR - 3},${wY - 48} ${handR + 3},${wY - 48}`} fill="#e040fb" />
-        <rect x={handL - 2} y={wY - 48} width={4} height={55} rx={1} fill="#9c27b0" opacity={0.9} />
-        <polygon points={`${handL},${wY - 58} ${handL - 3},${wY - 48} ${handL + 3},${wY - 48}`} fill="#e040fb" />
-        {/* Cross guards */}
-        <rect x={handR - 9} y={wY + 4} width={18} height={4} rx={1} fill="#6a0080" />
-        <rect x={handL - 9} y={wY + 4} width={18} height={4} rx={1} fill="#6a0080" />
+        {/* Left dagger */}
+        <rect x={lHand - 3} y={wY - 56} width={6} height={72} fill="#7c4dff" />
+        <rect x={lHand - 3} y={wY - 56} width={6} height={6} fill="#e040fb" />
+        <rect x={lHand - 11} y={wY} width={22} height={6} fill="#6a0080" />
+        {/* Right dagger */}
+        <rect x={rHand - 3} y={wY - 56} width={6} height={72} fill="#7c4dff" />
+        <rect x={rHand - 3} y={wY - 56} width={6} height={6} fill="#e040fb" />
+        <rect x={rHand - 11} y={wY} width={22} height={6} fill="#6a0080" />
       </g>
     );
   }
   if (origin === "Mage") {
-    // Staff centered
     return (
       <g>
-        <rect x={cx + bodyW / 2 + 14} y={wY - 80} width={5} height={100} rx={2} fill="#4a2080" />
-        {/* Orb at top */}
-        <circle cx={cx + bodyW / 2 + 16} cy={wY - 86} r={14} fill={accentColor} opacity={0.25} />
-        <circle cx={cx + bodyW / 2 + 16} cy={wY - 86} r={9} fill={accentColor} opacity={0.7} />
-        <circle cx={cx + bodyW / 2 + 16} cy={wY - 86} r={4} fill="white" opacity={0.9} />
-        {/* Magic sparks */}
-        {[0, 72, 144, 216, 288].map((deg, i) => {
-          const rad = (deg * Math.PI) / 180;
-          const sx = (cx + bodyW / 2 + 16) + Math.cos(rad) * 18;
-          const sy = (wY - 86) + Math.sin(rad) * 18;
-          return <circle key={i} cx={sx} cy={sy} r={2} fill={accentColor} opacity={0.6} />;
-        })}
+        {/* Staff */}
+        <rect x={rHand - 4} y={wY - 96} width={8} height={116} fill="#3a1860" />
+        {/* Orb */}
+        <rect x={rHand - 16} y={wY - 108} width={32} height={24} fill={accentColor} opacity={0.25} />
+        <rect x={rHand - 20} y={wY - 104} width={40} height={16} fill={accentColor} opacity={0.2} />
+        <rect x={rHand - 12} y={wY - 108} width={24} height={24} fill={accentColor} opacity={0.7} />
+        <rect x={rHand - 6} y={wY - 102} width={12} height={12} fill="white" opacity={0.9} />
+        {/* Sparks */}
+        {[[-22, -110], [20, -104], [-24, -90], [22, -116], [0, -120]].map(([dx, dy], i) => (
+          <rect key={i} x={rHand + dx} y={wY + dy} width={5} height={5} fill={accentColor} opacity={0.7} />
+        ))}
       </g>
     );
   }
   if (origin === "Ranger") {
     return (
       <g>
-        {/* Bow arc */}
-        <path d={`M ${handL} ${wY - 50} Q ${handL - 28} ${wY} ${handL} ${wY + 50}`}
-          fill="none" stroke="#5d4037" strokeWidth={5} strokeLinecap="round" />
+        {/* Bow stave */}
+        <rect x={lHand - 3} y={wY - 56} width={6} height={104} fill="#5d4037" />
+        {/* Bow limbs */}
+        <rect x={lHand - 24} y={wY - 56} width={26} height={10} fill="#4a3020" />
+        <rect x={lHand - 24} y={wY + 42} width={26} height={10} fill="#4a3020" />
         {/* Bowstring */}
-        <line x1={handL} y1={wY - 50} x2={handL} y2={wY + 50} stroke="#fff" strokeWidth={1} strokeDasharray="3 2" opacity={0.6} />
-        {/* Arrow nocked */}
-        <line x1={handL} y1={wY} x2={handR + 10} y2={wY} stroke="#8d6e63" strokeWidth={2} />
-        <polygon points={`${handR + 10},${wY} ${handR + 2},${wY - 4} ${handR + 2},${wY + 4}`} fill={accentColor} />
-        <line x1={handL} y1={wY} x2={handL - 8} y2={wY - 8} stroke="#558b2f" strokeWidth={2} />
-        <line x1={handL} y1={wY} x2={handL - 8} y2={wY + 8} stroke="#558b2f" strokeWidth={2} />
+        <line x1={lHand - 22} y1={wY - 50} x2={lHand - 3} y2={wY} stroke="#eee" strokeWidth={1.5} />
+        <line x1={lHand - 22} y1={wY + 50} x2={lHand - 3} y2={wY} stroke="#eee" strokeWidth={1.5} />
+        {/* Arrow */}
+        <rect x={lHand + 4} y={wY - 3} width={rHand + 18 - lHand - 4} height={6} fill="#8d6e63" />
+        <rect x={rHand + 14} y={wY - 9} width={12} height={18} fill={accentColor} />
       </g>
     );
   }
   if (origin === "Berserker") {
     return (
       <g>
-        {/* Left axe */}
-        <rect x={handL - 2} y={wY - 45} width={5} height={65} rx={2} fill="#5d4037" />
-        <path d={`M ${handL - 2} ${wY - 40} Q ${handL - 28} ${wY - 20} ${handL - 2} ${wY}`} fill={accentColor} opacity={0.9} />
-        {/* Right axe */}
-        <rect x={handR - 3} y={wY - 45} width={5} height={65} rx={2} fill="#5d4037" />
-        <path d={`M ${handR + 3} ${wY - 40} Q ${handR + 28} ${wY - 20} ${handR + 3} ${wY}`} fill={accentColor} opacity={0.9} />
-        {/* Battle scratches on axes */}
-        <line x1={handL - 8} y1={wY - 30} x2={handL - 22} y2={wY - 15} stroke="#333" strokeWidth={1} />
-        <line x1={handR + 8} y1={wY - 30} x2={handR + 22} y2={wY - 15} stroke="#333" strokeWidth={1} />
+        {/* Left axe handle */}
+        <rect x={lHand - 4} y={wY - 58} width={8} height={80} fill="#5d4037" />
+        {/* Left axe head */}
+        <rect x={lHand - 30} y={wY - 56} width={34} height={36} fill={accentColor} opacity={0.9} />
+        <rect x={lHand - 30} y={wY - 56} width={34} height={36} fill="none" stroke="#222" strokeWidth={2} />
+        <rect x={lHand - 30} y={wY - 62} width={18} height={8} fill={accentColor} />
+        {/* Right axe handle */}
+        <rect x={rHand - 4} y={wY - 58} width={8} height={80} fill="#5d4037" />
+        {/* Right axe head */}
+        <rect x={rHand + 4} y={wY - 56} width={34} height={36} fill={accentColor} opacity={0.9} />
+        <rect x={rHand + 4} y={wY - 56} width={34} height={36} fill="none" stroke="#222" strokeWidth={2} />
+        <rect x={rHand + 18} y={wY - 62} width={18} height={8} fill={accentColor} />
       </g>
     );
   }
   if (origin === "Paladin") {
     return (
       <g>
-        {/* Holy sword right */}
-        <rect x={handR - 3} y={wY - 60} width={6} height={80} rx={2} fill="#ffd600" />
-        <rect x={handR - 14} y={wY - 16} width={28} height={7} rx={2} fill="#ff8f00" />
-        <polygon points={`${handR},${wY - 72} ${handR - 5},${wY - 60} ${handR + 5},${wY - 60}`} fill="white" />
-        {/* Holy symbol glow */}
-        <circle cx={handR} cy={wY - 40} r={10} fill="none" stroke="#ffe082" strokeWidth={1.5} opacity={0.6} />
-        {/* Shield left - round holy shield */}
-        <circle cx={handL} cy={wY} r={26} fill={armorColor} stroke={accentColor} strokeWidth={2.5} />
-        <circle cx={handL} cy={wY} r={16} fill="none" stroke={accentColor} strokeWidth={1.5} opacity={0.7} />
-        <line x1={handL} y1={wY - 16} x2={handL} y2={wY + 16} stroke={accentColor} strokeWidth={2} />
-        <line x1={handL - 16} y1={wY} x2={handL + 16} y2={wY} stroke={accentColor} strokeWidth={2} />
+        {/* Holy sword */}
+        <rect x={rHand - 5} y={wY - 84} width={10} height={104} fill="#ffd600" />
+        <rect x={rHand - 5} y={wY - 84} width={10} height={10} fill="white" />
+        <rect x={rHand - 20} y={wY - 26} width={40} height={10} fill="#ff8f00" />
+        <rect x={rHand - 4} y={wY + 18} width={8} height={14} fill="#b8860b" />
+        {/* Holy glow on blade */}
+        <rect x={rHand - 12} y={wY - 84} width={24} height={84} fill={accentColor} opacity={0.12} />
+        {/* Round shield */}
+        <rect x={lHand - 26} y={wY - 40} width={50} height={52} fill={armorColor} />
+        <rect x={lHand - 26} y={wY - 40} width={50} height={52} fill="none" stroke={accentColor} strokeWidth={3} />
+        <rect x={lHand - 8} y={wY - 40} width={12} height={52} fill={accentColor} opacity={0.4} />
+        <rect x={lHand - 26} y={wY - 8} width={50} height={12} fill={accentColor} opacity={0.4} />
+        <rect x={lHand - 4} y={wY - 6} width={12} height={12} fill={accentColor} />
       </g>
     );
   }
   return null;
 }
 
-// ── Armor overlay per class ───────────────────────────────────────────────────
+// ── Armor overlay per class (blocky) ─────────────────────────────────────────
 
-function ArmorOverlay({ origin, cx, bodyTopY, bodyW, bodyH, hipW, armorColor, accentColor, skinTone }: {
-  origin: OriginClass; cx: number; bodyTopY: number; bodyW: number; bodyH: number;
-  hipW: number; armorColor: string; accentColor: string; skinTone: string;
+function ArmorOverlay({ origin, bodyX, bodyY, bw, bh, leftArmX, rightArmX, armY, aw,
+  leftLegX, rightLegX, legY, lw, cx, accentColor, armorColor }: {
+  origin: OriginClass; bodyX: number; bodyY: number; bw: number; bh: number;
+  leftArmX: number; rightArmX: number; armY: number; aw: number;
+  leftLegX: number; rightLegX: number; legY: number; lw: number;
+  cx: number; accentColor: string; armorColor: string;
 }) {
   if (origin === "Tank") {
     return (
       <g>
-        {/* Plate chest */}
-        <rect x={cx - bodyW / 2 - 4} y={bodyTopY} width={bodyW + 8} height={bodyH * 0.55} rx={6}
-          fill={armorColor} stroke={accentColor} strokeWidth={1.5} />
-        {/* Breastplate center ridge */}
-        <rect x={cx - 4} y={bodyTopY + 4} width={8} height={bodyH * 0.45} rx={2} fill={accentColor} opacity={0.5} />
-        {/* Pauldrons */}
-        <ellipse cx={cx - bodyW / 2 - 12} cy={bodyTopY + 8} rx={14} ry={10} fill={armorColor} stroke={accentColor} strokeWidth={1} />
-        <ellipse cx={cx + bodyW / 2 + 12} cy={bodyTopY + 8} rx={14} ry={10} fill={armorColor} stroke={accentColor} strokeWidth={1} />
-        {/* Lower belt */}
-        <rect x={cx - hipW / 2 - 2} y={bodyTopY + bodyH * 0.55 - 4} width={hipW + 4} height={14} rx={4}
-          fill={accentColor} opacity={0.7} />
-        {/* Greaves/shin guards */}
-        <rect x={cx - hipW * 0.4 - 6} y={bodyTopY + bodyH + 10} width={hipW * 0.38 + 8} height={20} rx={3}
-          fill={armorColor} stroke={accentColor} strokeWidth={1} />
-        <rect x={cx + 2} y={bodyTopY + bodyH + 10} width={hipW * 0.38 + 8} height={20} rx={3}
-          fill={armorColor} stroke={accentColor} strokeWidth={1} />
+        <rect x={bodyX - 4} y={bodyY} width={bw + 8} height={Math.round(bh * 0.55)} fill={armorColor} stroke={accentColor} strokeWidth={2} />
+        <rect x={cx - 5} y={bodyY + 4} width={10} height={Math.round(bh * 0.45)} fill={accentColor} opacity={0.5} />
+        <rect x={leftArmX - 6} y={armY - 6} width={aw + 12} height={24} fill={armorColor} stroke={accentColor} strokeWidth={1.5} />
+        <rect x={rightArmX - 6} y={armY - 6} width={aw + 12} height={24} fill={armorColor} stroke={accentColor} strokeWidth={1.5} />
+        <rect x={bodyX - 4} y={bodyY + Math.round(bh * 0.55)} width={bw + 8} height={16} fill={accentColor} opacity={0.7} />
+        <rect x={leftLegX - 4} y={legY + 14} width={lw + 8} height={26} fill={armorColor} stroke={accentColor} strokeWidth={1} />
+        <rect x={rightLegX - 4} y={legY + 14} width={lw + 8} height={26} fill={armorColor} stroke={accentColor} strokeWidth={1} />
       </g>
     );
   }
   if (origin === "Assassin") {
     return (
       <g>
-        {/* Dark hood / cowl */}
-        <ellipse cx={cx} cy={bodyTopY - 12} rx={bodyW * 0.55} ry={18} fill={armorColor} opacity={0.85} />
-        {/* Chest harness straps */}
-        <line x1={cx - bodyW / 2 + 4} y1={bodyTopY} x2={cx + 6} y2={bodyTopY + bodyH * 0.45} stroke={accentColor} strokeWidth={2} opacity={0.8} />
-        <line x1={cx + bodyW / 2 - 4} y1={bodyTopY} x2={cx - 6} y2={bodyTopY + bodyH * 0.45} stroke={accentColor} strokeWidth={2} opacity={0.8} />
-        {/* Leather chest */}
-        <rect x={cx - bodyW / 2 + 2} y={bodyTopY + 4} width={bodyW - 4} height={bodyH * 0.5} rx={6}
-          fill={armorColor} opacity={0.7} />
-        {/* Slim shin wraps */}
-        <rect x={cx - hipW * 0.4 - 2} y={bodyTopY + bodyH + 14} width={hipW * 0.38 + 2} height={16} rx={2}
-          fill={armorColor} opacity={0.6} />
-        <rect x={cx + 2} y={bodyTopY + bodyH + 14} width={hipW * 0.38 + 2} height={16} rx={2}
-          fill={armorColor} opacity={0.6} />
+        <rect x={bodyX + 4} y={bodyY + 4} width={bw - 8} height={Math.round(bh * 0.5)} fill={armorColor} opacity={0.75} />
+        <line x1={bodyX} y1={bodyY} x2={cx + 10} y2={bodyY + Math.round(bh * 0.45)} stroke={accentColor} strokeWidth={3} opacity={0.8} />
+        <line x1={bodyX + bw} y1={bodyY} x2={cx - 10} y2={bodyY + Math.round(bh * 0.45)} stroke={accentColor} strokeWidth={3} opacity={0.8} />
+        <rect x={bodyX - 4} y={bodyY - 20} width={bw + 8} height={24} fill={armorColor} opacity={0.8} />
+        <rect x={leftLegX} y={legY + 18} width={lw} height={14} fill={armorColor} opacity={0.6} />
+        <rect x={rightLegX} y={legY + 18} width={lw} height={14} fill={armorColor} opacity={0.6} />
       </g>
     );
   }
   if (origin === "Mage") {
     return (
       <g>
-        {/* Flowing robe - wider bottom */}
-        <path d={`M ${cx - bodyW / 2 - 4} ${bodyTopY + 6}
-          L ${cx - bodyW / 2 - 16} ${bodyTopY + bodyH + 20}
-          Q ${cx} ${bodyTopY + bodyH + 30} ${cx + bodyW / 2 + 16} ${bodyTopY + bodyH + 20}
-          L ${cx + bodyW / 2 + 4} ${bodyTopY + 6} Z`}
-          fill={armorColor} opacity={0.85} />
-        {/* Robe collar */}
-        <ellipse cx={cx} cy={bodyTopY + 6} rx={bodyW * 0.45} ry={10} fill={armorColor} stroke={accentColor} strokeWidth={1} />
-        {/* Magic sigil on chest */}
-        <circle cx={cx} cy={bodyTopY + bodyH * 0.3} r={10} fill="none" stroke={accentColor} strokeWidth={1.5} opacity={0.7} />
-        <polygon points={`${cx},${bodyTopY + bodyH * 0.3 - 8} ${cx - 7},${bodyTopY + bodyH * 0.3 + 4} ${cx + 7},${bodyTopY + bodyH * 0.3 + 4}`}
-          fill="none" stroke={accentColor} strokeWidth={1.5} opacity={0.6} />
-        {/* Belt */}
-        <rect x={cx - bodyW / 2 - 2} y={bodyTopY + bodyH * 0.52} width={bodyW + 4} height={8} rx={3}
-          fill={accentColor} opacity={0.6} />
+        <rect x={bodyX - 12} y={bodyY + Math.round(bh * 0.4)} width={bw + 24} height={Math.round(bh * 0.6)} fill={armorColor} opacity={0.85} />
+        <rect x={bodyX} y={bodyY} width={bw} height={Math.round(bh * 0.45)} fill={armorColor} opacity={0.8} />
+        <rect x={cx - 24} y={bodyY - 8} width={48} height={18} fill={armorColor} stroke={accentColor} strokeWidth={1} />
+        <rect x={cx - 14} y={bodyY + 22} width={28} height={28} fill="none" stroke={accentColor} strokeWidth={2} opacity={0.6} />
+        <rect x={cx - 7} y={bodyY + 29} width={14} height={14} fill="none" stroke={accentColor} strokeWidth={1.5} opacity={0.4} />
+        <rect x={cx - 4} y={bodyY + 33} width={8} height={8} fill={accentColor} opacity={0.5} />
+        <rect x={bodyX - 4} y={bodyY + Math.round(bh * 0.52)} width={bw + 8} height={10} fill={accentColor} opacity={0.7} />
       </g>
     );
   }
   if (origin === "Ranger") {
     return (
       <g>
-        {/* Leather chest */}
-        <rect x={cx - bodyW / 2 + 2} y={bodyTopY + 2} width={bodyW - 4} height={bodyH * 0.55} rx={5}
-          fill={armorColor} opacity={0.8} />
-        {/* Quiver on back (right side) */}
-        <rect x={cx + bodyW / 2 + 2} y={bodyTopY - 10} width={10} height={40} rx={4} fill="#5d4037" />
-        <line x1={cx + bodyW / 2 + 7} y1={bodyTopY - 10} x2={cx + bodyW / 2 + 7} y2={bodyTopY - 22} stroke="#8d6e63" strokeWidth={2} />
-        <line x1={cx + bodyW / 2 + 4} y1={bodyTopY - 10} x2={cx + bodyW / 2 + 4} y2={bodyTopY - 20} stroke="#8d6e63" strokeWidth={2} />
-        {/* Hood */}
-        <ellipse cx={cx} cy={bodyTopY - 10} rx={bodyW * 0.48} ry={14} fill={armorColor} opacity={0.7} />
-        {/* Belt with pouch */}
-        <rect x={cx - hipW / 2 - 2} y={bodyTopY + bodyH * 0.55} width={hipW + 4} height={10} rx={3}
-          fill="#4a3728" opacity={0.9} />
-        <rect x={cx - 8} y={bodyTopY + bodyH * 0.52} width={16} height={16} rx={3} fill="#5d4037" />
+        <rect x={bodyX + 2} y={bodyY + 2} width={bw - 4} height={Math.round(bh * 0.55)} fill={armorColor} opacity={0.8} />
+        <rect x={bodyX - 4} y={bodyY - 18} width={bw + 8} height={22} fill={armorColor} opacity={0.75} />
+        <rect x={rightArmX + 2} y={armY - 16} width={16} height={46} fill="#5d4037" />
+        {[0, 5, 10].map((d, i) => (
+          <rect key={i} x={rightArmX + 4 + d} y={armY - 18 - i * 2} width={5} height={8} fill="#8d6e63" />
+        ))}
+        <rect x={bodyX - 2} y={bodyY + Math.round(bh * 0.56)} width={bw + 4} height={14} fill="#4a3728" />
+        <rect x={cx - 12} y={bodyY + Math.round(bh * 0.52)} width={24} height={22} fill="#5d4037" />
       </g>
     );
   }
   if (origin === "Berserker") {
     return (
       <g>
-        {/* Bare upper half — just shoulder armor */}
-        <ellipse cx={cx - bodyW / 2 - 10} cy={bodyTopY + 6} rx={16} ry={11} fill={armorColor} stroke={accentColor} strokeWidth={1.5} />
-        <ellipse cx={cx + bodyW / 2 + 10} cy={bodyTopY + 6} rx={16} ry={11} fill={armorColor} stroke={accentColor} strokeWidth={1.5} />
-        {/* Spikes on pauldrons */}
-        <polygon points={`${cx - bodyW / 2 - 10},${bodyTopY - 10} ${cx - bodyW / 2 - 16},${bodyTopY + 2} ${cx - bodyW / 2 - 4},${bodyTopY + 2}`}
-          fill={accentColor} />
-        <polygon points={`${cx + bodyW / 2 + 10},${bodyTopY - 10} ${cx + bodyW / 2 + 4},${bodyTopY + 2} ${cx + bodyW / 2 + 16},${bodyTopY + 2}`}
-          fill={accentColor} />
-        {/* Battle scars on torso */}
-        <line x1={cx - 10} y1={bodyTopY + 20} x2={cx + 4} y2={bodyTopY + 40} stroke="#ff1744" strokeWidth={1.5} opacity={0.7} />
-        <line x1={cx + 8} y1={bodyTopY + 14} x2={cx - 2} y2={bodyTopY + 30} stroke="#ff1744" strokeWidth={1} opacity={0.5} />
-        {/* Waistband */}
-        <rect x={cx - hipW / 2 - 2} y={bodyTopY + bodyH * 0.55} width={hipW + 4} height={12} rx={3}
-          fill={armorColor} opacity={0.9} />
-        {/* Fur trim bottom */}
-        <path d={`M ${cx - hipW / 2 - 2} ${bodyTopY + bodyH * 0.67} Q ${cx} ${bodyTopY + bodyH * 0.75} ${cx + hipW / 2 + 2} ${bodyTopY + bodyH * 0.67}`}
-          fill="none" stroke="#6d4c41" strokeWidth={5} strokeLinecap="round" />
+        <rect x={leftArmX - 5} y={armY - 10} width={aw + 12} height={22} fill={armorColor} stroke={accentColor} strokeWidth={1.5} />
+        <rect x={rightArmX - 7} y={armY - 10} width={aw + 12} height={22} fill={armorColor} stroke={accentColor} strokeWidth={1.5} />
+        <rect x={leftArmX + 2} y={armY - 22} width={10} height={14} fill={accentColor} />
+        <rect x={rightArmX + 8} y={armY - 22} width={10} height={14} fill={accentColor} />
+        <line x1={cx - 14} y1={bodyY + 18} x2={cx + 8} y2={bodyY + 48} stroke="#ff1744" strokeWidth={2.5} opacity={0.7} />
+        <line x1={cx + 12} y1={bodyY + 12} x2={cx - 4} y2={bodyY + 36} stroke="#ff1744" strokeWidth={1.5} opacity={0.5} />
+        <rect x={bodyX - 2} y={bodyY + Math.round(bh * 0.56)} width={bw + 4} height={16} fill="#5d4037" />
+        <rect x={bodyX - 2} y={bodyY + Math.round(bh * 0.7)} width={bw + 4} height={8} fill="#6d4c41" opacity={0.7} />
       </g>
     );
   }
   if (origin === "Paladin") {
     return (
       <g>
-        {/* Plate chest with cross */}
-        <rect x={cx - bodyW / 2 - 5} y={bodyTopY} width={bodyW + 10} height={bodyH * 0.6} rx={7}
-          fill={armorColor} stroke={accentColor} strokeWidth={2} />
-        {/* Holy cross embossed */}
-        <rect x={cx - 3} y={bodyTopY + 8} width={6} height={bodyH * 0.4} rx={2} fill={accentColor} opacity={0.7} />
-        <rect x={cx - 14} y={bodyTopY + 20} width={28} height={5} rx={2} fill={accentColor} opacity={0.7} />
-        {/* Pauldrons with holy engravings */}
-        <ellipse cx={cx - bodyW / 2 - 14} cy={bodyTopY + 8} rx={16} ry={12} fill={armorColor} stroke={accentColor} strokeWidth={1.5} />
-        <ellipse cx={cx + bodyW / 2 + 14} cy={bodyTopY + 8} rx={16} ry={12} fill={armorColor} stroke={accentColor} strokeWidth={1.5} />
-        {/* Divine glow from chest */}
-        <ellipse cx={cx} cy={bodyTopY + bodyH * 0.28} rx={14} ry={14} fill={accentColor} opacity={0.12} />
-        {/* Faulds (hip plates) */}
-        <rect x={cx - hipW / 2 - 4} y={bodyTopY + bodyH * 0.58} width={hipW + 8} height={16} rx={5}
-          fill={armorColor} stroke={accentColor} strokeWidth={1} />
-        {/* Greaves */}
-        <rect x={cx - hipW * 0.4 - 6} y={bodyTopY + bodyH + 8} width={hipW * 0.38 + 10} height={26} rx={4}
-          fill={armorColor} stroke={accentColor} strokeWidth={1} />
-        <rect x={cx + 2} y={bodyTopY + bodyH + 8} width={hipW * 0.38 + 10} height={26} rx={4}
-          fill={armorColor} stroke={accentColor} strokeWidth={1} />
+        <rect x={bodyX - 5} y={bodyY - 2} width={bw + 10} height={Math.round(bh * 0.6)} fill={armorColor} stroke={accentColor} strokeWidth={2} />
+        <rect x={cx - 5} y={bodyY + 8} width={10} height={Math.round(bh * 0.45)} fill={accentColor} opacity={0.7} />
+        <rect x={cx - 18} y={bodyY + 24} width={36} height={8} fill={accentColor} opacity={0.7} />
+        <rect x={leftArmX - 6} y={armY - 10} width={aw + 14} height={28} fill={armorColor} stroke={accentColor} strokeWidth={1.5} />
+        <rect x={rightArmX - 8} y={armY - 10} width={aw + 14} height={28} fill={armorColor} stroke={accentColor} strokeWidth={1.5} />
+        <rect x={cx - 18} y={bodyY + 10} width={36} height={36} fill={accentColor} opacity={0.08} />
+        <rect x={bodyX - 5} y={bodyY + Math.round(bh * 0.58)} width={bw + 10} height={20} fill={armorColor} stroke={accentColor} strokeWidth={1} />
+        <rect x={leftLegX - 5} y={legY + 12} width={lw + 10} height={30} fill={armorColor} stroke={accentColor} strokeWidth={1} />
+        <rect x={rightLegX - 5} y={legY + 12} width={lw + 10} height={30} fill={armorColor} stroke={accentColor} strokeWidth={1} />
       </g>
     );
   }
   return null;
 }
 
-// ── 2D Character Preview ───────────────────────────────────────────────────────
+// ── 2D Character Preview (Minecraft-style blocky) ────────────────────────────
 
 function CharacterPreview({ char }: { char: OGCharacter }) {
   const isFemale = char.gender === "Female";
-  const isSlim = char.bodyType === "Slim";
-  const isAthletic = char.bodyType === "Athletic";
-  const isCurvy = char.bodyType === "Curvy";
   const isTall = char.height === "Tall";
   const isShort = char.height === "Short";
+
+  // Body dimensions — blocky Minecraft proportions
+  const bw = char.bodyType === "Slim" ? 58 : char.bodyType === "Athletic" ? 76 : char.bodyType === "Curvy" ? 88 : 68;
+  const bh = isTall ? 104 : isShort ? 80 : 92;
+  const lh = isTall ? 100 : isShort ? 72 : 88;
+  const aw = 24; // arm width
+  const ah = bh - 8;
+  const lw = 30; // leg width
+
+  const cx = 140;
+  const hw = 78;
+  const hh = 72;
+  const headX = cx - hw / 2;
+  const headY = 16;
+  const neckY = headY + hh;
+  const neckH = 10;
+  const bodyX = cx - bw / 2;
+  const bodyY = neckY + neckH;
+  const armY = bodyY - 2;
+  const leftArmX = bodyX - aw - 4;
+  const rightArmX = bodyX + bw + 4;
+  const leftLegX = cx - lw - 2;
+  const rightLegX = cx + 2;
+  const legY = bodyY + bh;
+  const legBotY = legY + lh;
+  const totalH = legBotY + 24;
+
+  const hairColor = char.hairStyle === "Bald" ? null : char.hairColor;
+  const cls = CLASS_ORIGINS.find((c) => c.id === char.origin) || CLASS_ORIGINS[0];
+  const browColor = hairColor || "#333";
+
+  // Hair style booleans
   const isAfro = char.hairStyle === "Afro";
   const isDreads = char.hairStyle === "Dreads";
   const isMohawk = char.hairStyle === "Mohawk";
   const isBald = char.hairStyle === "Bald";
   const isLong = char.hairStyle === "Long" || char.hairStyle === "Long Straight" || char.hairStyle === "Braids";
   const isPonytail = char.hairStyle === "Ponytail";
-  const isBob = char.hairStyle === "Short Bob" || char.hairStyle === "Buzz Cut" || char.hairStyle === "Fade" || char.hairStyle === "Pixie";
+  const isCurly = char.hairStyle === "Curly";
 
-  const totalH = isTall ? 260 : isShort ? 190 : 225;
-  const headR = isTall ? 36 : isShort ? 28 : 32;
-  const bodyW = isSlim ? 44 : isAthletic ? 66 : isCurvy ? 72 : 56;
-  const bodyH = isTall ? 105 : isShort ? 72 : 90;
-  const hipW = isCurvy ? bodyW + 18 : isFemale ? bodyW + 8 : bodyW - 2;
-  const legH = isTall ? 96 : isShort ? 62 : 78;
-
-  const cx = 120;
-  const headY = 30 + headR;
-  const neckY = headY + headR;
-  const bodyTopY = neckY + 8;
-  const bodyBotY = bodyTopY + bodyH;
-  const legBotY = bodyBotY + legH;
-
-  const hairColor = char.hairStyle === "Bald" ? "none" : char.hairColor;
-
-  const classData = CLASS_ORIGINS.find((c) => c.id === char.origin) || CLASS_ORIGINS[0];
+  // Left / right hand center for weapons
+  const lHand = leftArmX + aw / 2;
+  const rHand = rightArmX + aw / 2;
 
   return (
-    <svg
-      viewBox={`0 0 240 ${totalH + 30}`}
-      width="100%"
-      height="100%"
-      style={{ filter: `drop-shadow(0 0 22px ${char.auraColor}aa)` }}
-    >
+    <svg viewBox={`0 0 280 ${totalH}`} width="100%" height="100%"
+      style={{ filter: `drop-shadow(0 0 20px ${char.auraColor}99)`, imageRendering: "pixelated" }}>
       <defs>
-        <radialGradient id="aura-glow" cx="50%" cy="100%" r="50%">
-          <stop offset="0%" stopColor={char.auraColor} stopOpacity="0.4" />
-          <stop offset="100%" stopColor={char.auraColor} stopOpacity="0" />
-        </radialGradient>
+        <linearGradient id="sh-h" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="75%" stopColor="transparent" />
+          <stop offset="100%" stopColor="#00000030" />
+        </linearGradient>
+        <linearGradient id="sh-v" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="80%" stopColor="transparent" />
+          <stop offset="100%" stopColor="#00000038" />
+        </linearGradient>
       </defs>
 
-      {/* Ground aura */}
-      <ellipse cx={cx} cy={legBotY + 10} rx={bodyW * 0.8} ry={10}
-        fill={char.auraColor} opacity={0.35} />
-      <ellipse cx={cx} cy={legBotY + 10} rx={bodyW * 1.6} ry={20}
-        fill="url(#aura-glow)" />
+      {/* Ground aura glow */}
+      <rect x={cx - bw * 0.9} y={legBotY + 4} width={bw * 1.8} height={12} rx={6}
+        fill={char.auraColor} opacity={0.3} />
 
-      {/* ── HAIR (back layer) ── */}
-      {isAfro && (
-        <ellipse cx={cx} cy={headY - 4} rx={headR + 15} ry={headR + 13}
-          fill={hairColor} opacity={0.95} />
+      {/* ── HAIR BACK (long styles hang behind body) ── */}
+      {isLong && hairColor && (
+        <rect x={headX + 4} y={headY + hh * 0.5} width={hw - 8} height={Math.round(bh * 0.6)} fill={hairColor} />
       )}
-      {isDreads && (
+      {isDreads && hairColor && (
         <>
-          {[-22, -13, -4, 5, 14, 23].map((dx, i) => (
-            <rect key={i}
-              x={cx + dx - 4} y={headY + headR - 8}
-              width={8} height={isLong ? 90 : 55}
-              rx={4} fill={hairColor} opacity={0.88}
-            />
+          {[-28, -17, -6, 5, 16, 27].map((dx, i) => (
+            <rect key={i} x={cx + dx - 5} y={headY + hh - 6} width={10} height={Math.round(lh * 0.6)} fill={hairColor} opacity={0.9} />
           ))}
         </>
       )}
-      {isLong && !isDreads && (
-        <rect x={cx - headR + 2} y={headY + headR * 0.2}
-          width={(headR - 2) * 2} height={bodyH * 0.65}
-          rx={10} fill={hairColor} opacity={0.82} />
-      )}
-      {isPonytail && (
-        <>
-          <rect x={cx - 7} y={headY + headR - 5} width={14} height={65} rx={7}
-            fill={hairColor} opacity={0.9} />
-          <ellipse cx={cx} cy={headY + headR - 5} rx={9} ry={7} fill={hairColor} opacity={0.9} />
-        </>
+      {isPonytail && hairColor && (
+        <rect x={headX - 6} y={headY + hh * 0.5} width={12} height={Math.round(bh * 0.45)} fill={hairColor} />
       )}
 
       {/* ── LEGS ── */}
-      <rect x={cx - hipW * 0.4 - 5} y={bodyBotY} width={hipW * 0.4} height={legH}
-        rx={7} fill={char.skinTone} />
-      <rect x={cx + 5} y={bodyBotY} width={hipW * 0.4} height={legH}
-        rx={7} fill={char.skinTone} />
+      <rect x={leftLegX} y={legY} width={lw} height={lh} fill={cls.armorColor} />
+      <rect x={leftLegX} y={legY} width={lw} height={lh} fill="url(#sh-h)" />
+      <rect x={leftLegX} y={legY} width={lw} height={lh} fill="url(#sh-v)" />
+      <rect x={rightLegX} y={legY} width={lw} height={lh} fill={cls.armorColor} />
+      <rect x={rightLegX} y={legY} width={lw} height={lh} fill="url(#sh-h)" />
+      <rect x={rightLegX} y={legY} width={lw} height={lh} fill="url(#sh-v)" />
+
       {/* Boots */}
-      <rect x={cx - hipW * 0.4 - 10} y={legBotY - 14} width={hipW * 0.4 + 12} height={20}
-        rx={5} fill="#1a1a1a" />
-      <rect x={cx + 1} y={legBotY - 14} width={hipW * 0.4 + 12} height={20}
-        rx={5} fill="#1a1a1a" />
-      {/* Boot shine */}
-      <ellipse cx={cx - hipW * 0.21} cy={legBotY + 6} rx={hipW * 0.24} ry={5}
-        fill="#333" />
-      <ellipse cx={cx + hipW * 0.21 + 10} cy={legBotY + 6} rx={hipW * 0.24} ry={5}
-        fill="#333" />
+      <rect x={leftLegX - 3} y={legBotY - 14} width={lw + 6} height={18} fill="#111" />
+      <rect x={leftLegX - 5} y={legBotY - 5} width={8} height={10} fill="#1e1e1e" />
+      <rect x={rightLegX - 3} y={legBotY - 14} width={lw + 6} height={18} fill="#111" />
+      <rect x={rightLegX - 5} y={legBotY - 5} width={8} height={10} fill="#1e1e1e" />
 
-      {/* ── HIP / TORSO base ── */}
-      <rect x={cx - hipW / 2} y={bodyBotY - 16} width={hipW} height={24}
-        rx={9} fill={char.skinTone} />
-      <rect x={cx - bodyW / 2} y={bodyTopY} width={bodyW} height={bodyH}
-        rx={12} fill={char.skinTone} />
+      {/* ── BODY ── */}
+      <rect x={bodyX} y={bodyY} width={bw} height={bh} fill={cls.armorColor} />
+      <rect x={bodyX} y={bodyY} width={bw} height={bh} fill="url(#sh-h)" />
+      <rect x={bodyX} y={bodyY} width={bw} height={bh} fill="url(#sh-v)" />
 
-      {/* ── ARMS (skin) ── */}
-      <rect x={cx - bodyW / 2 - 16} y={bodyTopY + 6} width={16} height={bodyH * 0.68}
-        rx={8} fill={char.skinTone} />
-      <rect x={cx + bodyW / 2} y={bodyTopY + 6} width={16} height={bodyH * 0.68}
-        rx={8} fill={char.skinTone} />
-      {/* Hands */}
-      <ellipse cx={cx - bodyW / 2 - 8} cy={bodyTopY + 8 + bodyH * 0.68 + 7}
-        rx={9} ry={9} fill={char.skinTone} />
-      <ellipse cx={cx + bodyW / 2 + 8} cy={bodyTopY + 8 + bodyH * 0.68 + 7}
-        rx={9} ry={9} fill={char.skinTone} />
+      {/* ── ARMS ── */}
+      <rect x={leftArmX} y={armY} width={aw} height={ah} fill={cls.armorColor} />
+      <rect x={leftArmX} y={armY} width={aw} height={ah} fill="url(#sh-h)" />
+      <rect x={rightArmX} y={armY} width={aw} height={ah} fill={cls.armorColor} />
+      <rect x={rightArmX} y={armY} width={aw} height={ah} fill="url(#sh-h)" />
+      {/* Hands (skin) */}
+      <rect x={leftArmX} y={armY + ah} width={aw} height={16} fill={char.skinTone} />
+      <rect x={rightArmX} y={armY + ah} width={aw} height={16} fill={char.skinTone} />
 
       {/* ── ARMOR / CLASS OVERLAY ── */}
-      <ArmorOverlay
-        origin={char.origin} cx={cx} bodyTopY={bodyTopY} bodyW={bodyW} bodyH={bodyH}
-        hipW={hipW} armorColor={classData.armorColor} accentColor={classData.accentColor}
-        skinTone={char.skinTone}
-      />
+      <ArmorOverlay origin={char.origin} bodyX={bodyX} bodyY={bodyY} bw={bw} bh={bh}
+        leftArmX={leftArmX} rightArmX={rightArmX} armY={armY} aw={aw}
+        leftLegX={leftLegX} rightLegX={rightLegX} legY={legY} lw={lw}
+        cx={cx} accentColor={cls.accentColor} armorColor={cls.armorColor} />
 
       {/* ── NECK ── */}
-      <rect x={cx - 9} y={neckY} width={18} height={12} rx={6} fill={char.skinTone} />
+      <rect x={cx - 14} y={neckY} width={28} height={neckH} fill={char.skinTone} />
 
       {/* ── HEAD ── */}
-      {/* Jaw / chin */}
-      <ellipse cx={cx} cy={headY + headR * 0.15} rx={headR * 0.72} ry={headR * 0.55}
-        fill={char.skinTone} />
-      {/* Main head */}
-      <ellipse cx={cx} cy={headY} rx={headR} ry={headR + 3} fill={char.skinTone} />
-      {/* Ears */}
-      <ellipse cx={cx - headR + 2} cy={headY + 2} rx={5} ry={7} fill={char.skinTone} />
-      <ellipse cx={cx + headR - 2} cy={headY + 2} rx={5} ry={7} fill={char.skinTone} />
-      <ellipse cx={cx - headR + 3} cy={headY + 2} rx={3} ry={4} fill={char.skinTone}
-        style={{ filter: "brightness(0.92)" }} />
-      <ellipse cx={cx + headR - 3} cy={headY + 2} rx={3} ry={4} fill={char.skinTone}
-        style={{ filter: "brightness(0.92)" }} />
+      <rect x={headX} y={headY} width={hw} height={hh} fill={char.skinTone} />
+      {/* Right-side shading */}
+      <rect x={headX + Math.round(hw * 0.8)} y={headY} width={Math.round(hw * 0.2)} height={hh} fill="#00000025" />
+      {/* Bottom shading */}
+      <rect x={headX} y={headY + Math.round(hh * 0.85)} width={hw} height={Math.round(hh * 0.15)} fill="#00000022" />
 
-      {/* ── HAIR (front layer) ── */}
-      {!isBald && !isAfro && !isDreads && !isLong && !isPonytail && (
-        <ellipse cx={cx} cy={headY - headR * 0.32}
-          rx={headR + 1} ry={headR * 0.56}
-          fill={hairColor} opacity={0.93} />
+      {/* ── HAIR ── */}
+      {!isBald && !isMohawk && !isAfro && !isCurly && hairColor && (
+        <rect x={headX - 2} y={headY - 2} width={hw + 4} height={24} fill={hairColor} />
       )}
-      {isMohawk && (
+      {isMohawk && hairColor && (
         <>
-          <rect x={cx - 6} y={headY - headR - 26} width={12} height={30}
-            rx={6} fill={hairColor} opacity={0.95} />
-          {[-4, 0, 4].map((dx, i) => (
-            <ellipse key={i} cx={cx + dx} cy={headY - headR - 14} rx={3} ry={8}
-              fill={hairColor} opacity={0.7} />
-          ))}
+          <rect x={headX - 2} y={headY - 2} width={hw + 4} height={24} fill={char.skinTone} />
+          <rect x={cx - 7} y={headY - 30} width={14} height={34} fill={hairColor} />
         </>
       )}
-      {isBob && (
+      {isAfro && hairColor && (
+        <rect x={headX - 18} y={headY - 16} width={hw + 36} height={Math.round(hh * 0.65)} rx={16} fill={hairColor} />
+      )}
+      {isCurly && hairColor && (
+        <rect x={headX - 10} y={headY - 14} width={hw + 20} height={32} rx={14} fill={hairColor} />
+      )}
+      {isBald && (
+        <rect x={headX} y={headY} width={hw} height={10} fill="#ffffff0a" />
+      )}
+
+      {/* Female blush */}
+      {isFemale && (
         <>
-          <ellipse cx={cx} cy={headY - headR * 0.3}
-            rx={headR + 1} ry={headR * 0.6}
-            fill={hairColor} opacity={0.93} />
-          <ellipse cx={cx - headR + 1} cy={headY + 4}
-            rx={7} ry={headR * 0.48} fill={hairColor} opacity={0.85} />
-          <ellipse cx={cx + headR - 1} cy={headY + 4}
-            rx={7} ry={headR * 0.48} fill={hairColor} opacity={0.85} />
+          <rect x={headX + 4} y={headY + Math.round(hh * 0.6)} width={14} height={8} fill="#ff8090" opacity={0.18} />
+          <rect x={headX + hw - 18} y={headY + Math.round(hh * 0.6)} width={14} height={8} fill="#ff8090" opacity={0.18} />
         </>
       )}
 
-      {/* ── FACE DETAILS ── */}
-      {/* Brow ridge shadow */}
-      <rect x={cx - 15} y={headY - 9} width={30} height={3} rx={2}
-        fill={char.skinTone} style={{ filter: "brightness(0.82)" }} />
+      {/* ── FACE (pixel-art squares — no circles) ── */}
       {/* Eyebrows */}
-      <path d={`M ${cx - 15} ${headY - 8} Q ${cx - 9} ${headY - 13} ${cx - 3} ${headY - 9}`}
-        fill="none" stroke={hairColor === "none" ? "#333" : hairColor} strokeWidth={2.5} strokeLinecap="round" />
-      <path d={`M ${cx + 3} ${headY - 9} Q ${cx + 9} ${headY - 13} ${cx + 15} ${headY - 8}`}
-        fill="none" stroke={hairColor === "none" ? "#333" : hairColor} strokeWidth={2.5} strokeLinecap="round" />
+      <rect x={headX + 12} y={headY + 21} width={20} height={5} fill={browColor} />
+      <rect x={headX + hw - 32} y={headY + 21} width={20} height={5} fill={browColor} />
+
+      {/* Eye whites */}
+      <rect x={headX + 11} y={headY + 28} width={20} height={17} fill="white" />
+      <rect x={headX + hw - 31} y={headY + 28} width={20} height={17} fill="white" />
+
+      {/* Irises */}
+      <rect x={headX + 14} y={headY + 30} width={13} height={12} fill={char.eyeColor} />
+      <rect x={headX + hw - 27} y={headY + 30} width={13} height={12} fill={char.eyeColor} />
+
+      {/* Pupils */}
+      <rect x={headX + 17} y={headY + 32} width={7} height={8} fill="#0a0a0a" />
+      <rect x={headX + hw - 24} y={headY + 32} width={7} height={8} fill="#0a0a0a" />
+
+      {/* Eye shine */}
+      <rect x={headX + 14} y={headY + 29} width={4} height={4} fill="white" />
+      <rect x={headX + hw - 31} y={headY + 29} width={4} height={4} fill="white" />
 
       {/* Female eyelashes */}
       {isFemale && (
         <>
-          {[-14, -10, -6].map((dx, i) => (
-            <line key={i} x1={cx + dx} y1={headY - 6} x2={cx + dx - 1} y2={headY - 10}
-              stroke="#111" strokeWidth={1.2} />
-          ))}
-          {[6, 10, 14].map((dx, i) => (
-            <line key={i} x1={cx + dx} y1={headY - 6} x2={cx + dx + 1} y2={headY - 10}
-              stroke="#111" strokeWidth={1.2} />
-          ))}
+          <rect x={headX + 11} y={headY + 28} width={20} height={4} fill="#111" />
+          <rect x={headX + hw - 31} y={headY + 28} width={20} height={4} fill="#111" />
         </>
       )}
 
-      {/* Eye whites */}
-      <ellipse cx={cx - 11} cy={headY - 2} rx={6} ry={7} fill="white" />
-      <ellipse cx={cx + 11} cy={headY - 2} rx={6} ry={7} fill="white" />
-      {/* Irises */}
-      <ellipse cx={cx - 11} cy={headY - 1} rx={4.5} ry={5} fill={char.eyeColor} />
-      <ellipse cx={cx + 11} cy={headY - 1} rx={4.5} ry={5} fill={char.eyeColor} />
-      {/* Pupils */}
-      <ellipse cx={cx - 10.5} cy={headY - 0.5} rx={2} ry={2.5} fill="#000" />
-      <ellipse cx={cx + 11.5} cy={headY - 0.5} rx={2} ry={2.5} fill="#000" />
-      {/* Eye shine */}
-      <ellipse cx={cx - 9} cy={headY - 2.5} rx={1.2} ry={1.2} fill="white" />
-      <ellipse cx={cx + 13} cy={headY - 2.5} rx={1.2} ry={1.2} fill="white" />
-      {/* Eyelids */}
-      <path d={`M ${cx - 17} ${headY - 2} Q ${cx - 11} ${headY - 10} ${cx - 5} ${headY - 2}`}
-        fill="none" stroke="#33333355" strokeWidth={1.5} />
-      <path d={`M ${cx + 5} ${headY - 2} Q ${cx + 11} ${headY - 10} ${cx + 17} ${headY - 2}`}
-        fill="none" stroke="#33333355" strokeWidth={1.5} />
-
-      {/* Nose */}
-      <path d={`M ${cx - 4} ${headY + 6} Q ${cx - 2} ${headY + 12} ${cx} ${headY + 12} Q ${cx + 2} ${headY + 12} ${cx + 4} ${headY + 6}`}
-        fill="none" stroke={char.skinTone} strokeWidth={2}
-        style={{ filter: "brightness(0.8)" }} strokeLinecap="round" />
-      <ellipse cx={cx - 4} cy={headY + 12} rx={3} ry={1.5}
-        fill={char.skinTone} style={{ filter: "brightness(0.85)" }} />
-      <ellipse cx={cx + 4} cy={headY + 12} rx={3} ry={1.5}
-        fill={char.skinTone} style={{ filter: "brightness(0.85)" }} />
+      {/* Nose (subtle shadow block) */}
+      <rect x={cx - 4} y={headY + 49} width={8} height={5} fill="#00000018" />
 
       {/* Mouth */}
       {isFemale ? (
         <>
-          <path d={`M ${cx - 8} ${headY + 17} Q ${cx} ${headY + 23} ${cx + 8} ${headY + 17}`}
-            fill="#d4687a" />
-          <path d={`M ${cx - 8} ${headY + 17} Q ${cx} ${headY + 20} ${cx + 8} ${headY + 17}`}
-            fill="#e8a0aa" />
+          <rect x={cx - 14} y={headY + 58} width={28} height={7} fill="#e07090" />
+          <rect x={cx - 9} y={headY + 56} width={18} height={4} fill="#f0a0b0" opacity={0.6} />
         </>
       ) : (
-        <path d={`M ${cx - 7} ${headY + 18} Q ${cx} ${headY + 23} ${cx + 7} ${headY + 18}`}
-          fill="none" stroke="#8b4513" strokeWidth={2} strokeLinecap="round" />
+        <rect x={cx - 12} y={headY + 59} width={24} height={6} fill="#00000025" />
       )}
 
       {/* ── WEAPONS ── */}
-      <WeaponSVG
-        origin={char.origin} cx={cx} bodyTopY={bodyTopY} bodyW={bodyW}
-        skinTone={char.skinTone} accentColor={classData.accentColor} armorColor={classData.armorColor}
-      />
+      <WeaponSVG origin={char.origin} lHand={lHand} rHand={rHand} armY={armY}
+        accentColor={cls.accentColor} armorColor={cls.armorColor} />
 
-      {/* Aura ring around figure */}
-      <ellipse cx={cx} cy={headY}
-        rx={headR + 10} ry={headR + 13}
-        fill="none"
-        stroke={char.auraColor}
-        strokeWidth={1.5}
-        strokeDasharray="5 7"
-        opacity={0.5}
-      />
+      {/* Aura border dashes */}
+      <rect x={headX - 16} y={headY - 16} width={hw + 32} height={totalH - 18}
+        fill="none" stroke={char.auraColor} strokeWidth={2} strokeDasharray="8 10" opacity={0.4} />
     </svg>
   );
 }
