@@ -251,28 +251,22 @@ class OGWorldScene extends Phaser.Scene {
 
   preload() {
     // Characters
-    // Only load sprites that actually exist at these CDN paths
+    // Only knight and blade actually exist at the phaserjs CDN animations path
     const CDN = "https://raw.githubusercontent.com/phaserjs/examples/master/public/assets";
-    this.load.multiatlas("knight",    `${CDN}/animations/knight.json`, `${CDN}/animations/`);
-    this.load.spritesheet("blade",    `${CDN}/animations/blade.png`,    { frameWidth: 48, frameHeight: 64 });
-    this.load.spritesheet("bobs",     `${CDN}/animations/bobs.png`,     { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet("brawler",  `${CDN}/animations/brawler.png`,  { frameWidth: 48, frameHeight: 48 });
-    this.load.spritesheet("metalslug",`${CDN}/animations/metalslug.png`,{ frameWidth: 39, frameHeight: 40 });
-    this.load.spritesheet("ghost1",   `${CDN}/animations/ghost1.png`,   { frameWidth: 41, frameHeight: 50 });
+    this.load.multiatlas("knight", `${CDN}/animations/knight.json`, `${CDN}/animations/`);
+    this.load.spritesheet("blade", `${CDN}/animations/blade.png`, { frameWidth: 48, frameHeight: 64 });
 
-    // Fallback for CDN sprites that fail — coloured rect so game never crashes
+    // Fallback for CDN sprites that fail — coloured rect so knight/blade still work
     this.load.on("loaderror", (file: { key: string; type: string }) => {
       const key = file.key;
       if (this.textures.exists(key)) return;
-      const colors: Record<string, number> = {
-        knight: 0x00ccff, blade: 0xaa44ff, bobs: 0x4488ff, brawler: 0x44ff88,
-        metalslug: 0x88cc44, ghost1: 0xaaff44,
-      };
+      const colors: Record<string, number> = { knight: 0x00ccff, blade: 0xaa44ff };
       const col = colors[key] ?? 0xffffff;
       const g = this.make.graphics({ add: false } as never);
       g.fillStyle(col, 1); g.fillRect(0, 0, 48, 48);
       g.generateTexture(key, 48, 48); g.destroy();
     });
+    // All other sprites are generated procedurally in buildProceduralTextures()
   }
 
   // Called at start of create() — generate all programmatic textures
@@ -339,6 +333,85 @@ class OGWorldScene extends Phaser.Scene {
       g.fillStyle(0xffee44, 0.7); g.fillCircle(32, 32, 12);
       g.fillStyle(0xffffff, 0.9); g.fillCircle(32, 32, 5);
     }, "explosion");
+
+    // Animated spritesheets for sprites that don't exist on CDN
+    // Mage (bobs) — blue robed figure, 64×64, 10 cols × 10 rows
+    this.makeProcSpritesheet("bobs",     64, 64, 10, 10, 0x2244cc, 0x88aaff);
+    // Ranger/Berserker (brawler) — green fighter, 48×48, 5 cols × 8 rows
+    this.makeProcSpritesheet("brawler",  48, 48,  5,  8, 0x116633, 0x44ff88);
+    // Troll/Guard (metalslug) — stocky monster, 39×40, 4 cols × 4 rows
+    this.makeProcSpritesheet("metalslug",39, 40,  4,  4, 0x226611, 0x88cc44);
+    // Spambot/Iceling (ghost1) — wispy ghost, 41×50, 5 cols × 6 rows
+    this.makeProcSpritesheet("ghost1",   41, 50,  5,  6, 0x334466, 0xaaddff);
+  }
+
+  // Generate an animated spritesheet procedurally and register per-frame data
+  // so Phaser's generateFrameNumbers() works correctly on it.
+  private makeProcSpritesheet(
+    key: string, fw: number, fh: number, cols: number, rows: number,
+    bodyColor: number, accentColor: number
+  ) {
+    if (this.textures.exists(key)) return;
+    const W = fw * cols, H = fh * rows;
+    const g = this.make.graphics({ add: false } as never);
+
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const frame = row * cols + col;
+        const ox = col * fw, oy = row * fh;
+        const cx = ox + fw * 0.5;
+
+        // Walk cycle — legs alternate every 2 frames
+        const legA = (frame % 4 < 2) ? 3 : 0;
+        const legB = (frame % 4 < 2) ? 0 : 3;
+        const bobY = (frame % 2) * 1;                 // body bob
+        const headW = Math.round(fw * 0.45);
+        const headH = Math.round(fh * 0.28);
+        const bodyH = Math.round(fh * 0.32);
+        const legH  = Math.round(fh * 0.28);
+        const headX = cx - headW * 0.5;
+        const headY = oy + 1 + bobY;
+        const bodyY = headY + headH;
+        const legTop = bodyY + bodyH;
+
+        // Body & head
+        g.fillStyle(bodyColor, 1);
+        g.fillRect(headX, headY, headW, headH);
+        g.fillRect(cx - fw * 0.35, bodyY, fw * 0.7, bodyH + bobY);
+
+        // Accent stripe on body
+        g.fillStyle(accentColor, 0.55);
+        g.fillRect(cx - fw * 0.18, bodyY + 2, fw * 0.36, Math.round(bodyH * 0.4));
+
+        // Eyes
+        g.fillStyle(0xffffff, 0.9);
+        g.fillRect(cx - headW * 0.3, headY + Math.round(headH * 0.35), 3, 3);
+        g.fillRect(cx + headW * 0.1, headY + Math.round(headH * 0.35), 3, 3);
+        g.fillStyle(0x111111, 1);
+        g.fillRect(cx - headW * 0.25, headY + Math.round(headH * 0.4), 2, 2);
+        g.fillRect(cx + headW * 0.15, headY + Math.round(headH * 0.4), 2, 2);
+
+        // Legs
+        g.fillStyle(bodyColor, 0.75);
+        g.fillRect(cx - fw * 0.32, legTop, Math.round(fw * 0.28), legH + legA);
+        g.fillRect(cx + fw * 0.04, legTop, Math.round(fw * 0.28), legH + legB);
+
+        // Feet (accent)
+        g.fillStyle(accentColor, 0.6);
+        g.fillRect(cx - fw * 0.34, legTop + legH + legA - 3, Math.round(fw * 0.3), 4);
+        g.fillRect(cx + fw * 0.02, legTop + legH + legB - 3, Math.round(fw * 0.3), 4);
+      }
+    }
+
+    g.generateTexture(key, W, H);
+    g.destroy();
+
+    // Register individual frame rects so generateFrameNumbers() resolves correctly
+    const tex = this.textures.get(key);
+    for (let i = 0; i < cols * rows; i++) {
+      const c = i % cols, r = Math.floor(i / cols);
+      tex.add(i, 0, c * fw, r * fh, fw, fh);
+    }
   }
 
   create() {
@@ -1796,7 +1869,10 @@ interface HUDState {
 // ─── REACT COMPONENT ─────────────────────────────────────────────────────────
 export default function OGWorld() {
   const [, setLocation] = useLocation();
-  const [selectedClass, setSelectedClass] = useState<CharClass | null>(null);
+  const [selectedClass, setSelectedClass] = useState<CharClass | null>(() => {
+    const stored = sessionStorage.getItem("og_world_origin") as CharClass | null;
+    return stored && Object.keys(CLASSES).includes(stored) ? stored : null;
+  });
   const [username] = useState(() => localStorage.getItem("og_username") || `Player${Math.floor(Math.random()*9999)}`);
   const [hud, setHud] = useState<HUDState>({ hp: 100, maxHp: 100, mp: 100, maxMp: 100, xp: 0, level: 1, kills: 0, layer: "surface" });
   const [zone, setZone] = useState("Bahamas City");
