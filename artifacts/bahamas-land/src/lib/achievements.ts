@@ -255,6 +255,11 @@ export const DIFFICULTY_COLOR: Record<Difficulty, string> = {
 
 const STORAGE_KEY = "ogs_achievements";
 
+// Separate storage for server-issued tokens.
+// Written ONLY by requestAchievementToken() when unlock() fires from real game code.
+// Editing localStorage manually does NOT write here → player_sync rejects without token.
+const TOKENS_KEY = "ogs_achievement_tokens";
+
 function read(): Record<string, number> {
   if (typeof window === "undefined") return {};
   try {
@@ -270,6 +275,48 @@ function write(data: Record<string, number>) {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     window.dispatchEvent(new CustomEvent("achievement-change"));
+  } catch {
+    /* ignore */
+  }
+}
+
+function writeToken(id: string, token: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = window.localStorage.getItem(TOKENS_KEY);
+    const tokens: Record<string, string> = raw ? JSON.parse(raw) : {};
+    tokens[id] = token;
+    window.localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens));
+  } catch {
+    /* ignore */
+  }
+}
+
+// Called fire-and-forget from unlock() — requests a server-signed token
+// for this achievement. Token is issued only if PIN is valid and rate limit
+// allows (5 new tokens per hour). Stored in ogs_achievement_tokens.
+async function requestAchievementToken(id: AchievementId) {
+  try {
+    const [{ supabase, isSupabaseConfigured }, { getStoredUsername, getStoredPin, hashPin }] =
+      await Promise.all([
+        import("@/lib/supabase"),
+        import("@/lib/players"),
+      ]);
+    if (!isSupabaseConfigured || !supabase) return;
+    const username = getStoredUsername();
+    const pin = getStoredPin();
+    if (!username || !pin) return;
+    const pin_hash = await hashPin(username, pin);
+    const { data } = await supabase.rpc("unlock_achievement", {
+      p_username: username,
+      p_pin_hash: pin_hash,
+      p_achievement_id: id,
+    });
+    if (data?.ok && data?.token) {
+      writeToken(id, data.token);
+      // Sync now that we have the token
+      schedulePlayerSync();
+    }
   } catch {
     /* ignore */
   }
@@ -295,15 +342,14 @@ export function unlock(id: AchievementId) {
     } catch {
       /* ignore */
     }
-    // Push the unlock up to the State ledger (debounced, fire-and-forget).
-    schedulePlayerSync();
+    // Request server-signed token — only fires when real game event happens here.
+    // Editing localStorage directly never calls this → no token → sync rejects it.
+    requestAchievementToken(id);
   }
   return true;
 }
 
-// Debounced background sync to /api/player/sync so the citizen's secrets
-// are persisted server-side and the leaderboard stays current. We dynamic-
-// import to avoid a circular dependency with players.ts.
+// Debounced background sync — dynamic import avoids circular dependency with players.ts.
 let _syncTimer: number | null = null;
 function schedulePlayerSync() {
   if (typeof window === "undefined") return;

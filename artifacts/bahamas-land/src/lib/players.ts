@@ -157,6 +157,8 @@ export async function loginPlayer(
         /* ignore */
       }
     }
+    // Restore any tokens already issued in previous sessions so syncs still work
+    hydrateLocalTokens(cleanName, pin_hash);
     return { ok: true, data: player };
   }
   if (!result.ok && result.reason === "banned") markBanned(result.reason);
@@ -166,17 +168,15 @@ export async function loginPlayer(
 // ---------------------------------------------------------------------------
 // Sync — token-based achievement verification.
 //
-// Flow:
-//   1. Read local achievement IDs from localStorage (filtered/validated).
-//   2. Call grant_achievement_tokens_bulk() — server verifies PIN, enforces
-//      daily cap (12/day), and returns a signed UUID token per achievement.
-//      Already-granted achievements return their existing token instantly
-//      without consuming the daily cap.
-//   3. Call player_sync() with the (id, token) pairs. The server verifies
-//      each token exists in achievement_grants before accepting it.
+// Tokens are issued ONLY when unlock() fires in the real game code
+// (achievements.ts → requestAchievementToken → unlock_achievement RPC).
+// Editing localStorage directly never triggers unlock(), so no token is
+// ever issued → player_sync rejects it.
 //
-// Result: a cheater who adds fake IDs to localStorage gets no valid tokens
-// for them — player_sync rejects anything without a server-issued token.
+// Flow:
+//   1. Read tokens from ogs_achievement_tokens (written by unlock()).
+//   2. Call player_sync() with the (id, token) pairs.
+//      Server verifies each token exists in achievement_grants.
 // ---------------------------------------------------------------------------
 
 export async function syncSecrets(): Promise<ApiResult<PlayerView>> {
@@ -185,23 +185,7 @@ export async function syncSecrets(): Promise<ApiResult<PlayerView>> {
   if (!username || !pin) return { ok: false, reason: "no_session" };
   if (!isSupabaseConfigured || !supabase) return { ok: false, reason: "no_backend" };
 
-  let achievementIds: string[] = [];
   let coins = 0;
-
-  try {
-    const raw = localStorage.getItem("ogs_achievements");
-    const map = raw ? (JSON.parse(raw) as Record<string, number>) : {};
-    const now = Date.now();
-    achievementIds = Object.keys(map).filter((id) => {
-      if (!ACHIEVEMENTS.some((a) => a.id === id)) return false;
-      const ts = map[id];
-      if (ts && Number.isFinite(ts) && ts > now + 60_000) return false;
-      return true;
-    });
-  } catch {
-    /* ignore */
-  }
-
   try {
     const c = Number(localStorage.getItem("ogs_coins"));
     coins = Number.isFinite(c) ? c : 0;
@@ -211,39 +195,25 @@ export async function syncSecrets(): Promise<ApiResult<PlayerView>> {
 
   const pin_hash = await hashPin(username, pin);
 
-  // ── Step 1: Request server-signed tokens for all local achievements ──────
-  // One batch RPC call — server issues tokens (rate-limited for new ones,
-  // free for already-granted ones). Fake IDs not in valid_achievements are
-  // silently ignored by the server.
+  // Read tokens stored by requestAchievementToken() when real game events fired.
+  // A cheater who edits ogs_achievements in localStorage gets no tokens here
+  // because they never triggered unlock() → no token was ever issued → rejected.
   let grants: Array<{ id: string; token: string }> = [];
   try {
-    const { data: tokenData, error: tokenError } = await supabase.rpc(
-      "grant_achievement_tokens_bulk",
-      {
-        p_username: username,
-        p_pin_hash: pin_hash,
-        p_achievement_ids: achievementIds,
-      },
-    );
-    if (tokenError) {
-      // Network / server error — fall through with empty grants
-    } else if (tokenData && typeof tokenData === "object") {
-      if ((tokenData as Record<string, string>).error === "banned") {
-        markBanned("banned");
-        return { ok: false, reason: "banned" };
-      }
-      // tokenData is { achievement_id: "uuid-token", ... }
-      grants = Object.entries(tokenData as Record<string, string>)
-        .filter(([, token]) => typeof token === "string" && token.length > 10)
-        .map(([id, token]) => ({ id, token }));
-    }
+    const raw = localStorage.getItem("ogs_achievement_tokens");
+    const tokenMap = raw ? (JSON.parse(raw) as Record<string, string>) : {};
+    grants = Object.entries(tokenMap)
+      .filter(
+        ([id, token]) =>
+          typeof token === "string" &&
+          token.length > 10 &&
+          ACHIEVEMENTS.some((a) => a.id === id),
+      )
+      .map(([id, token]) => ({ id, token }));
   } catch {
-    /* ignore — will sync with empty grants (no new achievements added) */
+    /* ignore */
   }
 
-  // ── Step 2: Sync with server using verified tokens ───────────────────────
-  // player_sync verifies each token against achievement_grants before
-  // accepting it. Raw IDs without tokens are rejected.
   const result = await callRpc<PlayerView>("player_sync", {
     p_username: username,
     p_pin_hash: pin_hash,
@@ -357,6 +327,35 @@ function hydrateLocalSecrets(secrets: string[]) {
     if (changed) {
       localStorage.setItem("ogs_achievements", JSON.stringify(map));
       window.dispatchEvent(new CustomEvent("achievement-change"));
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+// On login: fetch any tokens already issued server-side in previous sessions
+// and store them in ogs_achievement_tokens so syncSecrets() works immediately.
+// Fire-and-forget — login is not blocked by this.
+async function hydrateLocalTokens(username: string, pin_hash: string) {
+  if (!isSupabaseConfigured || !supabase) return;
+  try {
+    const { data } = await supabase.rpc("get_player_tokens", {
+      p_username: username,
+      p_pin_hash: pin_hash,
+    });
+    if (!data || typeof data !== "object" || (data as Record<string, string>).error) return;
+    const incoming = data as Record<string, string>;
+    const raw = localStorage.getItem("ogs_achievement_tokens");
+    const existing: Record<string, string> = raw ? JSON.parse(raw) : {};
+    let changed = false;
+    for (const [id, token] of Object.entries(incoming)) {
+      if (!existing[id] && typeof token === "string" && token.length > 10) {
+        existing[id] = token;
+        changed = true;
+      }
+    }
+    if (changed) {
+      localStorage.setItem("ogs_achievement_tokens", JSON.stringify(existing));
     }
   } catch {
     /* ignore */
