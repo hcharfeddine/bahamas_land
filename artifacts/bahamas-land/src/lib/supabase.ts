@@ -68,12 +68,10 @@ export type RemoteMonster = {
   energy: number;
   level: number;
   personality: string;
-  status: "happy" | "angry" | "sleeping" | "dead";
+  status: "happy" | "angry" | "sleeping" | "critical" | "dead";
+  critical_ticks: number;
   last_updated_at: number;
   created_at: number;
-  last_fed_at: number | null;
-  last_played_at: number | null;
-  last_slept_at: number | null;
-  last_trained_at: number | null;
-  last_cmd_at: number | null;
+  last_chat_at: number | null;
+  chat_count: number;
 };

@@ -23,10 +23,11 @@ const STAGE_LABEL: Record<string, string> = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; glow: string; text: string; border: string }> = {
-  happy:   { label: "HAPPY",    glow: "0 0 30px rgba(0,255,60,0.6)",   text: "text-green-400",  border: "border-green-500"  },
-  angry:   { label: "ANGRY",    glow: "0 0 30px rgba(255,40,40,0.6)",  text: "text-red-400",    border: "border-red-500"    },
-  sleeping:{ label: "SLEEPING", glow: "0 0 30px rgba(60,120,255,0.6)", text: "text-blue-400",   border: "border-blue-500"   },
-  dead:    { label: "DEAD",     glow: "0 0 10px rgba(100,100,100,0.3)",text: "text-gray-500",   border: "border-gray-700"   },
+  happy:    { label: "HAPPY",    glow: "0 0 30px rgba(0,255,60,0.6)",    text: "text-green-400",  border: "border-green-500"  },
+  angry:    { label: "ANGRY",    glow: "0 0 30px rgba(255,40,40,0.6)",   text: "text-red-400",    border: "border-red-500"    },
+  sleeping: { label: "SLEEPING", glow: "0 0 30px rgba(60,120,255,0.6)",  text: "text-blue-400",   border: "border-blue-500"   },
+  critical: { label: "CRITICAL", glow: "0 0 30px rgba(255,140,0,0.8)",   text: "text-orange-400", border: "border-orange-500" },
+  dead:     { label: "DEAD",     glow: "0 0 10px rgba(100,100,100,0.3)", text: "text-gray-500",   border: "border-gray-700"   },
 };
 
 const PERSONALITY_LABEL: Record<string, string> = {
@@ -77,15 +78,17 @@ function MonsterCharacter({ monster }: { monster: RemoteMonster }) {
   const emoji = monster.status === "dead" ? "💀" : (STAGE_EMOJI[monster.stage] || "👾");
 
   const animateProps =
-    monster.status === "dead"    ? { scale: [1, 0.95, 1], opacity: [0.5, 0.4, 0.5] } :
-    monster.status === "angry"   ? { rotate: [-3, 3, -3, 3, 0], scale: [1, 1.05, 1] } :
-    monster.status === "sleeping"? { y: [0, -4, 0], opacity: [0.7, 1, 0.7] } :
-    monster.stage  === "final"   ? { scale: [1, 1.06, 1], rotate: [0, -2, 2, 0] } :
-    monster.stage  === "egg"     ? { scale: [1, 1.04, 1], rotate: [0, -1, 1, 0] } :
-                                   { y: [0, -8, 0] };
+    monster.status === "dead"     ? { scale: [1, 0.95, 1], opacity: [0.5, 0.4, 0.5] } :
+    monster.status === "critical" ? { scale: [1, 1.12, 0.9, 1.08, 1], rotate: [-4, 4, -4, 4, 0] } :
+    monster.status === "angry"    ? { rotate: [-3, 3, -3, 3, 0], scale: [1, 1.05, 1] } :
+    monster.status === "sleeping" ? { y: [0, -4, 0], opacity: [0.7, 1, 0.7] } :
+    monster.stage  === "final"    ? { scale: [1, 1.06, 1], rotate: [0, -2, 2, 0] } :
+    monster.stage  === "egg"      ? { scale: [1, 1.04, 1], rotate: [0, -1, 1, 0] } :
+                                    { y: [0, -8, 0] };
 
   const duration =
     monster.status === "dead"     ? 3 :
+    monster.status === "critical" ? 0.3 :
     monster.status === "angry"    ? 0.4 :
     monster.status === "sleeping" ? 2.5 :
     monster.stage  === "final"    ? 2 :
@@ -229,9 +232,14 @@ export default function Monster() {
                   </div>
                   <div className="text-right space-y-1">
                     <div className={`inline-flex items-center gap-1.5 px-2 py-1 border text-[10px] font-black uppercase tracking-widest ${cfg.border} ${cfg.text}`}>
-                      {monster.status === "happy" ? "✅" : monster.status === "angry" ? "😡" : monster.status === "sleeping" ? "😴" : "💀"}
+                      {monster.status === "happy" ? "✅" : monster.status === "angry" ? "😡" : monster.status === "sleeping" ? "😴" : monster.status === "critical" ? "🚨" : "💀"}
                       {cfg.label}
                     </div>
+                  {monster.status === "critical" && (
+                    <div className="text-[10px] font-black font-mono text-orange-400 uppercase tracking-widest animate-pulse">
+                      ⚠ DYING {monster.critical_ticks}/3 TICKS
+                    </div>
+                  )}
                     <div className="flex items-center justify-end gap-1 text-[10px] font-mono text-secondary/50">
                       {live
                         ? <><Wifi className="w-3 h-3 text-green-500" /><span className="text-green-400">LIVE</span></>
