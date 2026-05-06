@@ -259,17 +259,16 @@ export default function Passport() {
                 </button>
               </div>
               <div className="font-mono text-[10px] text-secondary/50 uppercase tracking-widest">
-                Type <span className="text-primary font-black">!join</span> in{" "}
+                Type <span className="text-primary font-black">!monster</span> in{" "}
                 <a href={`https://kick.com/m3kky`} target="_blank" rel="noopener noreferrer" className="text-primary underline">m3kky's Kick chat</a>{" "}
-                to create your monster, then use{" "}
-                <span className="text-primary">!feed !play !sleep !train !hug !status</span> to care for it.
+                to create your monster and check its status anytime.
               </div>
             </div>
           ) : (
             <div className="space-y-3">
               <p className="font-mono text-sm text-secondary/80">
                 Enter your Kick username below to link your account. Once linked, type{" "}
-                <span className="text-primary font-black">!join</span> in m3kky's chat to create your monster.
+                <span className="text-primary font-black">!monster</span> in m3kky's chat to create your monster.
               </p>
               <div className="flex gap-2">
                 <div className="flex-1">
@@ -314,7 +313,7 @@ export default function Passport() {
               )}
               {kickSuccess && (
                 <div className="border border-green-500/60 bg-green-500/10 text-green-300 px-3 py-2 text-xs font-mono flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4" /> Kick account linked! Now type !join in chat.
+                  <CheckCircle2 className="w-4 h-4" /> Kick account linked! Now type !monster in m3kky's chat.
                 </div>
               )}
             </div>
