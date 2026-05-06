@@ -335,6 +335,8 @@ function hydrateLocalSecrets(secrets: string[]) {
 
 // On login: fetch any tokens already issued server-side in previous sessions
 // and store them in ogs_achievement_tokens so syncSecrets() works immediately.
+// After hydrating, clean up fake achievements that were injected after the
+// token system launched and never received a server-issued token.
 // Fire-and-forget — login is not blocked by this.
 async function hydrateLocalTokens(username: string, pin_hash: string) {
   if (!isSupabaseConfigured || !supabase) return;
@@ -356,6 +358,56 @@ async function hydrateLocalTokens(username: string, pin_hash: string) {
     }
     if (changed) {
       localStorage.setItem("ogs_achievement_tokens", JSON.stringify(existing));
+    }
+    // After tokens are up to date, remove fakes
+    cleanupFakeAchievements(existing);
+  } catch {
+    /* ignore */
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Fake achievement cleanup
+//
+// Any achievement that:
+//   1. Was added AFTER the token system launched (TOKEN_SYSTEM_START), AND
+//   2. Has sat for more than FAKE_TTL_MS without receiving a server token
+// is considered fraudulent and removed from localStorage.
+//
+// Achievements that pre-date the token system are NEVER touched — this
+// protects every player who had real progress before this security layer
+// was introduced.
+// ---------------------------------------------------------------------------
+
+// The date the HMAC token system went live. Achievements with a stored
+// timestamp older than this are legacy-legitimate and are never cleaned up.
+const TOKEN_SYSTEM_START = new Date("2025-05-06T00:00:00Z").getTime();
+
+// How long a token-less achievement is tolerated before being removed.
+// 24 hours gives legitimate players plenty of time to retrigger naturally.
+const FAKE_TTL_MS = 24 * 60 * 60 * 1000;
+
+function cleanupFakeAchievements(confirmedTokens: Record<string, string>) {
+  try {
+    const raw = localStorage.getItem("ogs_achievements");
+    if (!raw) return;
+    const achievements: Record<string, number> = JSON.parse(raw);
+    const now = Date.now();
+    let changed = false;
+    for (const [id, ts] of Object.entries(achievements)) {
+      // Skip legacy achievements (existed before the token system)
+      if (ts < TOKEN_SYSTEM_START) continue;
+      // Skip achievements that already have a confirmed server token
+      if (confirmedTokens[id]) continue;
+      // Remove achievements that have been token-less for over 24 hours
+      if (now - ts > FAKE_TTL_MS) {
+        delete achievements[id];
+        changed = true;
+      }
+    }
+    if (changed) {
+      localStorage.setItem("ogs_achievements", JSON.stringify(achievements));
+      window.dispatchEvent(new CustomEvent("achievement-change"));
     }
   } catch {
     /* ignore */
