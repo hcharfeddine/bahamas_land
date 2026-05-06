@@ -350,9 +350,27 @@ async function requestAchievementToken(id: AchievementId) {
   }
 }
 
+function hasToken(id: string): boolean {
+  try {
+    const raw = window.localStorage.getItem(TOKENS_KEY);
+    const tokens: Record<string, string> = raw ? JSON.parse(raw) : {};
+    return typeof tokens[id] === "string" && tokens[id].length > 10;
+  } catch {
+    return false;
+  }
+}
+
 export function unlock(id: AchievementId) {
   const data = read();
-  if (data[id]) return false;
+  if (data[id]) {
+    // Achievement already exists locally — but if there's no server token yet
+    // (e.g. cheater pre-loaded it via console before the real trigger fired),
+    // request a token now so the legitimate trigger still syncs to the DB.
+    if (typeof window !== "undefined" && !hasToken(id)) {
+      requestAchievementToken(id);
+    }
+    return false;
+  }
   data[id] = Date.now();
   write(data);
   if (typeof window !== "undefined") {
