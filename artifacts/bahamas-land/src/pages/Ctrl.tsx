@@ -8,7 +8,7 @@ import nattounImg from "@assets/Nattoun_1777028672745.png";
 import {
   ShieldCheck, Trash2, Check, LogOut, AlertTriangle, Pin, PinOff,
   Scale, Image as ImageIcon, Users, Ban, RefreshCw, ShieldOff, Search,
-  HelpCircle, Send, Eye, RotateCcw,
+  HelpCircle, Send, Eye, RotateCcw, X,
 } from "lucide-react";
 
 type Section = "museum" | "court" | "players" | "bans" | "interrogate";
@@ -60,6 +60,12 @@ export default function Ctrl() {
   const [sendingIq, setSendingIq] = useState(false);
 
   const [actionMsg, setActionMsg] = useState<string | null>(null);
+
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+
+  const withConfirm = (message: string, onConfirm: () => void) => {
+    setConfirmDialog({ message, onConfirm });
+  };
 
   useEffect(() => {
     if (!supabase) return;
@@ -178,11 +184,12 @@ export default function Ctrl() {
     await supabase.from("museum_items").update({ status }).eq("id", id);
     fetchItems(); fetchPendingCounts();
   };
-  const removeMuseum = async (id: string) => {
-    if (!supabase) return;
-    if (!confirm("Permanently delete this item?")) return;
-    await supabase.from("museum_items").delete().eq("id", id);
-    fetchItems(); fetchPendingCounts();
+  const removeMuseum = (id: string) => {
+    withConfirm("Permanently delete this item?", async () => {
+      if (!supabase) return;
+      await supabase.from("museum_items").delete().eq("id", id);
+      fetchItems(); fetchPendingCounts();
+    });
   };
 
   // Court actions
@@ -196,40 +203,43 @@ export default function Ctrl() {
     await supabase.from("court_verdicts").update({ pinned: !pinned }).eq("id", id);
     fetchItems();
   };
-  const removeCourt = async (id: string) => {
-    if (!supabase) return;
-    if (!confirm("Permanently delete this verdict?")) return;
-    await supabase.from("court_verdicts").delete().eq("id", id);
-    fetchItems(); fetchPendingCounts();
+  const removeCourt = (id: string) => {
+    withConfirm("Permanently delete this verdict?", async () => {
+      if (!supabase) return;
+      await supabase.from("court_verdicts").delete().eq("id", id);
+      fetchItems(); fetchPendingCounts();
+    });
   };
 
   // Player actions
-  const resetPlayer = async (username: string) => {
-    if (!supabase) return;
-    if (!confirm(`Reset ${username}'s achievements and coins?`)) return;
-    const { error } = await supabase
-      .from("players")
-      .update({ secrets: [], coins: 1000, updated_at: new Date().toISOString() })
-      .eq("username", username);
-    if (error) { showMsg(`Error: ${error.message}`); return; }
-    showMsg(`${username} has been reset.`);
-    fetchPlayers();
+  const resetPlayer = (username: string) => {
+    withConfirm(`Full reset ${username}? All achievements and coins → 1000.`, async () => {
+      if (!supabase) return;
+      const { error } = await supabase
+        .from("players")
+        .update({ secrets: [], coins: 1000, updated_at: new Date().toISOString() })
+        .eq("username", username);
+      if (error) { showMsg(`Error: ${error.message}`); return; }
+      showMsg(`${username} has been reset.`);
+      fetchPlayers();
+    });
   };
 
-  const softResetPlayer = async (username: string) => {
-    if (!supabase) return;
-    if (!confirm(`Soft-reset ${username}? This keeps only "tourist" and "citizen" achievements and resets coins to 1000.`)) return;
-    const player = players.find((p) => p.username === username);
-    const keepSecrets = player
-      ? player.secrets.filter((s) => s === "tourist" || s === "citizen")
-      : [];
-    const { error } = await supabase
-      .from("players")
-      .update({ secrets: keepSecrets, coins: 1000, updated_at: new Date().toISOString() })
-      .eq("username", username);
-    if (error) { showMsg(`Error: ${error.message}`); return; }
-    showMsg(`${username} soft-reset. Kept: ${keepSecrets.join(", ") || "none"}.`);
-    fetchPlayers();
+  const softResetPlayer = (username: string) => {
+    withConfirm(`Soft-reset ${username}? Keeps "tourist" & "citizen", coins → 1000.`, async () => {
+      if (!supabase) return;
+      const player = players.find((p) => p.username === username);
+      const keepSecrets = player
+        ? player.secrets.filter((s) => s === "tourist" || s === "citizen")
+        : [];
+      const { error } = await supabase
+        .from("players")
+        .update({ secrets: keepSecrets, coins: 1000, updated_at: new Date().toISOString() })
+        .eq("username", username);
+      if (error) { showMsg(`Error: ${error.message}`); return; }
+      showMsg(`${username} soft-reset. Kept: ${keepSecrets.join(", ") || "none"}.`);
+      fetchPlayers();
+    });
   };
 
   // Interrogation actions
@@ -261,47 +271,51 @@ export default function Ctrl() {
     fetchInterrogations();
   };
 
-  const deleteInterrogation = async (id: string) => {
-    if (!supabase) return;
-    if (!confirm("Delete this interrogation?")) return;
-    await supabase.from("interrogations").delete().eq("id", id);
-    fetchInterrogations();
-  };
-
-  const banPlayer = async (username: string) => {
-    if (!supabase) return;
-    const reason = banReason[username]?.trim() || "cheating";
-    if (!confirm(`Ban ${username} for: ${reason}?`)) return;
-    const { error } = await supabase.from("banned_users").insert({
-      username_lower: username.toLowerCase(),
-      original_username: username,
-      reason,
+  const deleteInterrogation = (id: string) => {
+    withConfirm("Delete this interrogation?", async () => {
+      if (!supabase) return;
+      await supabase.from("interrogations").delete().eq("id", id);
+      fetchInterrogations();
     });
-    if (error) { showMsg(`Error: ${error.message}`); return; }
-    await supabase.from("players")
-      .update({ secrets: [], coins: 0, updated_at: new Date().toISOString() })
-      .eq("username", username);
-    showMsg(`${username} has been banned.`);
-    fetchPlayers(); fetchBans();
   };
 
-  const deletePlayer = async (username: string) => {
-    if (!supabase) return;
-    if (!confirm(`Permanently DELETE ${username}? Cannot be undone.`)) return;
-    const { error } = await supabase.from("players").delete().eq("username", username);
-    if (error) { showMsg(`Error: ${error.message}`); return; }
-    showMsg(`${username} deleted.`);
-    fetchPlayers();
+  const banPlayer = (username: string) => {
+    const reason = banReason[username]?.trim() || "cheating";
+    withConfirm(`Ban ${username} for: ${reason}?`, async () => {
+      if (!supabase) return;
+      const { error } = await supabase.from("banned_users").insert({
+        username_lower: username.toLowerCase(),
+        original_username: username,
+        reason,
+      });
+      if (error) { showMsg(`Error: ${error.message}`); return; }
+      await supabase.from("players")
+        .update({ secrets: [], coins: 0, updated_at: new Date().toISOString() })
+        .eq("username", username);
+      showMsg(`${username} has been banned.`);
+      fetchPlayers(); fetchBans();
+    });
+  };
+
+  const deletePlayer = (username: string) => {
+    withConfirm(`Permanently DELETE ${username}? Cannot be undone.`, async () => {
+      if (!supabase) return;
+      const { error } = await supabase.from("players").delete().eq("username", username);
+      if (error) { showMsg(`Error: ${error.message}`); return; }
+      showMsg(`${username} deleted.`);
+      fetchPlayers();
+    });
   };
 
   // Ban actions
-  const unbanUser = async (id: string, username: string) => {
-    if (!supabase) return;
-    if (!confirm(`Unban ${username}?`)) return;
-    const { error } = await supabase.from("banned_users").delete().eq("id", id);
-    if (error) { showMsg(`Error: ${error.message}`); return; }
-    showMsg(`${username} has been unbanned.`);
-    fetchBans();
+  const unbanUser = (id: string, username: string) => {
+    withConfirm(`Unban ${username}?`, async () => {
+      if (!supabase) return;
+      const { error } = await supabase.from("banned_users").delete().eq("id", id);
+      if (error) { showMsg(`Error: ${error.message}`); return; }
+      showMsg(`${username} has been unbanned.`);
+      fetchBans();
+    });
   };
 
   const filteredPlayers = players.filter((p) =>
@@ -374,6 +388,7 @@ export default function Ctrl() {
   }
 
   return (
+    <>
     <div className="min-h-[100dvh] w-full bg-black p-4 md:p-8">
       <div className="max-w-6xl mx-auto space-y-6">
 
@@ -820,6 +835,43 @@ export default function Ctrl() {
         )}
 
       </div>
+
     </div>
+
+    {/* ── IN-APP CONFIRM DIALOG (window.confirm is blocked in iframes) ─── */}
+    <AnimatePresence>
+      {confirmDialog && (
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[1000] bg-black/80 flex items-center justify-center p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }}
+            className="bg-black border-2 border-yellow-500 max-w-sm w-full p-6 space-y-5 shadow-[0_0_30px_rgba(234,179,8,0.3)]"
+          >
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
+              <p className="text-primary font-mono text-sm uppercase leading-relaxed">{confirmDialog.message}</p>
+            </div>
+            <div className="flex gap-3 pt-1">
+              <Button
+                onClick={() => { confirmDialog.onConfirm(); setConfirmDialog(null); }}
+                className="flex-1 bg-yellow-600 hover:bg-yellow-500 text-black font-bold uppercase tracking-widest"
+              >
+                Confirm
+              </Button>
+              <Button
+                onClick={() => setConfirmDialog(null)}
+                variant="outline"
+                className="flex-1 border-primary text-primary hover:bg-primary/20 uppercase"
+              >
+                <X className="w-4 h-4 mr-1" /> Cancel
+              </Button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+    </>
   );
 }
