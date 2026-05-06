@@ -8,10 +8,8 @@ const ACTIVITY_TICK_MS       = 5 * 60 * 1000;    // activity tick every 5 min
 const INACTIVE_THRESHOLD_MS  = 10 * 60 * 1000;   // 10 min silence = inactivity damage
 
 const supabaseUrl = process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"] || "";
-const supabaseKey =
-  process.env["SUPABASE_SERVICE_KEY"] ||
-  process.env["SUPABASE_ANON_KEY"]    ||
-  process.env["VITE_SUPABASE_ANON_KEY"] || "";
+// Engine MUST use the service role key — anon key cannot call bot-only RPCs
+const supabaseKey = process.env["SUPABASE_SERVICE_KEY"] || "";
 
 // ─── State ──────────────────────────────────────────────────────────────────
 let _sbClient:      SupabaseClient | null = null;
@@ -84,7 +82,7 @@ async function pollStream(): Promise<void> {
 // ─── Public API ──────────────────────────────────────────────────────────────
 export async function startDecayLoop(): Promise<void> {
   if (!supabaseUrl || !supabaseKey) {
-    logger.warn("[MonsterEngine] Supabase not configured — engine disabled");
+    logger.warn("[MonsterEngine] Supabase not configured — decay loop disabled (add SUPABASE_ANON_KEY to enable)");
     return;
   }
 

@@ -9,10 +9,8 @@ const CHANNEL_SLUG     = process.env["KICK_CHANNEL_SLUG"] || "m3kky";
 const KICK_BOT_TOKEN   = process.env["KICK_BOT_TOKEN"]   || "";
 
 const supabaseUrl = process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"] || "";
-const supabaseKey =
-  process.env["SUPABASE_SERVICE_KEY"] ||
-  process.env["SUPABASE_ANON_KEY"]    ||
-  process.env["VITE_SUPABASE_ANON_KEY"] || "";
+// Bot MUST use the service role key — anon key cannot call bot-only RPCs
+const supabaseKey = process.env["SUPABASE_SERVICE_KEY"] || "";
 
 const RECONNECT_DELAY_MS       = 5_000;
 const MAX_RECONNECT_ATTEMPTS   = 20;
@@ -134,7 +132,7 @@ async function handleChatActivity(kickUsername: string): Promise<void> {
 function connectToKick(): void {
   if (stopped) return;
 
-  const wsUrl    = `wss://ws.kick.com/app/${PUSHER_APP_KEY}?protocol=7&client=js&version=7.4.0&flash=false`;
+  const wsUrl    = `wss://ws-us2.pusher.com/app/${PUSHER_APP_KEY}?protocol=7&client=js&version=7.4.0&flash=false`;
   const channel  = `chatrooms.${CHATROOM_ID}.v2`;
 
   logger.info({ channel, slug: CHANNEL_SLUG }, "[KickBot] Connecting to Kick WebSocket");
@@ -208,16 +206,15 @@ function connectToKick(): void {
 
 // ─── Public API ─────────────────────────────────────────────────────────────
 export async function startKickBot(): Promise<void> {
-  if (!supabaseUrl || !supabaseKey) {
-    logger.warn("[KickBot] SUPABASE_URL / SUPABASE_SERVICE_KEY not set — bot disabled");
-    return;
-  }
-
   logger.info({ slug: CHANNEL_SLUG, chatroomId: CHATROOM_ID }, "[KickBot] Starting Kick bot");
 
-  // Prime the active-player cache, then refresh it periodically
-  await refreshActivePlayers();
-  setInterval(() => void refreshActivePlayers(), PLAYER_CACHE_REFRESH_MS);
+  if (!supabaseUrl || !supabaseKey) {
+    logger.warn("[KickBot] Supabase not configured — monster DB calls will be skipped, WebSocket still connecting");
+  } else {
+    // Prime the active-player cache, then refresh it periodically
+    await refreshActivePlayers();
+    setInterval(() => void refreshActivePlayers(), PLAYER_CACHE_REFRESH_MS);
+  }
 
   stopped = false;
   connectToKick();
