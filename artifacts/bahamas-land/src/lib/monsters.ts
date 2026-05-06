@@ -23,7 +23,7 @@ export async function getMonster(kickUsername: string): Promise<RemoteMonster | 
       .from("monsters")
       .select("*")
       .eq("kick_username", kickUsername.toLowerCase().trim())
-      .single();
+      .maybeSingle();
     if (error || !data) return null;
     return data as RemoteMonster;
   } catch { return null; }
