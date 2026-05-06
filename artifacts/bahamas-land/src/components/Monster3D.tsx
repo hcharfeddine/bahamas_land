@@ -860,7 +860,7 @@ function OctopusMesh({ stage, info, status }: { stage: "baby"|"teen"|"adult"|"fi
 
 function MonsterScene({ kickUsername, stage, status }: { kickUsername: string; stage: Stage; status: Status }) {
   const monsterType = getMonsterType(kickUsername);
-  const info = MONSTER_INFO[monsterType];
+  const info = MONSTER_INFO[monsterType] ?? MONSTER_INFO.dragon;
   const glow = statusGlow(status);
 
   const isDead = status === "dead";
@@ -910,7 +910,7 @@ export function Monster3DViewer({
   size?: number;
 }) {
   const monsterType = getMonsterType(kickUsername);
-  const info = MONSTER_INFO[monsterType];
+  const info = MONSTER_INFO[monsterType] ?? MONSTER_INFO.dragon;
   const glow = statusGlow(status);
 
   const cameraZ =

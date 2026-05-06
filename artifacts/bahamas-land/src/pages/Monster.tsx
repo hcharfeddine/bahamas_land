@@ -69,7 +69,7 @@ function StatBar({ icon, label, value, color }: { icon: string; label: string; v
 
 function MonsterCharacter({ monster }: { monster: RemoteMonster }) {
   const monsterType = getMonsterType(monster.kick_username);
-  const info = MONSTER_INFO[monsterType];
+  const info = MONSTER_INFO[monsterType] ?? MONSTER_INFO.dragon;
 
   return (
     <div className="relative mx-auto" style={{ width: 220, height: 220 }}>
