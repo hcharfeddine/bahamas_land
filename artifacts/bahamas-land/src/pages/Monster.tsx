@@ -6,13 +6,6 @@ import { supabase, isSupabaseConfigured, type RemoteMonster } from "@/lib/supaba
 import { getMonster } from "@/lib/monsters";
 import { Wifi, WifiOff, ExternalLink } from "lucide-react";
 
-const STAGE_EMOJI: Record<string, string> = {
-  egg:   "🥚",
-  baby:  "🐣",
-  teen:  "👾",
-  adult: "👹",
-  final: "🐉",
-};
 
 const STAGE_LABEL: Record<string, string> = {
   egg:   "EGG",
@@ -73,39 +66,75 @@ function StatBar({ icon, label, value, color }: { icon: string; label: string; v
   );
 }
 
+// Stage-based avatar size in px — monster grows as it evolves
+const STAGE_SIZE: Record<string, number> = {
+  egg:   72,
+  baby:  84,
+  teen:  100,
+  adult: 116,
+  final: 132,
+};
+
+// DiceBear "bottts" generates a unique robot-creature per username seed
+function monsterAvatarUrl(kickUsername: string, size = 200): string {
+  return `https://api.dicebear.com/9.x/bottts/svg?seed=${encodeURIComponent(kickUsername)}&size=${size}&backgroundColor[]=transparent`;
+}
+
 function MonsterCharacter({ monster }: { monster: RemoteMonster }) {
-  const cfg = STATUS_CONFIG[monster.status] || STATUS_CONFIG.happy;
-  const emoji = monster.status === "dead" ? "💀" : (STAGE_EMOJI[monster.stage] || "👾");
+  const cfg  = STATUS_CONFIG[monster.status] || STATUS_CONFIG.happy;
+  const dead = monster.status === "dead";
+  const isEgg = monster.stage === "egg";
 
   const animateProps =
-    monster.status === "dead"     ? { scale: [1, 0.95, 1], opacity: [0.5, 0.4, 0.5] } :
+    dead                          ? { scale: [1, 0.95, 1], opacity: [0.5, 0.4, 0.5] } :
     monster.status === "critical" ? { scale: [1, 1.12, 0.9, 1.08, 1], rotate: [-4, 4, -4, 4, 0] } :
     monster.status === "angry"    ? { rotate: [-3, 3, -3, 3, 0], scale: [1, 1.05, 1] } :
     monster.status === "sleeping" ? { y: [0, -4, 0], opacity: [0.7, 1, 0.7] } :
     monster.stage  === "final"    ? { scale: [1, 1.06, 1], rotate: [0, -2, 2, 0] } :
-    monster.stage  === "egg"      ? { scale: [1, 1.04, 1], rotate: [0, -1, 1, 0] } :
+    isEgg                         ? { scale: [1, 1.04, 1], rotate: [0, -1, 1, 0] } :
                                     { y: [0, -8, 0] };
 
   const duration =
-    monster.status === "dead"     ? 3 :
+    dead                          ? 3   :
     monster.status === "critical" ? 0.3 :
     monster.status === "angry"    ? 0.4 :
     monster.status === "sleeping" ? 2.5 :
-    monster.stage  === "final"    ? 2 :
-    monster.stage  === "egg"      ? 2.5 : 1.6;
+    monster.stage  === "final"    ? 2   :
+    isEgg                         ? 2.5 : 1.6;
+
+  const avatarSize = STAGE_SIZE[monster.stage] ?? 100;
 
   return (
     <div
-      className={`relative flex items-center justify-center w-40 h-40 mx-auto border-2 ${cfg.border} bg-black/90`}
+      className={`relative flex items-center justify-center w-44 h-44 mx-auto border-2 ${cfg.border} bg-black/90`}
       style={{ boxShadow: cfg.glow }}
     >
       <motion.div
         animate={animateProps}
         transition={{ duration, repeat: Infinity, ease: "easeInOut" }}
-        style={{ fontSize: "72px", lineHeight: 1, filter: monster.status === "dead" ? "grayscale(1)" : "none" }}
+        style={{ filter: dead ? "grayscale(1) opacity(0.5)" : "none" }}
       >
-        {emoji}
+        {dead ? (
+          <span style={{ fontSize: "72px", lineHeight: 1 }}>💀</span>
+        ) : isEgg ? (
+          <span style={{ fontSize: `${avatarSize}px`, lineHeight: 1 }}>🥚</span>
+        ) : (
+          <img
+            src={monsterAvatarUrl(monster.kick_username, 256)}
+            alt={`${monster.kick_username}'s monster`}
+            width={avatarSize}
+            height={avatarSize}
+            style={{ imageRendering: "pixelated" }}
+          />
+        )}
       </motion.div>
+
+      {/* Stage badge for final form */}
+      {monster.stage === "final" && !dead && (
+        <div className="absolute top-1 right-1 text-xs font-black font-mono text-yellow-400 tracking-widest">
+          ★
+        </div>
+      )}
 
       {monster.status === "sleeping" && (
         <motion.div
@@ -115,6 +144,13 @@ function MonsterCharacter({ monster }: { monster: RemoteMonster }) {
         >
           💤
         </motion.div>
+      )}
+
+      {/* Egg mystery label */}
+      {isEgg && (
+        <div className="absolute bottom-1 left-0 right-0 text-center font-mono text-[9px] text-secondary/40 uppercase tracking-widest">
+          hatching soon…
+        </div>
       )}
     </div>
   );
