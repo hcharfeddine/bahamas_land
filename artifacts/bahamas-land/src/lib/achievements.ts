@@ -292,9 +292,33 @@ function writeToken(id: string, token: string) {
   }
 }
 
-// Called fire-and-forget from unlock() — requests a server-signed token
-// for this achievement. Token is issued only if PIN is valid and rate limit
-// allows (5 new tokens per hour). Stored in ogs_achievement_tokens.
+// HMAC secret baked in at build time via Vite env.
+// The server holds the same secret inside the SQL function body.
+// Without this secret an attacker cannot compute a valid signature,
+// so calling the RPC directly from the browser console always fails.
+const _US = import.meta.env.VITE_UNLOCK_HMAC_SECRET ?? "";
+
+async function signUnlock(username: string, id: string): Promise<string> {
+  // 30-second rolling window so tokens are time-bound
+  const win = Math.floor(Date.now() / 30_000);
+  const msg = new TextEncoder().encode(`${username}:${id}:${win}`);
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(_US),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const buf = await crypto.subtle.sign("HMAC", key, msg);
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// Called fire-and-forget from unlock() — computes a HMAC signature and
+// sends it to the server. Server re-computes the HMAC independently;
+// if the signature doesn't match (wrong secret, wrong window, wrong id)
+// → rejected. Only real game code has the secret → console calls always fail.
 async function requestAchievementToken(id: AchievementId) {
   try {
     const [{ supabase, isSupabaseConfigured }, { getStoredUsername, getStoredPin, hashPin }] =
@@ -306,15 +330,18 @@ async function requestAchievementToken(id: AchievementId) {
     const username = getStoredUsername();
     const pin = getStoredPin();
     if (!username || !pin) return;
-    const pin_hash = await hashPin(username, pin);
-    const { data } = await supabase.rpc("unlock_achievement", {
+    const [pin_hash, sig] = await Promise.all([
+      hashPin(username, pin),
+      signUnlock(username, id),
+    ]);
+    const { data } = await supabase.rpc("p_sync_grant", {
       p_username: username,
       p_pin_hash: pin_hash,
       p_achievement_id: id,
+      p_sig: sig,
     });
     if (data?.ok && data?.token) {
       writeToken(id, data.token);
-      // Sync now that we have the token
       schedulePlayerSync();
     }
   } catch {
