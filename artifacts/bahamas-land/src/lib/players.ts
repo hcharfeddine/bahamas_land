@@ -164,26 +164,35 @@ export async function loginPlayer(
 }
 
 // ---------------------------------------------------------------------------
-// Sync — sends all locally-unlocked achievements to the server.
-// The server-side RPC is the authority: it validates the PIN, merges secrets,
-// and returns the canonical list. We only filter out future timestamps and
-// IDs that don't exist in the achievement catalogue (basic tamper check).
+// Sync — token-based achievement verification.
+//
+// Flow:
+//   1. Read local achievement IDs from localStorage (filtered/validated).
+//   2. Call grant_achievement_tokens_bulk() — server verifies PIN, enforces
+//      daily cap (12/day), and returns a signed UUID token per achievement.
+//      Already-granted achievements return their existing token instantly
+//      without consuming the daily cap.
+//   3. Call player_sync() with the (id, token) pairs. The server verifies
+//      each token exists in achievement_grants before accepting it.
+//
+// Result: a cheater who adds fake IDs to localStorage gets no valid tokens
+// for them — player_sync rejects anything without a server-issued token.
 // ---------------------------------------------------------------------------
 
 export async function syncSecrets(): Promise<ApiResult<PlayerView>> {
   const username = getStoredUsername();
   const pin = getStoredPin();
   if (!username || !pin) return { ok: false, reason: "no_session" };
+  if (!isSupabaseConfigured || !supabase) return { ok: false, reason: "no_backend" };
 
-  let secrets: string[] = [];
+  let achievementIds: string[] = [];
   let coins = 0;
 
   try {
     const raw = localStorage.getItem("ogs_achievements");
     const map = raw ? (JSON.parse(raw) as Record<string, number>) : {};
     const now = Date.now();
-    // Only send IDs that exist in the catalogue and don't have a future timestamp
-    secrets = Object.keys(map).filter((id) => {
+    achievementIds = Object.keys(map).filter((id) => {
       if (!ACHIEVEMENTS.some((a) => a.id === id)) return false;
       const ts = map[id];
       if (ts && Number.isFinite(ts) && ts > now + 60_000) return false;
@@ -201,16 +210,49 @@ export async function syncSecrets(): Promise<ApiResult<PlayerView>> {
   }
 
   const pin_hash = await hashPin(username, pin);
+
+  // ── Step 1: Request server-signed tokens for all local achievements ──────
+  // One batch RPC call — server issues tokens (rate-limited for new ones,
+  // free for already-granted ones). Fake IDs not in valid_achievements are
+  // silently ignored by the server.
+  let grants: Array<{ id: string; token: string }> = [];
+  try {
+    const { data: tokenData, error: tokenError } = await supabase.rpc(
+      "grant_achievement_tokens_bulk",
+      {
+        p_username: username,
+        p_pin_hash: pin_hash,
+        p_achievement_ids: achievementIds,
+      },
+    );
+    if (tokenError) {
+      // Network / server error — fall through with empty grants
+    } else if (tokenData && typeof tokenData === "object") {
+      if ((tokenData as Record<string, string>).error === "banned") {
+        markBanned("banned");
+        return { ok: false, reason: "banned" };
+      }
+      // tokenData is { achievement_id: "uuid-token", ... }
+      grants = Object.entries(tokenData as Record<string, string>)
+        .filter(([, token]) => typeof token === "string" && token.length > 10)
+        .map(([id, token]) => ({ id, token }));
+    }
+  } catch {
+    /* ignore — will sync with empty grants (no new achievements added) */
+  }
+
+  // ── Step 2: Sync with server using verified tokens ───────────────────────
+  // player_sync verifies each token against achievement_grants before
+  // accepting it. Raw IDs without tokens are rejected.
   const result = await callRpc<PlayerView>("player_sync", {
     p_username: username,
     p_pin_hash: pin_hash,
-    p_secrets: secrets,
+    p_grants: grants,
     p_coins: coins,
   });
+
   if (result.ok) {
     const player = normalizePlayer(result.data);
-    // Hydrate any server-side secrets back into localStorage
-    // (e.g. achievements earned on another device)
     hydrateLocalSecrets(player.secrets);
     return { ok: true, data: player };
   }
