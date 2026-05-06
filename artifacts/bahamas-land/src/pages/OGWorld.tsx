@@ -251,23 +251,42 @@ class OGWorldScene extends Phaser.Scene {
 
   preload() {
     // Characters
-    this.load.multiatlas("knight", "/sprites/characters/knight.json", "/sprites/characters/");
-    this.load.spritesheet("blade",   "/sprites/characters/blade.png",   { frameWidth: 48,  frameHeight: 64 });
-    this.load.spritesheet("bobs",    "/sprites/characters/bobs.png",    { frameWidth: 64,  frameHeight: 64 });
-    this.load.spritesheet("brawler", "/sprites/characters/brawler.png", { frameWidth: 48,  frameHeight: 48 });
-    this.load.image("player_sm", "/sprites/characters/player.png");
+    const CDN = "https://raw.githubusercontent.com/phaserjs/examples/master/public/assets";
+    // Characters
+    this.load.multiatlas("knight", `${CDN}/animations/knight.json`, `${CDN}/animations/`);
+    this.load.spritesheet("blade",   `${CDN}/animations/blade.png`,   { frameWidth: 48,  frameHeight: 64 });
+    this.load.spritesheet("bobs",    `${CDN}/animations/bobs.png`,    { frameWidth: 64,  frameHeight: 64 });
+    this.load.spritesheet("brawler", `${CDN}/animations/brawler.png`, { frameWidth: 48,  frameHeight: 48 });
     // Monsters
-    this.load.spritesheet("metalslug", "/sprites/monsters/metalslug.png", { frameWidth: 39, frameHeight: 40 });
-    this.load.spritesheet("ghost1",    "/sprites/monsters/ghost1.png",    { frameWidth: 41, frameHeight: 50 });
-    this.load.image("ghost",  "/sprites/monsters/ghost.png");
-    this.load.image("slime",  "/sprites/monsters/slime.png");
+    this.load.spritesheet("metalslug", `${CDN}/animations/metalslug.png`, { frameWidth: 39, frameHeight: 40 });
+    this.load.spritesheet("ghost1",    `${CDN}/animations/ghost1.png`,    { frameWidth: 41, frameHeight: 50 });
+    this.load.image("ghost",  `${CDN}/animations/ghost.png`);
+    this.load.image("slime",  `${CDN}/animations/slime.png`);
     // Boss
-    this.load.spritesheet("dragon", "/sprites/bosses/dragon.png", { frameWidth: 96, frameHeight: 64 });
+    this.load.spritesheet("dragon", `${CDN}/animations/dragon.png`, { frameWidth: 96, frameHeight: 64 });
     // Effects
-    this.load.spritesheet("explosion", "/sprites/ui/explosion.png", { frameWidth: 64, frameHeight: 64 });
-    this.load.image("arrow", "/sprites/ui/arrow.png");
-    this.load.image("gem",   "/sprites/ui/gem.png");
-    this.load.spritesheet("coin_spin", "/sprites/ui/coin.png", { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet("explosion", `${CDN}/animations/explosion.png`, { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet("coin_spin", `${CDN}/animations/coin.png`,      { frameWidth: 32, frameHeight: 32 });
+    this.load.image("gem",   `${CDN}/animations/gem.png`);
+    this.load.image("arrow", `${CDN}/animations/arrow.png`);
+
+    // Fallback: if a sprite fails to load, create a coloured rect texture so the game never crashes
+    this.load.on("loaderror", (file: { key: string; type: string }) => {
+      const key = file.key;
+      if (this.textures.exists(key)) return;
+      const colors: Record<string, number> = {
+        knight: 0x00ccff, blade: 0xaa44ff, bobs: 0x4488ff, brawler: 0x44ff88,
+        metalslug: 0x88cc44, ghost: 0x8888ff, ghost1: 0xaaff44, slime: 0x44ff88,
+        dragon: 0xff4400, explosion: 0xffaa00, coin_spin: 0xffdd00, gem: 0xff44aa, arrow: 0xffffff,
+      };
+      const col = colors[key] ?? 0xffffff;
+      const g = this.make.graphics({ add: false } as never);
+      const size = 48;
+      g.fillStyle(col, 1);
+      g.fillRect(0, 0, size, size);
+      g.generateTexture(key, size, size);
+      g.destroy();
+    });
   }
 
   create() {
@@ -319,67 +338,84 @@ class OGWorldScene extends Phaser.Scene {
   }
 
   // ─── BUILD ANIMATIONS ────────────────────────────────────────────────────────
+  private hasTexture(key: string): boolean {
+    return this.textures.exists(key) && this.textures.get(key).key !== "__MISSING";
+  }
+
   private buildAnimations() {
     const anims = this.anims;
+    const safe = (key: string) => this.hasTexture(key);
 
-    // Knight (multiatlas)
-    if (!anims.exists("knight-idle"))
-      anims.create({ key: "knight-idle",   frames: anims.generateFrameNames("knight", { prefix: "idle/frame", start: 1, end: 6,  zeroPad: 4 }), frameRate: 8,  repeat: -1 });
-    if (!anims.exists("knight-run"))
-      anims.create({ key: "knight-run",    frames: anims.generateFrameNames("knight", { prefix: "run/frame",  start: 1, end: 8,  zeroPad: 4 }), frameRate: 12, repeat: -1 });
-    if (!anims.exists("knight-attack"))
-      anims.create({ key: "knight-attack", frames: anims.generateFrameNames("knight", { prefix: "attack_A/frame", start: 1, end: 14, zeroPad: 4 }), frameRate: 18, repeat: 0 });
-    if (!anims.exists("knight-die"))
-      anims.create({ key: "knight-die",    frames: anims.generateFrameNames("knight", { prefix: "die/frame",  start: 1, end: 10, zeroPad: 4 }), frameRate: 10, repeat: 0 });
+    // Knight (multiatlas) — only if atlas loaded properly
+    if (safe("knight")) {
+      if (!anims.exists("knight-idle"))
+        anims.create({ key: "knight-idle",   frames: anims.generateFrameNames("knight", { prefix: "idle/frame", start: 1, end: 6,  zeroPad: 4 }), frameRate: 8,  repeat: -1 });
+      if (!anims.exists("knight-run"))
+        anims.create({ key: "knight-run",    frames: anims.generateFrameNames("knight", { prefix: "run/frame",  start: 1, end: 8,  zeroPad: 4 }), frameRate: 12, repeat: -1 });
+      if (!anims.exists("knight-attack"))
+        anims.create({ key: "knight-attack", frames: anims.generateFrameNames("knight", { prefix: "attack_A/frame", start: 1, end: 14, zeroPad: 4 }), frameRate: 18, repeat: 0 });
+      if (!anims.exists("knight-die"))
+        anims.create({ key: "knight-die",    frames: anims.generateFrameNames("knight", { prefix: "die/frame",  start: 1, end: 10, zeroPad: 4 }), frameRate: 10, repeat: 0 });
+    }
 
     // Blade (Assassin) - 12 cols × 9 rows @ 48x64
-    if (!anims.exists("blade-idle"))
-      anims.create({ key: "blade-idle",   frames: anims.generateFrameNumbers("blade", { start: 0, end: 5 }),   frameRate: 8,  repeat: -1 });
-    if (!anims.exists("blade-run"))
-      anims.create({ key: "blade-run",    frames: anims.generateFrameNumbers("blade", { start: 12, end: 23 }), frameRate: 12, repeat: -1 });
-    if (!anims.exists("blade-attack"))
-      anims.create({ key: "blade-attack", frames: anims.generateFrameNumbers("blade", { start: 24, end: 35 }), frameRate: 18, repeat: 0 });
+    if (safe("blade")) {
+      if (!anims.exists("blade-idle"))
+        anims.create({ key: "blade-idle",   frames: anims.generateFrameNumbers("blade", { start: 0, end: 5 }),   frameRate: 8,  repeat: -1 });
+      if (!anims.exists("blade-run"))
+        anims.create({ key: "blade-run",    frames: anims.generateFrameNumbers("blade", { start: 12, end: 23 }), frameRate: 12, repeat: -1 });
+      if (!anims.exists("blade-attack"))
+        anims.create({ key: "blade-attack", frames: anims.generateFrameNumbers("blade", { start: 24, end: 35 }), frameRate: 18, repeat: 0 });
+    }
 
     // Bobs (Mage) - 10 cols × 10 rows @ 64x64
-    if (!anims.exists("bobs-idle"))
-      anims.create({ key: "bobs-idle",   frames: anims.generateFrameNumbers("bobs", { start: 0,  end: 9  }), frameRate: 8,  repeat: -1 });
-    if (!anims.exists("bobs-run"))
-      anims.create({ key: "bobs-run",    frames: anims.generateFrameNumbers("bobs", { start: 10, end: 19 }), frameRate: 12, repeat: -1 });
-    if (!anims.exists("bobs-attack"))
-      anims.create({ key: "bobs-attack", frames: anims.generateFrameNumbers("bobs", { start: 20, end: 29 }), frameRate: 16, repeat: 0 });
+    if (safe("bobs")) {
+      if (!anims.exists("bobs-idle"))
+        anims.create({ key: "bobs-idle",   frames: anims.generateFrameNumbers("bobs", { start: 0,  end: 9  }), frameRate: 8,  repeat: -1 });
+      if (!anims.exists("bobs-run"))
+        anims.create({ key: "bobs-run",    frames: anims.generateFrameNumbers("bobs", { start: 10, end: 19 }), frameRate: 12, repeat: -1 });
+      if (!anims.exists("bobs-attack"))
+        anims.create({ key: "bobs-attack", frames: anims.generateFrameNumbers("bobs", { start: 20, end: 29 }), frameRate: 16, repeat: 0 });
+    }
 
     // Brawler (Ranger/Berserker) - 5 cols × 8 rows @ 48x48
-    if (!anims.exists("brawler-idle"))
-      anims.create({ key: "brawler-idle",   frames: anims.generateFrameNumbers("brawler", { start: 0, end: 4 }),  frameRate: 8,  repeat: -1 });
-    if (!anims.exists("brawler-run"))
-      anims.create({ key: "brawler-run",    frames: anims.generateFrameNumbers("brawler", { start: 5, end: 14 }), frameRate: 12, repeat: -1 });
-    if (!anims.exists("brawler-attack"))
-      anims.create({ key: "brawler-attack", frames: anims.generateFrameNumbers("brawler", { start: 15, end: 24 }), frameRate: 16, repeat: 0 });
+    if (safe("brawler")) {
+      if (!anims.exists("brawler-idle"))
+        anims.create({ key: "brawler-idle",   frames: anims.generateFrameNumbers("brawler", { start: 0, end: 4 }),  frameRate: 8,  repeat: -1 });
+      if (!anims.exists("brawler-run"))
+        anims.create({ key: "brawler-run",    frames: anims.generateFrameNumbers("brawler", { start: 5, end: 14 }), frameRate: 12, repeat: -1 });
+      if (!anims.exists("brawler-attack"))
+        anims.create({ key: "brawler-attack", frames: anims.generateFrameNumbers("brawler", { start: 15, end: 24 }), frameRate: 16, repeat: 0 });
+    }
 
     // Metalslug monster - 4×4 @ 39x40
-    if (!anims.exists("metalslug-walk"))
-      anims.create({ key: "metalslug-walk",   frames: anims.generateFrameNumbers("metalslug", { start: 0, end: 3 }),  frameRate: 8,  repeat: -1 });
-    if (!anims.exists("metalslug-attack"))
-      anims.create({ key: "metalslug-attack", frames: anims.generateFrameNumbers("metalslug", { start: 4, end: 7 }),  frameRate: 10, repeat: 0 });
-    if (!anims.exists("metalslug-die"))
-      anims.create({ key: "metalslug-die",    frames: anims.generateFrameNumbers("metalslug", { start: 8, end: 15 }), frameRate: 10, repeat: 0 });
+    if (safe("metalslug")) {
+      if (!anims.exists("metalslug-walk"))
+        anims.create({ key: "metalslug-walk",   frames: anims.generateFrameNumbers("metalslug", { start: 0, end: 3 }),  frameRate: 8,  repeat: -1 });
+      if (!anims.exists("metalslug-attack"))
+        anims.create({ key: "metalslug-attack", frames: anims.generateFrameNumbers("metalslug", { start: 4, end: 7 }),  frameRate: 10, repeat: 0 });
+      if (!anims.exists("metalslug-die"))
+        anims.create({ key: "metalslug-die",    frames: anims.generateFrameNumbers("metalslug", { start: 8, end: 15 }), frameRate: 10, repeat: 0 });
+    }
 
     // Ghost1 - 5×6 @ 41x50
-    if (!anims.exists("ghost1-walk"))
+    if (safe("ghost1") && !anims.exists("ghost1-walk"))
       anims.create({ key: "ghost1-walk", frames: anims.generateFrameNumbers("ghost1", { start: 0, end: 4 }), frameRate: 8, repeat: -1 });
 
-    // Dragon boss - 6×2 @ 96x64 (row 0=fly, row 1=attack)
-    if (!anims.exists("dragon-fly"))
-      anims.create({ key: "dragon-fly",    frames: anims.generateFrameNumbers("dragon", { start: 0, end: 5 }),  frameRate: 8,  repeat: -1 });
-    if (!anims.exists("dragon-attack"))
-      anims.create({ key: "dragon-attack", frames: anims.generateFrameNumbers("dragon", { start: 6, end: 11 }), frameRate: 10, repeat: 0 });
+    // Dragon boss - 6×2 @ 96x64
+    if (safe("dragon")) {
+      if (!anims.exists("dragon-fly"))
+        anims.create({ key: "dragon-fly",    frames: anims.generateFrameNumbers("dragon", { start: 0, end: 5 }),  frameRate: 8,  repeat: -1 });
+      if (!anims.exists("dragon-attack"))
+        anims.create({ key: "dragon-attack", frames: anims.generateFrameNumbers("dragon", { start: 6, end: 11 }), frameRate: 10, repeat: 0 });
+    }
 
     // Explosion
-    if (!anims.exists("explode"))
+    if (safe("explosion") && !anims.exists("explode"))
       anims.create({ key: "explode", frames: anims.generateFrameNumbers("explosion", { start: 0, end: 24 }), frameRate: 24, repeat: 0, hideOnComplete: true });
 
     // Coin spin
-    if (!anims.exists("coin-spin"))
+    if (safe("coin_spin") && !anims.exists("coin-spin"))
       anims.create({ key: "coin-spin", frames: anims.generateFrameNumbers("coin_spin", { start: 0, end: 5 }), frameRate: 8, repeat: -1 });
   }
 
@@ -919,8 +955,8 @@ class OGWorldScene extends Phaser.Scene {
       [12000, CAVE_GROUND - 220], [1000, HELL_GROUND - 160], [5000, HELL_GROUND - 200],
     ];
     for (const [cx, cy] of positions) {
-      const coin = this.physics.add.sprite(cx, cy, "coin_spin").play("coin-spin").setDepth(7).setScale(1.2);
-      coin.setGravityY(0);
+      const coin = this.physics.add.sprite(cx, cy, "coin_spin").setDepth(7).setScale(1.2);
+      if (this.anims.exists("coin-spin")) coin.play("coin-spin");
       (coin.body as Phaser.Physics.Arcade.Body).setAllowGravity(false).setImmovable(true);
       this.tweens.add({ targets: coin, y: cy - 8, duration: 800, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
       this.coins.add(coin);
@@ -938,12 +974,17 @@ class OGWorldScene extends Phaser.Scene {
       const groundY = spawn.layer === "surface" ? SURFACE_GROUND : spawn.layer === "cave" ? CAVE_GROUND : HELL_GROUND;
       const sy = groundY - (md.frameH > 0 ? md.frameH : 50) * md.scale - 4;
 
+      const texKey = md.spriteKey;
+      const texOk = this.hasTexture(texKey);
       let sprite: Phaser.Physics.Arcade.Sprite;
-      if (md.spriteKey === "ghost" || md.spriteKey === "slime") {
-        sprite = this.physics.add.sprite(spawn.x, sy, md.spriteKey);
+      if (!texOk) {
+        sprite = this.physics.add.sprite(spawn.x, sy, "__DEFAULT");
+        sprite.setDisplaySize(md.frameW || 40, md.frameH || 48);
+      } else if (md.spriteKey === "ghost" || md.spriteKey === "slime") {
+        sprite = this.physics.add.sprite(spawn.x, sy, texKey);
         sprite.setScale(md.scale);
       } else {
-        sprite = this.physics.add.sprite(spawn.x, sy, md.spriteKey, md.walkFrames[0]);
+        sprite = this.physics.add.sprite(spawn.x, sy, texKey, md.walkFrames[0]);
         sprite.setScale(md.scale);
         this.addEnemyAnim(spawn.type, md, sprite);
       }
@@ -981,13 +1022,16 @@ class OGWorldScene extends Phaser.Scene {
     const cd = CLASSES[cls];
     const x = 200; const y = SURFACE_GROUND - 80;
 
+    const texKey = cd.spriteKey;
+    const texExists = this.textures.exists(texKey) && this.textures.get(texKey).key !== "__MISSING";
+
     if (cd.spriteKey === "knight") {
-      this.player = this.physics.add.sprite(x, y, "knight");
-      this.player.play("knight-idle");
+      this.player = this.physics.add.sprite(x, y, texExists ? "knight" : "__DEFAULT");
+      if (texExists && this.anims.exists("knight-idle")) this.player.play("knight-idle");
     } else {
-      this.player = this.physics.add.sprite(x, y, cd.spriteKey, 0);
+      this.player = this.physics.add.sprite(x, y, texExists ? texKey : "__DEFAULT", 0);
       const idleAnim = `${cd.spriteKey}-idle`;
-      if (this.anims.exists(idleAnim)) this.player.play(idleAnim);
+      if (texExists && this.anims.exists(idleAnim)) this.player.play(idleAnim);
     }
     this.player.setTint(cd.tint);
     this.player.setScale(cd.spriteKey === "knight" ? 2 : 1.5);
