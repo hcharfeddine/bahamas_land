@@ -90,21 +90,14 @@ export function useSharedMuseum() {
   const respect = useCallback(
     async (id: string) => {
       if (isSupabaseConfigured && supabase) {
-        const { error } = await supabase.rpc("respect_museum_item", { item_id: id });
-        if (error) {
-          console.warn("[museum] respect error", error);
-          await supabase
-            .from("museum_items")
-            .update({ respect: ((remoteItems?.find((i) => i.id === id)?.respect ?? 0) + 1) })
-            .eq("id", id);
-        }
+        await supabase.rpc("respect_museum_item", { item_id: id });
         return;
       }
       setLocalItems(
         localItems.map((i) => (i.id === id ? { ...i, respect: i.respect + 1 } : i))
       );
     },
-    [localItems, remoteItems, setLocalItems]
+    [localItems, setLocalItems]
   );
 
   const items: SharedMuseumItem[] = isSupabaseConfigured ? (remoteItems || []) : localItems;
