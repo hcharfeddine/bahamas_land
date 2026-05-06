@@ -1,9 +1,15 @@
 import { Layout } from "@/components/Layout";
 import { useUsername, useCoins, useVerdicts, useMuseum, useApplause, useSecretVisitors, useFirstVisit } from "@/lib/store";
 import { motion } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
 import nattounImg from "@assets/Nattoun_1777028672745.png";
-import { Stamp, ShieldAlert } from "lucide-react";
+import { Stamp, ShieldAlert, Link, Loader2, CheckCircle2, ExternalLink } from "lucide-react";
+import {
+  getPlayerKickUsername,
+  linkKickUsername,
+  loadKickUsernameFromServer,
+} from "@/lib/monsters";
 import {
   ACHIEVEMENTS,
   DIFFICULTY_COLOR,
@@ -36,6 +42,7 @@ function formatDate(ts: number) {
 const DIFF_ORDER: Difficulty[] = ["easy", "medium", "hard", "insane"];
 
 export default function Passport() {
+  const [, setLocation] = useLocation();
   const [username] = useUsername();
   const [coins] = useCoins();
   const [verdicts] = useVerdicts();
@@ -45,6 +52,45 @@ export default function Passport() {
   const [firstVisit] = useFirstVisit();
   const { data: achData, unlockedCount, total } = useAchievements();
   const byDiff = useAchievementsByDifficulty();
+
+  const [kickUsername, setKickUsername] = useState<string | null>(null);
+  const [kickInput, setKickInput] = useState("");
+  const [kickBusy, setKickBusy] = useState(false);
+  const [kickError, setKickError] = useState<string | null>(null);
+  const [kickSuccess, setKickSuccess] = useState(false);
+
+  useEffect(() => {
+    const cached = getPlayerKickUsername();
+    if (cached) { setKickUsername(cached); return; }
+    loadKickUsernameFromServer().then((ku) => {
+      if (ku) setKickUsername(ku);
+    });
+  }, []);
+
+  const handleLinkKick = async () => {
+    if (!kickInput || kickBusy) return;
+    setKickBusy(true);
+    setKickError(null);
+    setKickSuccess(false);
+    const res = await linkKickUsername(kickInput);
+    setKickBusy(false);
+    if (res.ok) {
+      setKickUsername(res.data);
+      setKickInput("");
+      setKickSuccess(true);
+    } else {
+      const msgs: Record<string, string> = {
+        bad_format:  "Kick username must be 2-30 letters/numbers/underscores only.",
+        not_found:   "Your citizen account was not found. Try logging in again.",
+        bad_pin:     "PIN verification failed. Try logging in again.",
+        kick_taken:  "That Kick username is already linked to another account.",
+        no_session:  "You are not logged in. Please refresh the page.",
+        no_backend:  "Could not reach the server. Try again later.",
+        network:     "Network error. Check your connection and try again.",
+      };
+      setKickError(msgs[res.reason] || `Error: ${res.reason}`);
+    }
+  };
 
   // Demo helper: append `?seed=cards` to the URL to instantly unlock the first
   // 10 easy achievements that have AI-generated portraits, so visitors can
@@ -176,6 +222,103 @@ export default function Passport() {
               This document is non-transferable, non-refundable, and possibly non-real.
             </div>
           </div>
+        </motion.div>
+
+        {/* ==================== MONSTER ID CARD ==================== */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+          className="w-full bg-black/85 border-2 border-primary neon-box p-5"
+        >
+          <div className="flex flex-wrap justify-between items-center gap-2 mb-4 pb-3 border-b-2 border-primary/40">
+            <div>
+              <h2 className="text-xl md:text-2xl font-black text-primary uppercase tracking-widest neon-text flex items-center gap-2">
+                <span>👾</span> Monster ID
+              </h2>
+              <p className="text-secondary/70 font-mono text-[11px] uppercase mt-1 tracking-widest">
+                Link your Kick username to enter the Monster Zone
+              </p>
+            </div>
+          </div>
+
+          {kickUsername ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 border border-green-500/40 bg-green-500/5 p-3">
+                <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-mono text-secondary/60 uppercase tracking-widest">Linked Kick Account</div>
+                  <div className="text-green-400 font-black uppercase tracking-wider">@{kickUsername}</div>
+                </div>
+                <button
+                  onClick={() => setLocation(`/monster/${kickUsername}`)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 border border-primary text-primary font-mono text-xs uppercase tracking-widest hover:bg-primary hover:text-black transition-colors shrink-0"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  View Monster
+                </button>
+              </div>
+              <div className="font-mono text-[10px] text-secondary/50 uppercase tracking-widest">
+                Type <span className="text-primary font-black">!join</span> in{" "}
+                <a href={`https://kick.com/m3kky`} target="_blank" rel="noopener noreferrer" className="text-primary underline">m3kky's Kick chat</a>{" "}
+                to create your monster, then use{" "}
+                <span className="text-primary">!feed !play !sleep !train !hug !status</span> to care for it.
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="font-mono text-sm text-secondary/80">
+                Enter your Kick username below to link your account. Once linked, type{" "}
+                <span className="text-primary font-black">!join</span> in m3kky's chat to create your monster.
+              </p>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <div className="flex items-center border-2 border-primary bg-black overflow-hidden">
+                    <span className="px-3 text-secondary/60 font-mono text-sm select-none">@</span>
+                    <input
+                      type="text"
+                      className="flex-1 bg-transparent text-secondary py-2.5 text-sm font-mono uppercase tracking-widest focus:outline-none placeholder:text-primary/30"
+                      placeholder="your_kick_name"
+                      value={kickInput}
+                      onChange={(e) =>
+                        setKickInput(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 30))
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && kickInput.length >= 2 && !kickBusy) {
+                          void handleLinkKick();
+                        }
+                      }}
+                      maxLength={30}
+                    />
+                  </div>
+                  <div className="text-[10px] text-primary/50 font-mono mt-1 uppercase tracking-widest">
+                    Letters, numbers and _ only · 2-30 characters
+                  </div>
+                </div>
+                <button
+                  onClick={() => void handleLinkKick()}
+                  disabled={kickBusy || kickInput.length < 2}
+                  className="px-4 py-2.5 bg-primary text-black font-black uppercase tracking-widest text-sm hover:bg-secondary transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 self-start"
+                >
+                  {kickBusy
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Link className="w-4 h-4" />
+                  }
+                  {kickBusy ? "Linking…" : "Link"}
+                </button>
+              </div>
+              {kickError && (
+                <div className="border border-red-500/60 bg-red-500/10 text-red-300 px-3 py-2 text-xs font-mono">
+                  {kickError}
+                </div>
+              )}
+              {kickSuccess && (
+                <div className="border border-green-500/60 bg-green-500/10 text-green-300 px-3 py-2 text-xs font-mono flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4" /> Kick account linked! Now type !join in chat.
+                </div>
+              )}
+            </div>
+          )}
         </motion.div>
 
         {/* ==================== SECRETS LOG ==================== */}

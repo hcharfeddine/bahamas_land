@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { motion, useMotionValue } from "framer-motion";
 import { Layout } from "@/components/Layout";
 import { audio } from "@/lib/audio";
+import { getPlayerKickUsername } from "@/lib/monsters";
 
 import mapBg from "@assets/generated_images/bahamas_map_bg.png";
 import bldPalace from "@assets/generated_images/bld_palace.png";
@@ -16,6 +17,7 @@ import bldPostOffice from "@assets/generated_images/bld_postoffice.png";
 import bldWeather from "@assets/generated_images/bld_weather.png";
 import bldAnthem from "@assets/generated_images/bld_anthem.png";
 import bldCustomerService from "@assets/generated_images/bld_customer_service.png";
+import bldMonsterZone from "@assets/generated_images/bld_monster_zone.png";
 
 type Building = {
   id: string;
@@ -27,17 +29,18 @@ type Building = {
 };
 
 const BUILDINGS: Building[] = [
-  { id: "palace",     label: "Palace",      route: "/palace",     img: bldPalace },
-  { id: "court",      label: "Court",       route: "/court",      img: bldCourt },
-  { id: "police",     label: "Police HQ",   route: "/police",     img: bldPolice },
-  { id: "bank",       label: "Bank",        route: "/bank",       img: bldBank },
-  { id: "museum",     label: "Museum",      route: "/museum",     img: bldMuseum },
-  { id: "library",    label: "Library",     route: "/library",    img: bldLibrary },
-  { id: "postoffice", label: "Post Office", route: "/postoffice", img: bldPostOffice },
-  { id: "weather",    label: "Weather",     route: "/weather",    img: bldWeather },
-  { id: "anthem",     label: "Anthem Hall", route: "/anthem",     img: bldAnthem },
-  { id: "arcade",          label: "Arcade",           route: "/arcade",           img: bldArcade },
+  { id: "palace",       label: "Palace",        route: "/palace",       img: bldPalace },
+  { id: "court",        label: "Court",         route: "/court",        img: bldCourt },
+  { id: "police",       label: "Police HQ",     route: "/police",       img: bldPolice },
+  { id: "bank",         label: "Bank",          route: "/bank",         img: bldBank },
+  { id: "museum",       label: "Museum",        route: "/museum",       img: bldMuseum },
+  { id: "library",      label: "Library",       route: "/library",      img: bldLibrary },
+  { id: "postoffice",   label: "Post Office",   route: "/postoffice",   img: bldPostOffice },
+  { id: "weather",      label: "Weather",       route: "/weather",      img: bldWeather },
+  { id: "anthem",       label: "Anthem Hall",   route: "/anthem",       img: bldAnthem },
+  { id: "arcade",       label: "Arcade",        route: "/arcade",       img: bldArcade },
   { id: "customer-service", label: "Customer Service", route: "/customer-service", img: bldCustomerService },
+  { id: "monster-zone", label: "Monster Zone",  route: "/monster/",     img: bldMonsterZone },
 ];
 
 export default function World() {
@@ -70,8 +73,13 @@ export default function World() {
     };
   }, []);
 
-  const go = (route: string) => {
+  const go = (route: string, buildingId?: string) => {
     audio.playBlip();
+    if (buildingId === "monster-zone") {
+      const ku = getPlayerKickUsername();
+      setLocation(ku ? `/monster/${ku}` : "/passport");
+      return;
+    }
     setLocation(route);
   };
 
@@ -199,7 +207,7 @@ export default function World() {
                       dragMoved.current = 0;
                       return;
                     }
-                    go(b.route);
+                    go(b.route, b.id);
                   }}
                   onMouseEnter={() => !dragging && setHovered(b.id)}
                   onMouseLeave={() => setHovered(null)}

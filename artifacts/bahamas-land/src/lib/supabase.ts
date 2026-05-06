@@ -58,3 +58,22 @@ export type RemoteInterrogation = {
   created_at: string;
   answered_at: string | null;
 };
+
+export type RemoteMonster = {
+  id: string;
+  kick_username: string;
+  stage: "egg" | "baby" | "teen" | "adult" | "final";
+  hunger: number;
+  mood: number;
+  energy: number;
+  level: number;
+  personality: string;
+  status: "happy" | "angry" | "sleeping" | "dead";
+  last_updated_at: number;
+  created_at: number;
+  last_fed_at: number | null;
+  last_played_at: number | null;
+  last_slept_at: number | null;
+  last_trained_at: number | null;
+  last_cmd_at: number | null;
+};
