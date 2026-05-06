@@ -301,7 +301,8 @@ const _US = import.meta.env.VITE_UNLOCK_HMAC_SECRET ?? "";
 async function signUnlock(username: string, id: string): Promise<string> {
   // 30-second rolling window so tokens are time-bound
   const win = Math.floor(Date.now() / 30_000);
-  const msg = new TextEncoder().encode(`${username}:${id}:${win}`);
+  // SQL always does lower(p_username) before hashing — must match exactly.
+  const msg = new TextEncoder().encode(`${username.toLowerCase()}:${id}:${win}`);
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(_US),
