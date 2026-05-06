@@ -251,42 +251,94 @@ class OGWorldScene extends Phaser.Scene {
 
   preload() {
     // Characters
+    // Only load sprites that actually exist at these CDN paths
     const CDN = "https://raw.githubusercontent.com/phaserjs/examples/master/public/assets";
-    // Characters
-    this.load.multiatlas("knight", `${CDN}/animations/knight.json`, `${CDN}/animations/`);
-    this.load.spritesheet("blade",   `${CDN}/animations/blade.png`,   { frameWidth: 48,  frameHeight: 64 });
-    this.load.spritesheet("bobs",    `${CDN}/animations/bobs.png`,    { frameWidth: 64,  frameHeight: 64 });
-    this.load.spritesheet("brawler", `${CDN}/animations/brawler.png`, { frameWidth: 48,  frameHeight: 48 });
-    // Monsters
-    this.load.spritesheet("metalslug", `${CDN}/animations/metalslug.png`, { frameWidth: 39, frameHeight: 40 });
-    this.load.spritesheet("ghost1",    `${CDN}/animations/ghost1.png`,    { frameWidth: 41, frameHeight: 50 });
-    this.load.image("ghost",  `${CDN}/animations/ghost.png`);
-    this.load.image("slime",  `${CDN}/animations/slime.png`);
-    // Boss
-    this.load.spritesheet("dragon", `${CDN}/animations/dragon.png`, { frameWidth: 96, frameHeight: 64 });
-    // Effects
-    this.load.spritesheet("explosion", `${CDN}/animations/explosion.png`, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet("coin_spin", `${CDN}/animations/coin.png`,      { frameWidth: 32, frameHeight: 32 });
-    this.load.image("gem",   `${CDN}/animations/gem.png`);
-    this.load.image("arrow", `${CDN}/animations/arrow.png`);
+    this.load.multiatlas("knight",    `${CDN}/animations/knight.json`, `${CDN}/animations/`);
+    this.load.spritesheet("blade",    `${CDN}/animations/blade.png`,    { frameWidth: 48, frameHeight: 64 });
+    this.load.spritesheet("bobs",     `${CDN}/animations/bobs.png`,     { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet("brawler",  `${CDN}/animations/brawler.png`,  { frameWidth: 48, frameHeight: 48 });
+    this.load.spritesheet("metalslug",`${CDN}/animations/metalslug.png`,{ frameWidth: 39, frameHeight: 40 });
+    this.load.spritesheet("ghost1",   `${CDN}/animations/ghost1.png`,   { frameWidth: 41, frameHeight: 50 });
 
-    // Fallback: if a sprite fails to load, create a coloured rect texture so the game never crashes
+    // Fallback for CDN sprites that fail — coloured rect so game never crashes
     this.load.on("loaderror", (file: { key: string; type: string }) => {
       const key = file.key;
       if (this.textures.exists(key)) return;
       const colors: Record<string, number> = {
         knight: 0x00ccff, blade: 0xaa44ff, bobs: 0x4488ff, brawler: 0x44ff88,
-        metalslug: 0x88cc44, ghost: 0x8888ff, ghost1: 0xaaff44, slime: 0x44ff88,
-        dragon: 0xff4400, explosion: 0xffaa00, coin_spin: 0xffdd00, gem: 0xff44aa, arrow: 0xffffff,
+        metalslug: 0x88cc44, ghost1: 0xaaff44,
       };
       const col = colors[key] ?? 0xffffff;
       const g = this.make.graphics({ add: false } as never);
-      const size = 48;
-      g.fillStyle(col, 1);
-      g.fillRect(0, 0, size, size);
-      g.generateTexture(key, size, size);
-      g.destroy();
+      g.fillStyle(col, 1); g.fillRect(0, 0, 48, 48);
+      g.generateTexture(key, 48, 48); g.destroy();
     });
+  }
+
+  // Called at start of create() — generate all programmatic textures
+  private buildProceduralTextures() {
+    const gfx = (w: number, h: number, draw: (g: Phaser.GameObjects.Graphics) => void, key: string) => {
+      if (this.textures.exists(key)) return;
+      const g = this.make.graphics({ add: false } as never);
+      draw(g); g.generateTexture(key, w, h); g.destroy();
+    };
+
+    // Ghost — translucent white blob
+    gfx(64, 64, (g) => {
+      g.fillStyle(0xaaaaff, 0.85); g.fillEllipse(32, 28, 44, 52);
+      g.fillStyle(0xffffff, 0.6); g.fillEllipse(24, 22, 14, 14);
+      g.fillStyle(0x3333aa, 1); g.fillEllipse(22, 26, 8, 8); g.fillEllipse(40, 26, 8, 8);
+    }, "ghost");
+
+    // Slime — green blob
+    gfx(48, 48, (g) => {
+      g.fillStyle(0x44ff88, 0.9); g.fillEllipse(24, 28, 42, 36);
+      g.fillStyle(0x88ffaa, 0.6); g.fillEllipse(18, 20, 12, 12);
+      g.fillStyle(0x002200, 1); g.fillEllipse(17, 24, 6, 6); g.fillEllipse(29, 24, 6, 6);
+    }, "slime");
+
+    // Coin — yellow circle (single frame, no animation needed — bob tween handles it)
+    gfx(32, 32, (g) => {
+      g.fillStyle(0xffcc00, 1); g.fillCircle(16, 16, 14);
+      g.fillStyle(0xffee88, 0.7); g.fillCircle(12, 12, 6);
+      g.fillStyle(0xaa8800, 0.4); g.fillCircle(20, 20, 5);
+    }, "coin_spin");
+
+    // Arrow — thin white horizontal arrow
+    gfx(24, 8, (g) => {
+      g.fillStyle(0xffffff, 1);
+      g.fillRect(0, 3, 18, 2);
+      g.fillTriangle(16, 0, 24, 4, 16, 8);
+    }, "arrow");
+
+    // Gem — pink/purple diamond
+    gfx(24, 24, (g) => {
+      g.fillStyle(0xff44cc, 1);
+      g.fillTriangle(12, 0, 24, 10, 12, 24);
+      g.fillTriangle(12, 0, 0,  10, 12, 24);
+      g.fillStyle(0xff88ee, 0.6); g.fillTriangle(12, 2, 20, 10, 12, 20);
+    }, "gem");
+
+    // Dragon boss — large red winged shape (96×64 single frame)
+    gfx(96, 64, (g) => {
+      g.fillStyle(0xcc2200, 1); g.fillRect(20, 22, 56, 24);       // body
+      g.fillStyle(0xff4400, 0.85);
+      g.fillTriangle(0, 32, 28, 8, 28, 32);                       // left wing
+      g.fillTriangle(96, 32, 68, 8, 68, 32);                      // right wing
+      g.fillStyle(0x881100, 1); g.fillRect(68, 24, 22, 20);       // head
+      g.fillStyle(0xff8800, 1); g.fillRect(88, 28, 8, 4);         // snout
+      g.fillStyle(0xffee00, 1); g.fillCircle(75, 28, 4);          // eye
+      g.fillStyle(0x550000, 1); g.fillCircle(75, 28, 2);
+      g.fillStyle(0x661100, 1); g.fillTriangle(20, 30, 12, 18, 8, 34); // tail spike
+    }, "dragon");
+
+    // Explosion — orange/white burst (single frame, used via scale tween)
+    gfx(64, 64, (g) => {
+      g.fillStyle(0xff6600, 0.9); g.fillCircle(32, 32, 28);
+      g.fillStyle(0xffaa00, 0.8); g.fillCircle(32, 32, 20);
+      g.fillStyle(0xffee44, 0.7); g.fillCircle(32, 32, 12);
+      g.fillStyle(0xffffff, 0.9); g.fillCircle(32, 32, 5);
+    }, "explosion");
   }
 
   create() {
@@ -305,6 +357,9 @@ class OGWorldScene extends Phaser.Scene {
     // World bounds
     this.physics.world.setBounds(0, 0, WORLD_W, WORLD_H);
     this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
+
+    // Generate programmatic textures BEFORE animations
+    this.buildProceduralTextures();
 
     // Build everything
     this.buildAnimations();
@@ -414,9 +469,7 @@ class OGWorldScene extends Phaser.Scene {
     if (safe("explosion") && !anims.exists("explode"))
       anims.create({ key: "explode", frames: anims.generateFrameNumbers("explosion", { start: 0, end: 24 }), frameRate: 24, repeat: 0, hideOnComplete: true });
 
-    // Coin spin
-    if (safe("coin_spin") && !anims.exists("coin-spin"))
-      anims.create({ key: "coin-spin", frames: anims.generateFrameNumbers("coin_spin", { start: 0, end: 5 }), frameRate: 8, repeat: -1 });
+    // Coin — single programmatic frame, no animation needed (bob tween handles visual movement)
   }
 
   // ─── BUILD BACKGROUNDS ───────────────────────────────────────────────────────
