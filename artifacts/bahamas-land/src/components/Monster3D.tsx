@@ -1273,7 +1273,7 @@ function MonsterScene({ kickUsername, stage, status }: { kickUsername: string; s
       <pointLight position={[-2, -1, 2]} intensity={isDead ? 0.1 : 0.6} color={isDead ? "#555" : glow} />
       <pointLight position={[0, -3, 0]} intensity={isDead ? 0.05 : 0.25} color={isDead ? "#333" : info.eggGlow} />
 
-      {monste: per stage - uses GLB if configured, procedural otherwise */}
+      {/* Render monster per stage - uses GLB if configured, procedural otherwise */}
       {(() => {
         const url = getGlbUrl(monsterType, stage);
         if (url) return <GLBMonsterMesh url={url} status={status} />;
