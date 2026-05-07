@@ -20,7 +20,6 @@ export type { ChatMsg };
 const MAX_LOCAL = 80;
 const SLOW_MODE_MS = 1500;
 const VIEWER_BASE = 142_857;
-const VIEWER_MULT_REAL = 1_247;
 const VIEWER_DRIFT_AMP = 8_420;
 const TROLL_BOOST = 1.85;
 const VIEWER_FLOOR = 99_999;
@@ -84,28 +83,14 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function getOrCreateVisitorId(): string {
-  if (typeof window === "undefined") return "";
-  try {
-    let id = localStorage.getItem("ogs_visitor_id");
-    if (!id) {
-      id = `v_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
-      localStorage.setItem("ogs_visitor_id", id);
-    }
-    return id;
-  } catch {
-    return `v_${Math.random().toString(36).slice(2, 10)}`;
-  }
-}
-
-function inflatedViewerCount(real: number): number {
+function inflatedViewerCount(): number {
   const now = Date.now();
   const t = Math.floor(now / 4000);
   const drift = Math.abs(Math.sin(t * 0.3)) * VIEWER_DRIFT_AMP;
   const wobble = Math.abs(Math.sin(t * 1.7)) * 1_300;
   const status = getStreamStatus(new Date(now));
   const boost = status.trolling ? TROLL_BOOST : 1;
-  const raw = Math.floor((VIEWER_BASE + real * VIEWER_MULT_REAL + drift + wobble) * boost);
+  const raw = Math.floor((VIEWER_BASE + drift + wobble) * boost);
   return Math.max(VIEWER_FLOOR + 1 + Math.floor(wobble), raw);
 }
 
@@ -154,16 +139,10 @@ function useSupabaseChat(enabled: boolean) {
   const [realMessages, setRealMessages] = useState<ChatMsg[]>([]);
   const [botMessages, setBotMessages] = useState<ChatMsg[]>([]);
   const [connected, setConnected] = useState(false);
-  const [realViewers, setRealViewers] = useState<number>(1);
   const [, setTick] = useState(0);
   const lastSendRef = useRef<number>(0);
-  const visitorIdRef = useRef<string>("");
 
-  useEffect(() => {
-    visitorIdRef.current = getOrCreateVisitorId();
-  }, []);
-
-  // ---- Initial fetch + Realtime subscription + Presence -------------------
+  // ---- Initial fetch + Realtime subscription (no Presence to save egress) --
   useEffect(() => {
     if (!enabled || !supabase) return;
     const client = supabase;
@@ -172,7 +151,7 @@ function useSupabaseChat(enabled: boolean) {
     const fetchMessages = async () => {
       const { data, error } = await client
         .from("chat_messages")
-        .select("*")
+        .select("id,username,text,is_mod,created_at")
         .order("created_at", { ascending: false })
         .limit(MAX_LOCAL);
       if (cancelled) return;
@@ -186,9 +165,7 @@ function useSupabaseChat(enabled: boolean) {
 
     fetchMessages();
 
-    const channel = client.channel("chat-messages-public", {
-      config: { presence: { key: visitorIdRef.current || "anon" } },
-    });
+    const channel = client.channel("chat-messages-public");
 
     channel
       .on(
@@ -212,16 +189,9 @@ function useSupabaseChat(enabled: boolean) {
           }
         }
       )
-      .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState();
-        setRealViewers(Math.max(1, Object.keys(state).length));
-      })
-      .subscribe(async (status) => {
+      .subscribe((status) => {
         if (cancelled) return;
         setConnected(status === "SUBSCRIBED");
-        if (status === "SUBSCRIBED") {
-          await channel.track({ visitor: visitorIdRef.current, at: Date.now() });
-        }
       });
 
     return () => {
@@ -302,11 +272,11 @@ function useSupabaseChat(enabled: boolean) {
     .sort((a, b) => a.ts - b.ts)
     .slice(-MAX_LOCAL);
 
-  const fake = inflatedViewerCount(realViewers);
+  const fake = inflatedViewerCount();
 
   return {
     messages,
-    viewers: { real: realViewers, fake },
+    viewers: { real: 1, fake },
     connected,
     send,
   };

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase, isSupabaseConfigured, RemoteCourtVerdict } from "@/lib/supabase";
 import { useVerdicts, Verdict } from "@/lib/store";
 
@@ -6,6 +6,8 @@ export type SharedVerdict = Verdict & {
   status?: "pending" | "approved" | "rejected";
   pinned?: boolean;
 };
+
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
 function remoteToLocal(r: RemoteCourtVerdict): SharedVerdict {
   return {
@@ -23,13 +25,16 @@ export function useSharedCourt() {
   const [localItems, setLocalItems] = useVerdicts();
   const [remoteItems, setRemoteItems] = useState<SharedVerdict[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const lastFetchRef = useRef<number>(0);
 
-  const fetchRemote = useCallback(async () => {
+  const fetchRemote = useCallback(async (force = false) => {
     if (!supabase) return;
+    const now = Date.now();
+    if (!force && now - lastFetchRef.current < CACHE_TTL_MS) return;
     setLoading(true);
     const { data, error } = await supabase
       .from("court_verdicts")
-      .select("*")
+      .select("id,username,text,verdict,status,pinned,created_at")
       .eq("status", "approved")
       .order("pinned", { ascending: false })
       .order("created_at", { ascending: false })
@@ -39,21 +44,70 @@ export function useSharedCourt() {
       console.warn("[court] fetch error", error);
       return;
     }
+    lastFetchRef.current = Date.now();
     setRemoteItems((data || []).map(remoteToLocal));
   }, []);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
-    fetchRemote();
+    fetchRemote(true);
     const client = supabase;
+
     const channel = client
       .channel("court-verdicts-public")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "court_verdicts" },
-        () => fetchRemote()
+        { event: "INSERT", schema: "public", table: "court_verdicts" },
+        (payload) => {
+          const item = payload.new as RemoteCourtVerdict;
+          if (item.status !== "approved") return;
+          const local = remoteToLocal(item);
+          setRemoteItems((prev) => {
+            if (!prev) return [local];
+            const next = [local, ...prev];
+            next.sort((a, b) => {
+              if ((b.pinned ? 1 : 0) !== (a.pinned ? 1 : 0)) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+              return b.timestamp - a.timestamp;
+            });
+            return next;
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "court_verdicts" },
+        (payload) => {
+          const item = payload.new as RemoteCourtVerdict;
+          const local = remoteToLocal(item);
+          setRemoteItems((prev) => {
+            if (!prev) return prev;
+            let next: SharedVerdict[];
+            if (item.status === "approved") {
+              const exists = prev.some((i) => i.id === item.id);
+              next = exists
+                ? prev.map((i) => (i.id === item.id ? local : i))
+                : [local, ...prev];
+            } else {
+              next = prev.filter((i) => i.id !== item.id);
+            }
+            next.sort((a, b) => {
+              if ((b.pinned ? 1 : 0) !== (a.pinned ? 1 : 0)) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+              return b.timestamp - a.timestamp;
+            });
+            return next;
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "court_verdicts" },
+        (payload) => {
+          const id = (payload.old as { id?: string })?.id;
+          if (id) setRemoteItems((prev) => prev ? prev.filter((i) => i.id !== id) : prev);
+        }
       )
       .subscribe();
+
     return () => {
       client.removeChannel(channel);
     };

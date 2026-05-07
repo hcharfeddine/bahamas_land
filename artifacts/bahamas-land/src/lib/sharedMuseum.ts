@@ -1,8 +1,10 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase, isSupabaseConfigured, RemoteMuseumItem } from "@/lib/supabase";
 import { useMuseum, MuseumItem } from "@/lib/store";
 
 export type SharedMuseumItem = MuseumItem & { status?: "pending" | "approved" | "rejected" };
+
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
 function remoteToLocal(r: RemoteMuseumItem): SharedMuseumItem {
   return {
@@ -21,13 +23,16 @@ export function useSharedMuseum() {
   const [localItems, setLocalItems] = useMuseum();
   const [remoteItems, setRemoteItems] = useState<SharedMuseumItem[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const lastFetchRef = useRef<number>(0);
 
-  const fetchRemote = useCallback(async () => {
+  const fetchRemote = useCallback(async (force = false) => {
     if (!supabase) return;
+    const now = Date.now();
+    if (!force && now - lastFetchRef.current < CACHE_TTL_MS) return;
     setLoading(true);
     const { data, error } = await supabase
       .from("museum_items")
-      .select("*")
+      .select("id,username,caption,image_url,label,respect,status,created_at")
       .eq("status", "approved")
       .order("created_at", { ascending: false });
     setLoading(false);
@@ -35,21 +40,55 @@ export function useSharedMuseum() {
       console.warn("[museum] fetch error", error);
       return;
     }
+    lastFetchRef.current = Date.now();
     setRemoteItems((data || []).map(remoteToLocal));
   }, []);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
-    fetchRemote();
+    fetchRemote(true);
     const client = supabase;
+
     const channel = client
       .channel("museum-items-public")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "museum_items" },
-        () => fetchRemote()
+        { event: "INSERT", schema: "public", table: "museum_items" },
+        (payload) => {
+          const item = payload.new as RemoteMuseumItem;
+          if (item.status !== "approved") return;
+          const local = remoteToLocal(item);
+          setRemoteItems((prev) => (prev ? [local, ...prev] : [local]));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "museum_items" },
+        (payload) => {
+          const item = payload.new as RemoteMuseumItem;
+          const local = remoteToLocal(item);
+          setRemoteItems((prev) => {
+            if (!prev) return prev;
+            if (item.status === "approved") {
+              const exists = prev.some((i) => i.id === item.id);
+              return exists
+                ? prev.map((i) => (i.id === item.id ? local : i))
+                : [local, ...prev];
+            }
+            return prev.filter((i) => i.id !== item.id);
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "museum_items" },
+        (payload) => {
+          const id = (payload.old as { id?: string })?.id;
+          if (id) setRemoteItems((prev) => prev ? prev.filter((i) => i.id !== id) : prev);
+        }
       )
       .subscribe();
+
     return () => {
       client.removeChannel(channel);
     };
@@ -91,6 +130,9 @@ export function useSharedMuseum() {
     async (id: string) => {
       if (isSupabaseConfigured && supabase) {
         await supabase.rpc("respect_museum_item", { item_id: id });
+        setRemoteItems((prev) =>
+          prev ? prev.map((i) => (i.id === id ? { ...i, respect: i.respect + 1 } : i)) : prev
+        );
         return;
       }
       setLocalItems(
