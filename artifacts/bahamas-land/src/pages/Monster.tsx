@@ -93,9 +93,6 @@ function MonsterCharacter({ monster }: { monster: RemoteMonster }) {
           💤
         </motion.div>
       )}
-      <div className="absolute top-1 left-1 font-mono text-[9px] uppercase tracking-widest text-white/40 pointer-events-none">
-        {info.icon} {info.name}
-      </div>
     </div>
   );
 }

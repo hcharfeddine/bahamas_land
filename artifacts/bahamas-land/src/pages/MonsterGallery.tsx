@@ -27,23 +27,13 @@ const TYPE_SEED: Record<MonsterType, string> = {
   golem:       "seed_18",
   phoenix:     "seed_1",
   crab:        "seed_49",
-  serpent:     "seed_9",
   shark:       "seed_43",
-  bear:        "seed_16",
-  scorpion:    "seed_30",
   octopus:     "seed_3",
   cyclops:     "seed_7",
   minotaur:    "seed_11",
   medusa:      "seed_14",
   centaur:     "seed_21",
-  siren:       "seed_33",
-  chimera:     "seed_40",
-  sphinx:      "seed_52",
-  fenrir:      "seed_60",
-  jormungandr: "seed_71",
   kitsune:     "seed_82",
-  oni:         "seed_91",
-  qilin:       "seed_99",
 };
 
 function StageCard({
