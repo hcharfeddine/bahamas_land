@@ -515,55 +515,53 @@ function CrabMesh({ stage, info, status }: { stage: "baby"|"teen"|"adult"|"final
   const p = info.primary; const s = info.secondary;
   const glow = statusGlow(status);
   const ei = status === "dead" ? 0 : 0.5;
-  const Mat = ({ color, emissive = p, ei: eii = ei, roughness = 0.4 }: { color: string; emissive?: string; ei?: number; roughness?: number }) =>
-    <meshStandardMaterial color={color} emissive={emissive} emissiveIntensity={eii} roughness={roughness} metalness={0.3} />;
 
   if (stage === "baby") return (
     <group ref={ref}>
-      <mesh scale={[1, 0.55, 0.85]}><sphereGeometry args={[0.42, 14, 14]} /><Mat color={s} /></mesh>
-      {[-0.46, 0.46].map((x, i) => <mesh key={i} position={[x, 0, 0.15]} rotation={[0, 0, i === 0 ? 0.6 : -0.6]}><sphereGeometry args={[0.15, 10, 10]} /><Mat color={p} emissive={glow} ei={ei + 0.2} /></mesh>)}
-      {[-1, 1].map((side, i) => [0, 1].map((j) => <mesh key={`${i}${j}`} position={[side * (0.5 + j * 0.22), -0.18, -0.1 + j * 0.2]} rotation={[0, 0, side * 0.8]}><capsuleGeometry args={[0.04, 0.28, 4, 6]} /></mesh>))}
+      <mesh scale={[1, 0.55, 0.85]}><sphereGeometry args={[0.42, 14, 14]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.4} metalness={0.3} /></mesh>
+      {[-0.46, 0.46].map((x, i) => <mesh key={i} position={[x, 0, 0.15]} rotation={[0, 0, i === 0 ? 0.6 : -0.6]}><sphereGeometry args={[0.15, 10, 10]} /><meshStandardMaterial color={p} emissive={glow} emissiveIntensity={ei + 0.2} roughness={0.4} metalness={0.3} /></mesh>)}
+      {[-1, 1].map((side, i) => [0, 1].map((j) => <mesh key={`${i}${j}`} position={[side * (0.5 + j * 0.22), -0.18, -0.1 + j * 0.2]} rotation={[0, 0, side * 0.8]}><capsuleGeometry args={[0.04, 0.28, 4, 6]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.4} metalness={0.3} /></mesh>))}
       {[-0.1, 0.1].map((x, i) => <mesh key={i} position={[x, 0.2, 0.36]}><sphereGeometry args={[0.058, 8, 8]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2.5} /></mesh>)}
     </group>
   );
   if (stage === "teen") return (
     <group ref={ref}>
-      <mesh scale={[1.1, 0.58, 0.92]}><sphereGeometry args={[0.58, 16, 16]} /><Mat color={s} /></mesh>
-      {[-0.72, 0.72].map((x, i) => <mesh key={i} position={[x, 0.05, 0.2]} rotation={[0, 0, i === 0 ? 0.5 : -0.5]}><sphereGeometry args={[0.22, 12, 12]} /><Mat color={p} emissive={glow} ei={ei + 0.25} /></mesh>)}
-      {[-1, 1].map((side, i) => [0, 1, 2].map((j) => <mesh key={`${i}${j}`} position={[side * (0.68 + j * 0.24), -0.22, -0.15 + j * 0.2]} rotation={[0.1, 0, side * 0.75]}><capsuleGeometry args={[0.048, 0.36, 4, 6]} /></mesh>))}
-      {[-0.14, 0.14].map((x, i) => <mesh key={i} position={[x, 0.32, 0.5]}><capsuleGeometry args={[0.04, 0.18, 4, 8]} /></mesh>)}
+      <mesh scale={[1.1, 0.58, 0.92]}><sphereGeometry args={[0.58, 16, 16]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.4} metalness={0.3} /></mesh>
+      {[-0.72, 0.72].map((x, i) => <mesh key={i} position={[x, 0.05, 0.2]} rotation={[0, 0, i === 0 ? 0.5 : -0.5]}><sphereGeometry args={[0.22, 12, 12]} /><meshStandardMaterial color={p} emissive={glow} emissiveIntensity={ei + 0.25} roughness={0.4} metalness={0.3} /></mesh>)}
+      {[-1, 1].map((side, i) => [0, 1, 2].map((j) => <mesh key={`${i}${j}`} position={[side * (0.68 + j * 0.24), -0.22, -0.15 + j * 0.2]} rotation={[0.1, 0, side * 0.75]}><capsuleGeometry args={[0.048, 0.36, 4, 6]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.4} metalness={0.3} /></mesh>))}
+      {[-0.14, 0.14].map((x, i) => <mesh key={i} position={[x, 0.32, 0.5]}><capsuleGeometry args={[0.04, 0.18, 4, 8]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.4} metalness={0.3} /></mesh>)}
       {[-0.14, 0.14].map((x, i) => <mesh key={i} position={[x, 0.5, 0.5]}><sphereGeometry args={[0.075, 8, 8]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2.8} /></mesh>)}
     </group>
   );
   if (stage === "adult") return (
     <group ref={ref}>
-      <mesh scale={[1.18, 0.6, 1]}><sphereGeometry args={[0.74, 18, 18]} /><Mat color={s} /></mesh>
+      <mesh scale={[1.18, 0.6, 1]}><sphereGeometry args={[0.74, 18, 18]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.4} metalness={0.3} /></mesh>
       {[-1.05, 1.05].map((x, i) => (
         <group key={i} position={[x, 0.1, 0.3]}>
-          <mesh scale={[1, 0.6, 0.7]}><sphereGeometry args={[0.32, 12, 12]} /><Mat color={p} emissive={glow} ei={ei + 0.3} /></mesh>
-          <mesh position={[i === 0 ? -0.22 : 0.22, 0, 0.1]} rotation={[0, 0, i === 0 ? 0.9 : -0.9]}><coneGeometry args={[0.08, 0.38, 5]} /><Mat color={p} /></mesh>
-          <mesh position={[i === 0 ? -0.3 : 0.3, -0.08, 0.06]} rotation={[0, 0, i === 0 ? 1.2 : -1.2]}><coneGeometry args={[0.06, 0.28, 5]} /><Mat color={p} /></mesh>
+          <mesh scale={[1, 0.6, 0.7]}><sphereGeometry args={[0.32, 12, 12]} /><meshStandardMaterial color={p} emissive={glow} emissiveIntensity={ei + 0.3} roughness={0.4} metalness={0.3} /></mesh>
+          <mesh position={[i === 0 ? -0.22 : 0.22, 0, 0.1]} rotation={[0, 0, i === 0 ? 0.9 : -0.9]}><coneGeometry args={[0.08, 0.38, 5]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.4} metalness={0.3} /></mesh>
+          <mesh position={[i === 0 ? -0.3 : 0.3, -0.08, 0.06]} rotation={[0, 0, i === 0 ? 1.2 : -1.2]}><coneGeometry args={[0.06, 0.28, 5]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.4} metalness={0.3} /></mesh>
         </group>
       ))}
-      {[-1, 1].map((side, i) => [0, 1, 2, 3].map((j) => <mesh key={`${i}${j}`} position={[side * (0.82 + j * 0.28), -0.28, -0.2 + j * 0.22]} rotation={[0.15, 0, side * 0.7]}><capsuleGeometry args={[0.052, 0.44, 4, 6]} /></mesh>))}
-      {[-0.18, 0.18].map((x, i) => <mesh key={i} position={[x, 0.42, 0.64]}><capsuleGeometry args={[0.045, 0.22, 4, 8]} /></mesh>)}
+      {[-1, 1].map((side, i) => [0, 1, 2, 3].map((j) => <mesh key={`${i}${j}`} position={[side * (0.82 + j * 0.28), -0.28, -0.2 + j * 0.22]} rotation={[0.15, 0, side * 0.7]}><capsuleGeometry args={[0.052, 0.44, 4, 6]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.4} metalness={0.3} /></mesh>))}
+      {[-0.18, 0.18].map((x, i) => <mesh key={i} position={[x, 0.42, 0.64]}><capsuleGeometry args={[0.045, 0.22, 4, 8]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.4} metalness={0.3} /></mesh>)}
       {[-0.18, 0.18].map((x, i) => <mesh key={i} position={[x, 0.68, 0.65]}><sphereGeometry args={[0.09, 10, 10]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={3} /></mesh>)}
     </group>
   );
   // final
   return (
     <group ref={ref}>
-      <mesh scale={[1.25, 0.65, 1.1]}><sphereGeometry args={[0.92, 20, 20]} /><Mat color={s} /></mesh>
-      {[0, Math.PI * 0.35, Math.PI * 0.65, Math.PI].map((a, i) => <mesh key={i} position={[Math.cos(a) * 0.9, 0.78, Math.sin(a) * 0.62]}><coneGeometry args={[0.065, 0.32, 5]} /><Mat color={glow} emissive={glow} ei={ei + 0.8} /></mesh>)}
+      <mesh scale={[1.25, 0.65, 1.1]}><sphereGeometry args={[0.92, 20, 20]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.4} metalness={0.3} /></mesh>
+      {[0, Math.PI * 0.35, Math.PI * 0.65, Math.PI].map((a, i) => <mesh key={i} position={[Math.cos(a) * 0.9, 0.78, Math.sin(a) * 0.62]}><coneGeometry args={[0.065, 0.32, 5]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={ei + 0.8} roughness={0.4} metalness={0.3} /></mesh>)}
       {[-1.3, 1.3].map((x, i) => (
         <group key={i} position={[x, 0.12, 0.38]}>
-          <mesh scale={[1, 0.6, 0.75]}><sphereGeometry args={[0.42, 14, 14]} /><Mat color={p} emissive={glow} ei={ei + 0.35} /></mesh>
-          <mesh position={[i === 0 ? -0.3 : 0.3, 0, 0.12]} rotation={[0, 0, i === 0 ? 0.8 : -0.8]}><coneGeometry args={[0.11, 0.52, 5]} /><Mat color={p} emissive={glow} ei={ei + 0.4} /></mesh>
-          <mesh position={[i === 0 ? -0.42 : 0.42, -0.1, 0.08]} rotation={[0, 0, i === 0 ? 1.1 : -1.1]}><coneGeometry args={[0.08, 0.38, 5]} /><Mat color={p} /></mesh>
+          <mesh scale={[1, 0.6, 0.75]}><sphereGeometry args={[0.42, 14, 14]} /><meshStandardMaterial color={p} emissive={glow} emissiveIntensity={ei + 0.35} roughness={0.4} metalness={0.3} /></mesh>
+          <mesh position={[i === 0 ? -0.3 : 0.3, 0, 0.12]} rotation={[0, 0, i === 0 ? 0.8 : -0.8]}><coneGeometry args={[0.11, 0.52, 5]} /><meshStandardMaterial color={p} emissive={glow} emissiveIntensity={ei + 0.4} roughness={0.4} metalness={0.3} /></mesh>
+          <mesh position={[i === 0 ? -0.42 : 0.42, -0.1, 0.08]} rotation={[0, 0, i === 0 ? 1.1 : -1.1]}><coneGeometry args={[0.08, 0.38, 5]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.4} metalness={0.3} /></mesh>
         </group>
       ))}
-      {[-1, 1].map((side, i) => [0, 1, 2, 3].map((j) => <mesh key={`${i}${j}`} position={[side * (1.02 + j * 0.32), -0.32, -0.22 + j * 0.24]} rotation={[0.15, 0, side * 0.65]}><capsuleGeometry args={[0.062, 0.54, 4, 6]} /></mesh>))}
-      {[-0.22, 0.22].map((x, i) => <mesh key={i} position={[x, 0.52, 0.82]}><capsuleGeometry args={[0.05, 0.26, 4, 8]} /></mesh>)}
+      {[-1, 1].map((side, i) => [0, 1, 2, 3].map((j) => <mesh key={`${i}${j}`} position={[side * (1.02 + j * 0.32), -0.32, -0.22 + j * 0.24]} rotation={[0.15, 0, side * 0.65]}><capsuleGeometry args={[0.062, 0.54, 4, 6]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.4} metalness={0.3} /></mesh>))}
+      {[-0.22, 0.22].map((x, i) => <mesh key={i} position={[x, 0.52, 0.82]}><capsuleGeometry args={[0.05, 0.26, 4, 8]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.4} metalness={0.3} /></mesh>)}
       {[-0.22, 0.22].map((x, i) => <mesh key={i} position={[x, 0.82, 0.83]}><sphereGeometry args={[0.11, 10, 10]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={3.5} /></mesh>)}
       <mesh position={[0, 0, 0]}><torusGeometry args={[1.48, 0.032, 6, 40]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2.5} transparent opacity={0.5} /></mesh>
     </group>
@@ -577,40 +575,38 @@ function SerpentMesh({ stage, info, status }: { stage: "baby"|"teen"|"adult"|"fi
   const p = info.primary; const s = info.secondary;
   const glow = statusGlow(status);
   const ei = status === "dead" ? 0 : 0.5;
-  const Mat = ({ color, emissive = p, ei: eii = ei, roughness = 0.35 }: { color: string; emissive?: string; ei?: number; roughness?: number }) =>
-    <meshStandardMaterial color={color} emissive={emissive} emissiveIntensity={eii} roughness={roughness} metalness={0.15} />;
 
   if (stage === "baby") return (
     <group ref={ref}>
-      {[0, 1, 2].map(i => <mesh key={i} position={[Math.sin(i * 1.1) * 0.28, -0.35 + i * 0.3, 0]} scale={[1, 0.88, 1]}><sphereGeometry args={[0.22 - i * 0.04, 10, 10]} /><Mat color={s} /></mesh>)}
-      <mesh position={[0.14, 0.6, 0]}><sphereGeometry args={[0.2, 12, 12]} /><Mat color={s} /></mesh>
+      {[0, 1, 2].map(i => <mesh key={i} position={[Math.sin(i * 1.1) * 0.28, -0.35 + i * 0.3, 0]} scale={[1, 0.88, 1]}><sphereGeometry args={[0.22 - i * 0.04, 10, 10]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.35} metalness={0.15} /></mesh>)}
+      <mesh position={[0.14, 0.6, 0]}><sphereGeometry args={[0.2, 12, 12]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.35} metalness={0.15} /></mesh>
       {[-0.07, 0.07].map((x, i) => <mesh key={i} position={[x, 0.62, 0.18]}><sphereGeometry args={[0.052, 8, 8]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2.5} /></mesh>)}
     </group>
   );
   if (stage === "teen") return (
     <group ref={ref}>
-      {[0, 1, 2, 3].map(i => <mesh key={i} position={[Math.sin(i * 1.05) * 0.38, -0.55 + i * 0.36, 0]} scale={[1, 0.85, 1]}><sphereGeometry args={[0.28 - i * 0.04, 12, 12]} /><Mat color={s} /></mesh>)}
-      <mesh position={[0.22, 0.88, 0]}><sphereGeometry args={[0.26, 14, 14]} /><Mat color={s} /></mesh>
-      <mesh position={[0.22, 0.96, 0.08]} scale={[1.8, 0.35, 0.5]}><sphereGeometry args={[0.25, 10, 10]} /><Mat color={p} emissive={glow} ei={ei + 0.15} /></mesh>
+      {[0, 1, 2, 3].map(i => <mesh key={i} position={[Math.sin(i * 1.05) * 0.38, -0.55 + i * 0.36, 0]} scale={[1, 0.85, 1]}><sphereGeometry args={[0.28 - i * 0.04, 12, 12]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.35} metalness={0.15} /></mesh>)}
+      <mesh position={[0.22, 0.88, 0]}><sphereGeometry args={[0.26, 14, 14]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.35} metalness={0.15} /></mesh>
+      <mesh position={[0.22, 0.96, 0.08]} scale={[1.8, 0.35, 0.5]}><sphereGeometry args={[0.25, 10, 10]} /><meshStandardMaterial color={p} emissive={glow} emissiveIntensity={ei + 0.15} roughness={0.35} metalness={0.15} /></mesh>
       {[-0.09, 0.09].map((x, i) => <mesh key={i} position={[x + 0.22, 0.9, 0.24]}><sphereGeometry args={[0.065, 8, 8]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2.8} /></mesh>)}
     </group>
   );
   if (stage === "adult") return (
     <group ref={ref}>
-      {[0, 1, 2, 3, 4].map(i => <mesh key={i} position={[Math.sin(i * 0.95) * 0.5, -0.75 + i * 0.38, 0]} scale={[1, 0.82, 1]}><sphereGeometry args={[0.34 - i * 0.04, 14, 14]} /><Mat color={s} /></mesh>)}
-      <mesh position={[0.32, 1.2, 0]}><sphereGeometry args={[0.33, 16, 16]} /><Mat color={s} /></mesh>
-      <mesh position={[0.32, 1.3, 0.1]} scale={[2.2, 0.38, 0.55]}><sphereGeometry args={[0.32, 12, 12]} /><Mat color={p} emissive={glow} ei={ei + 0.2} /></mesh>
+      {[0, 1, 2, 3, 4].map(i => <mesh key={i} position={[Math.sin(i * 0.95) * 0.5, -0.75 + i * 0.38, 0]} scale={[1, 0.82, 1]}><sphereGeometry args={[0.34 - i * 0.04, 14, 14]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.35} metalness={0.15} /></mesh>)}
+      <mesh position={[0.32, 1.2, 0]}><sphereGeometry args={[0.33, 16, 16]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.35} metalness={0.15} /></mesh>
+      <mesh position={[0.32, 1.3, 0.1]} scale={[2.2, 0.38, 0.55]}><sphereGeometry args={[0.32, 12, 12]} /><meshStandardMaterial color={p} emissive={glow} emissiveIntensity={ei + 0.2} roughness={0.35} metalness={0.15} /></mesh>
       {[-0.11, 0.11].map((x, i) => <mesh key={i} position={[x + 0.32, 1.22, 0.3]}><sphereGeometry args={[0.082, 8, 8]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={3} /></mesh>)}
-      {[-0.05, 0.05].map((x, i) => <mesh key={i} position={[x + 0.32, 1.08, 0.32]} rotation={[0.3, 0, 0]}><coneGeometry args={[0.028, 0.12, 4]} /><Mat color={glow} emissive={glow} ei={ei + 0.4} /></mesh>)}
+      {[-0.05, 0.05].map((x, i) => <mesh key={i} position={[x + 0.32, 1.08, 0.32]} rotation={[0.3, 0, 0]}><coneGeometry args={[0.028, 0.12, 4]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={ei + 0.4} roughness={0.35} metalness={0.15} /></mesh>)}
     </group>
   );
   // final
   return (
     <group ref={ref}>
-      {[0, 1, 2, 3, 4, 5].map(i => <mesh key={i} position={[Math.sin(i * 0.88) * 0.65, -0.95 + i * 0.42, 0]} scale={[1, 0.8, 1]}><sphereGeometry args={[0.42 - i * 0.04, 16, 16]} /><Mat color={s} /></mesh>)}
-      <mesh position={[0.4, 1.55, 0]}><sphereGeometry args={[0.42, 18, 18]} /><Mat color={s} /></mesh>
-      <mesh position={[0.4, 1.68, 0.12]} scale={[2.5, 0.42, 0.6]}><sphereGeometry args={[0.4, 12, 12]} /><Mat color={p} emissive={glow} ei={ei + 0.28} /></mesh>
-      {[0, 1, 2].map(i => <mesh key={i} position={[0.4 + Math.sin(i * 2.1) * 0.24, 1.98 + i * 0.18, 0]} rotation={[0, 0, Math.sin(i) * 0.5]}><coneGeometry args={[0.075, 0.28, 5]} /><Mat color={glow} emissive={glow} ei={ei + 0.6} /></mesh>)}
+      {[0, 1, 2, 3, 4, 5].map(i => <mesh key={i} position={[Math.sin(i * 0.88) * 0.65, -0.95 + i * 0.42, 0]} scale={[1, 0.8, 1]}><sphereGeometry args={[0.42 - i * 0.04, 16, 16]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.35} metalness={0.15} /></mesh>)}
+      <mesh position={[0.4, 1.55, 0]}><sphereGeometry args={[0.42, 18, 18]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.35} metalness={0.15} /></mesh>
+      <mesh position={[0.4, 1.68, 0.12]} scale={[2.5, 0.42, 0.6]}><sphereGeometry args={[0.4, 12, 12]} /><meshStandardMaterial color={p} emissive={glow} emissiveIntensity={ei + 0.28} roughness={0.35} metalness={0.15} /></mesh>
+      {[0, 1, 2].map(i => <mesh key={i} position={[0.4 + Math.sin(i * 2.1) * 0.24, 1.98 + i * 0.18, 0]} rotation={[0, 0, Math.sin(i) * 0.5]}><coneGeometry args={[0.075, 0.28, 5]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={ei + 0.6} roughness={0.35} metalness={0.15} /></mesh>)}
       <mesh position={[0.4, 1.6, 0.38]}><sphereGeometry args={[0.09, 8, 8]} /><meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={3.5} /></mesh>
       {[-0.13, 0.13].map((x, i) => <mesh key={i} position={[x + 0.4, 1.52, 0.38]}><sphereGeometry args={[0.095, 8, 8]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={3.2} /></mesh>)}
       <mesh position={[0, -0.1, 0]}><torusGeometry args={[1.42, 0.03, 6, 40]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2.2} transparent opacity={0.5} /></mesh>
@@ -625,47 +621,45 @@ function SharkMesh({ stage, info, status }: { stage: "baby"|"teen"|"adult"|"fina
   const p = info.primary; const s = info.secondary;
   const glow = statusGlow(status);
   const ei = status === "dead" ? 0 : 0.5;
-  const Mat = ({ color, emissive = p, ei: eii = ei, roughness = 0.45 }: { color: string; emissive?: string; ei?: number; roughness?: number }) =>
-    <meshStandardMaterial color={color} emissive={emissive} emissiveIntensity={eii} roughness={roughness} metalness={0.2} />;
 
   if (stage === "baby") return (
     <group ref={ref} rotation={[0, Math.PI * 0.5, 0]}>
-      <mesh scale={[1.8, 0.65, 0.7]}><sphereGeometry args={[0.36, 12, 12]} /><Mat color={s} /></mesh>
-      <mesh position={[0.52, 0, 0]} scale={[0.5, 0.42, 0.55]}><sphereGeometry args={[0.36, 10, 10]} /><Mat color={s} /></mesh>
-      <mesh position={[0, 0.34, 0]} rotation={[0, 0, 0]}><coneGeometry args={[0.09, 0.3, 4]} /><Mat color={p} /></mesh>
+      <mesh scale={[1.8, 0.65, 0.7]}><sphereGeometry args={[0.36, 12, 12]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.45} metalness={0.2} /></mesh>
+      <mesh position={[0.52, 0, 0]} scale={[0.5, 0.42, 0.55]}><sphereGeometry args={[0.36, 10, 10]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.45} metalness={0.2} /></mesh>
+      <mesh position={[0, 0.34, 0]}><coneGeometry args={[0.09, 0.3, 4]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.45} metalness={0.2} /></mesh>
       {[-0.08, 0.08].map((z, i) => <mesh key={i} position={[0.38, 0, 0]}><sphereGeometry args={[0.052, 8, 8]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2.5} /></mesh>)}
     </group>
   );
   if (stage === "teen") return (
     <group ref={ref} rotation={[0, Math.PI * 0.5, 0]}>
-      <mesh scale={[2.0, 0.72, 0.78]}><sphereGeometry args={[0.46, 14, 14]} /><Mat color={s} /></mesh>
-      <mesh position={[0.7, 0, 0]} scale={[0.55, 0.45, 0.6]}><sphereGeometry args={[0.46, 12, 12]} /><Mat color={s} /></mesh>
-      <mesh position={[0, 0.48, 0]}><coneGeometry args={[0.12, 0.42, 4]} /><Mat color={p} /></mesh>
-      {[-0.25, 0.25].map((z, i) => <mesh key={i} position={[0.12, -0.18, z]} rotation={[0, 0, i === 0 ? -0.7 : 0.7]}><coneGeometry args={[0.09, 0.38, 4]} /><Mat color={p} /></mesh>)}
+      <mesh scale={[2.0, 0.72, 0.78]}><sphereGeometry args={[0.46, 14, 14]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.45} metalness={0.2} /></mesh>
+      <mesh position={[0.7, 0, 0]} scale={[0.55, 0.45, 0.6]}><sphereGeometry args={[0.46, 12, 12]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.45} metalness={0.2} /></mesh>
+      <mesh position={[0, 0.48, 0]}><coneGeometry args={[0.12, 0.42, 4]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.45} metalness={0.2} /></mesh>
+      {[-0.25, 0.25].map((z, i) => <mesh key={i} position={[0.12, -0.18, z]} rotation={[0, 0, i === 0 ? -0.7 : 0.7]}><coneGeometry args={[0.09, 0.38, 4]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.45} metalness={0.2} /></mesh>)}
       {[-0.1, 0.1].map((z, i) => <mesh key={i} position={[0.55, 0.05, z]}><sphereGeometry args={[0.065, 8, 8]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2.8} /></mesh>)}
     </group>
   );
   if (stage === "adult") return (
     <group ref={ref} rotation={[0, Math.PI * 0.5, 0]}>
-      <mesh scale={[2.2, 0.78, 0.85]}><sphereGeometry args={[0.58, 16, 16]} /><Mat color={s} /></mesh>
-      <mesh position={[0.9, 0, 0]} scale={[0.6, 0.48, 0.65]}><sphereGeometry args={[0.58, 14, 14]} /><Mat color={s} /></mesh>
-      <mesh position={[0, 0.62, 0]}><coneGeometry args={[0.14, 0.56, 4]} /><Mat color={p} /></mesh>
-      {[-0.32, 0.32].map((z, i) => <mesh key={i} position={[0.15, -0.22, z]} rotation={[0, 0, i === 0 ? -0.6 : 0.6]}><coneGeometry args={[0.11, 0.5, 4]} /><Mat color={p} /></mesh>)}
-      <mesh position={[0.78, 0.22, 0]} rotation={[0, 0, -0.5]}><coneGeometry args={[0.07, 0.28, 4]} /><Mat color={p} /></mesh>
-      {[0, 1, 2, 3].map(i => <mesh key={i} position={[0.48 - i * 0.08, -0.28, 0]}><boxGeometry args={[0.05, 0.06, 0.9 - i * 0.14]} /><Mat color={glow} emissive={glow} ei={ei + 0.2} /></mesh>)}
+      <mesh scale={[2.2, 0.78, 0.85]}><sphereGeometry args={[0.58, 16, 16]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.45} metalness={0.2} /></mesh>
+      <mesh position={[0.9, 0, 0]} scale={[0.6, 0.48, 0.65]}><sphereGeometry args={[0.58, 14, 14]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.45} metalness={0.2} /></mesh>
+      <mesh position={[0, 0.62, 0]}><coneGeometry args={[0.14, 0.56, 4]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.45} metalness={0.2} /></mesh>
+      {[-0.32, 0.32].map((z, i) => <mesh key={i} position={[0.15, -0.22, z]} rotation={[0, 0, i === 0 ? -0.6 : 0.6]}><coneGeometry args={[0.11, 0.5, 4]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.45} metalness={0.2} /></mesh>)}
+      <mesh position={[0.78, 0.22, 0]} rotation={[0, 0, -0.5]}><coneGeometry args={[0.07, 0.28, 4]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.45} metalness={0.2} /></mesh>
+      {[0, 1, 2, 3].map(i => <mesh key={i} position={[0.48 - i * 0.08, -0.28, 0]}><boxGeometry args={[0.05, 0.06, 0.9 - i * 0.14]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={ei + 0.2} roughness={0.45} metalness={0.2} /></mesh>)}
       {[-0.12, 0.12].map((z, i) => <mesh key={i} position={[0.72, 0.06, z]}><sphereGeometry args={[0.082, 10, 10]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={3} /></mesh>)}
     </group>
   );
   // final
   return (
     <group ref={ref} rotation={[0, Math.PI * 0.5, 0]}>
-      <mesh scale={[2.4, 0.88, 0.95]}><sphereGeometry args={[0.72, 18, 18]} /><Mat color={s} /></mesh>
-      <mesh position={[1.12, 0, 0]} scale={[0.65, 0.52, 0.7]}><sphereGeometry args={[0.72, 16, 16]} /><Mat color={s} /></mesh>
-      <mesh position={[0, 0.78, 0]}><coneGeometry args={[0.17, 0.72, 4]} /><Mat color={p} emissive={glow} ei={ei + 0.15} /></mesh>
-      <mesh position={[0, 0.42, 0]}><coneGeometry args={[0.1, 0.42, 4]} /><Mat color={p} /></mesh>
-      {[-0.42, 0.42].map((z, i) => <mesh key={i} position={[0.18, -0.28, z]} rotation={[0, 0, i === 0 ? -0.55 : 0.55]}><coneGeometry args={[0.14, 0.64, 4]} /><Mat color={p} /></mesh>)}
-      <mesh position={[0.98, 0.28, 0]} rotation={[0, 0, -0.45]}><coneGeometry args={[0.09, 0.36, 4]} /><Mat color={p} emissive={glow} ei={ei + 0.2} /></mesh>
-      {[0, 1, 2, 3, 4].map(i => <mesh key={i} position={[0.6 - i * 0.09, -0.35, 0]}><boxGeometry args={[0.055, 0.07, 1.1 - i * 0.16]} /><Mat color={glow} emissive={glow} ei={ei + 0.3} /></mesh>)}
+      <mesh scale={[2.4, 0.88, 0.95]}><sphereGeometry args={[0.72, 18, 18]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.45} metalness={0.2} /></mesh>
+      <mesh position={[1.12, 0, 0]} scale={[0.65, 0.52, 0.7]}><sphereGeometry args={[0.72, 16, 16]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.45} metalness={0.2} /></mesh>
+      <mesh position={[0, 0.78, 0]}><coneGeometry args={[0.17, 0.72, 4]} /><meshStandardMaterial color={p} emissive={glow} emissiveIntensity={ei + 0.15} roughness={0.45} metalness={0.2} /></mesh>
+      <mesh position={[0, 0.42, 0]}><coneGeometry args={[0.1, 0.42, 4]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.45} metalness={0.2} /></mesh>
+      {[-0.42, 0.42].map((z, i) => <mesh key={i} position={[0.18, -0.28, z]} rotation={[0, 0, i === 0 ? -0.55 : 0.55]}><coneGeometry args={[0.14, 0.64, 4]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.45} metalness={0.2} /></mesh>)}
+      <mesh position={[0.98, 0.28, 0]} rotation={[0, 0, -0.45]}><coneGeometry args={[0.09, 0.36, 4]} /><meshStandardMaterial color={p} emissive={glow} emissiveIntensity={ei + 0.2} roughness={0.45} metalness={0.2} /></mesh>
+      {[0, 1, 2, 3, 4].map(i => <mesh key={i} position={[0.6 - i * 0.09, -0.35, 0]}><boxGeometry args={[0.055, 0.07, 1.1 - i * 0.16]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={ei + 0.3} roughness={0.45} metalness={0.2} /></mesh>)}
       {[-0.15, 0.15].map((z, i) => <mesh key={i} position={[0.88, 0.06, z]}><sphereGeometry args={[0.1, 10, 10]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={3.5} /></mesh>)}
       <mesh position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[1.38, 0.032, 6, 40]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2.2} transparent opacity={0.45} /></mesh>
     </group>
@@ -679,49 +673,47 @@ function BearMesh({ stage, info, status }: { stage: "baby"|"teen"|"adult"|"final
   const p = info.primary; const s = info.secondary;
   const glow = statusGlow(status);
   const ei = status === "dead" ? 0 : 0.5;
-  const Mat = ({ color, emissive = p, ei: eii = ei, roughness = 0.75 }: { color: string; emissive?: string; ei?: number; roughness?: number }) =>
-    <meshStandardMaterial color={color} emissive={emissive} emissiveIntensity={eii} roughness={roughness} metalness={0.05} />;
 
   if (stage === "baby") return (
     <group ref={ref}>
-      <mesh scale={[1, 0.98, 0.95]}><sphereGeometry args={[0.44, 14, 14]} /><Mat color={s} /></mesh>
-      <mesh position={[0, 0.52, 0.14]} scale={[0.9, 0.85, 0.85]}><sphereGeometry args={[0.32, 12, 12]} /><Mat color={s} /></mesh>
-      {[-0.2, 0.2].map((x, i) => <mesh key={i} position={[x, 0.75, 0.1]}><sphereGeometry args={[0.1, 8, 8]} /><Mat color={p} /></mesh>)}
-      <mesh position={[0, 0.49, 0.3]} scale={[1, 0.65, 0.7]}><sphereGeometry args={[0.14, 10, 10]} /><Mat color={p} emissive={glow} ei={ei + 0.1} /></mesh>
+      <mesh scale={[1, 0.98, 0.95]}><sphereGeometry args={[0.44, 14, 14]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.75} metalness={0.05} /></mesh>
+      <mesh position={[0, 0.52, 0.14]} scale={[0.9, 0.85, 0.85]}><sphereGeometry args={[0.32, 12, 12]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.75} metalness={0.05} /></mesh>
+      {[-0.2, 0.2].map((x, i) => <mesh key={i} position={[x, 0.75, 0.1]}><sphereGeometry args={[0.1, 8, 8]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.75} metalness={0.05} /></mesh>)}
+      <mesh position={[0, 0.49, 0.3]} scale={[1, 0.65, 0.7]}><sphereGeometry args={[0.14, 10, 10]} /><meshStandardMaterial color={p} emissive={glow} emissiveIntensity={ei + 0.1} roughness={0.75} metalness={0.05} /></mesh>
       {[-0.07, 0.07].map((x, i) => <mesh key={i} position={[x, 0.54, 0.42]}><sphereGeometry args={[0.05, 8, 8]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2.5} /></mesh>)}
     </group>
   );
   if (stage === "teen") return (
     <group ref={ref}>
-      <mesh scale={[1.05, 1, 0.98]}><sphereGeometry args={[0.58, 16, 16]} /><Mat color={s} /></mesh>
-      <mesh position={[0, 0.7, 0.16]} scale={[0.92, 0.88, 0.88]}><sphereGeometry args={[0.42, 14, 14]} /><Mat color={s} /></mesh>
-      {[-0.26, 0.26].map((x, i) => <mesh key={i} position={[x, 1.0, 0.12]}><sphereGeometry args={[0.13, 10, 10]} /><Mat color={p} /></mesh>)}
-      <mesh position={[0, 0.66, 0.38]} scale={[1, 0.62, 0.7]}><sphereGeometry args={[0.18, 10, 10]} /><Mat color={p} /></mesh>
-      {[-0.52, 0.52].map((x, i) => <mesh key={i} position={[x, 0, 0.28]} rotation={[0.2, 0, i === 0 ? 0.5 : -0.5]}><capsuleGeometry args={[0.1, 0.45, 4, 8]} /></mesh>)}
+      <mesh scale={[1.05, 1, 0.98]}><sphereGeometry args={[0.58, 16, 16]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.75} metalness={0.05} /></mesh>
+      <mesh position={[0, 0.7, 0.16]} scale={[0.92, 0.88, 0.88]}><sphereGeometry args={[0.42, 14, 14]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.75} metalness={0.05} /></mesh>
+      {[-0.26, 0.26].map((x, i) => <mesh key={i} position={[x, 1.0, 0.12]}><sphereGeometry args={[0.13, 10, 10]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.75} metalness={0.05} /></mesh>)}
+      <mesh position={[0, 0.66, 0.38]} scale={[1, 0.62, 0.7]}><sphereGeometry args={[0.18, 10, 10]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.75} metalness={0.05} /></mesh>
+      {[-0.52, 0.52].map((x, i) => <mesh key={i} position={[x, 0, 0.28]} rotation={[0.2, 0, i === 0 ? 0.5 : -0.5]}><capsuleGeometry args={[0.1, 0.45, 4, 8]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.75} metalness={0.05} /></mesh>)}
       {[-0.09, 0.09].map((x, i) => <mesh key={i} position={[x, 0.72, 0.52]}><sphereGeometry args={[0.065, 8, 8]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2.8} /></mesh>)}
     </group>
   );
   if (stage === "adult") return (
     <group ref={ref}>
-      <mesh scale={[1.08, 1.05, 1]}><sphereGeometry args={[0.72, 18, 18]} /><Mat color={s} /></mesh>
-      <mesh position={[0, 0.9, 0.2]} scale={[0.94, 0.9, 0.9]}><sphereGeometry args={[0.52, 16, 16]} /><Mat color={s} /></mesh>
-      {[-0.32, 0.32].map((x, i) => <mesh key={i} position={[x, 1.3, 0.14]}><sphereGeometry args={[0.17, 12, 12]} /><Mat color={p} /></mesh>)}
-      <mesh position={[0, 0.86, 0.46]} scale={[1, 0.6, 0.68]}><sphereGeometry args={[0.22, 12, 12]} /><Mat color={p} /></mesh>
-      {[-0.68, 0.68].map((x, i) => <mesh key={i} position={[x, 0, 0.35]} rotation={[0.25, 0, i === 0 ? 0.4 : -0.4]}><capsuleGeometry args={[0.13, 0.62, 4, 8]} /></mesh>)}
-      {[-0.68, 0.68].map((x, i) => [0, 1, 2].map(j => <mesh key={`${i}${j}`} position={[x + (i === 0 ? -0.12 : 0.12) + (j - 1) * 0.06, -0.62, 0.42]} rotation={[-0.4, 0, 0]}><coneGeometry args={[0.038, 0.18, 4]} /><Mat color={p} emissive={glow} ei={ei + 0.2} /></mesh>))}
+      <mesh scale={[1.08, 1.05, 1]}><sphereGeometry args={[0.72, 18, 18]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.75} metalness={0.05} /></mesh>
+      <mesh position={[0, 0.9, 0.2]} scale={[0.94, 0.9, 0.9]}><sphereGeometry args={[0.52, 16, 16]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.75} metalness={0.05} /></mesh>
+      {[-0.32, 0.32].map((x, i) => <mesh key={i} position={[x, 1.3, 0.14]}><sphereGeometry args={[0.17, 12, 12]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.75} metalness={0.05} /></mesh>)}
+      <mesh position={[0, 0.86, 0.46]} scale={[1, 0.6, 0.68]}><sphereGeometry args={[0.22, 12, 12]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.75} metalness={0.05} /></mesh>
+      {[-0.68, 0.68].map((x, i) => <mesh key={i} position={[x, 0, 0.35]} rotation={[0.25, 0, i === 0 ? 0.4 : -0.4]}><capsuleGeometry args={[0.13, 0.62, 4, 8]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.75} metalness={0.05} /></mesh>)}
+      {[-0.68, 0.68].map((x, i) => [0, 1, 2].map(j => <mesh key={`${i}${j}`} position={[x + (i === 0 ? -0.12 : 0.12) + (j - 1) * 0.06, -0.62, 0.42]} rotation={[-0.4, 0, 0]}><coneGeometry args={[0.038, 0.18, 4]} /><meshStandardMaterial color={p} emissive={glow} emissiveIntensity={ei + 0.2} roughness={0.75} metalness={0.05} /></mesh>))}
       {[-0.11, 0.11].map((x, i) => <mesh key={i} position={[x, 0.92, 0.68]}><sphereGeometry args={[0.08, 10, 10]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={3} /></mesh>)}
     </group>
   );
   // final
   return (
     <group ref={ref}>
-      <mesh scale={[1.12, 1.1, 1.05]}><sphereGeometry args={[0.88, 20, 20]} /><Mat color={s} /></mesh>
-      <mesh position={[0, 1.1, 0.25]} scale={[0.96, 0.92, 0.92]}><sphereGeometry args={[0.64, 18, 18]} /><Mat color={s} /></mesh>
-      {[-0.38, 0.38].map((x, i) => <mesh key={i} position={[x, 1.62, 0.16]}><sphereGeometry args={[0.21, 12, 12]} /><Mat color={p} /></mesh>)}
-      <mesh position={[0, 1.05, 0.58]} scale={[1, 0.58, 0.65]}><sphereGeometry args={[0.28, 12, 12]} /><Mat color={p} /></mesh>
-      {[-0.84, 0.84].map((x, i) => <mesh key={i} position={[x, 0, 0.42]} rotation={[0.28, 0, i === 0 ? 0.35 : -0.35]}><capsuleGeometry args={[0.16, 0.78, 4, 8]} /></mesh>)}
-      {[-0.84, 0.84].map((x, i) => [0, 1, 2].map(j => <mesh key={`${i}${j}`} position={[x + (i === 0 ? -0.15 : 0.15) + (j - 1) * 0.08, -0.82, 0.52]} rotation={[-0.4, 0, 0]}><coneGeometry args={[0.05, 0.24, 4]} /><Mat color={glow} emissive={glow} ei={ei + 0.35} /></mesh>))}
-      {[0, Math.PI / 2, Math.PI, Math.PI * 1.5].map((a, i) => <mesh key={i} position={[Math.cos(a) * 1.05, 0.4, Math.sin(a) * 0.78]}><boxGeometry args={[0.12, 0.06, 0.06]} /><Mat color={glow} emissive={glow} ei={ei + 0.5} /></mesh>)}
+      <mesh scale={[1.12, 1.1, 1.05]}><sphereGeometry args={[0.88, 20, 20]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.75} metalness={0.05} /></mesh>
+      <mesh position={[0, 1.1, 0.25]} scale={[0.96, 0.92, 0.92]}><sphereGeometry args={[0.64, 18, 18]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.75} metalness={0.05} /></mesh>
+      {[-0.38, 0.38].map((x, i) => <mesh key={i} position={[x, 1.62, 0.16]}><sphereGeometry args={[0.21, 12, 12]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.75} metalness={0.05} /></mesh>)}
+      <mesh position={[0, 1.05, 0.58]} scale={[1, 0.58, 0.65]}><sphereGeometry args={[0.28, 12, 12]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.75} metalness={0.05} /></mesh>
+      {[-0.84, 0.84].map((x, i) => <mesh key={i} position={[x, 0, 0.42]} rotation={[0.28, 0, i === 0 ? 0.35 : -0.35]}><capsuleGeometry args={[0.16, 0.78, 4, 8]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.75} metalness={0.05} /></mesh>)}
+      {[-0.84, 0.84].map((x, i) => [0, 1, 2].map(j => <mesh key={`${i}${j}`} position={[x + (i === 0 ? -0.15 : 0.15) + (j - 1) * 0.08, -0.82, 0.52]} rotation={[-0.4, 0, 0]}><coneGeometry args={[0.05, 0.24, 4]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={ei + 0.35} roughness={0.75} metalness={0.05} /></mesh>))}
+      {[0, Math.PI / 2, Math.PI, Math.PI * 1.5].map((a, i) => <mesh key={i} position={[Math.cos(a) * 1.05, 0.4, Math.sin(a) * 0.78]}><boxGeometry args={[0.12, 0.06, 0.06]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={ei + 0.5} roughness={0.75} metalness={0.05} /></mesh>)}
       {[-0.13, 0.13].map((x, i) => <mesh key={i} position={[x, 1.12, 0.82]}><sphereGeometry args={[0.1, 10, 10]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={3.5} /></mesh>)}
       <mesh position={[0, 0.4, 0]}><torusGeometry args={[1.52, 0.034, 6, 40]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2.5} transparent opacity={0.5} /></mesh>
     </group>
@@ -735,58 +727,56 @@ function ScorpionMesh({ stage, info, status }: { stage: "baby"|"teen"|"adult"|"f
   const p = info.primary; const s = info.secondary;
   const glow = statusGlow(status);
   const ei = status === "dead" ? 0 : 0.5;
-  const Mat = ({ color, emissive = p, ei: eii = ei, roughness = 0.5 }: { color: string; emissive?: string; ei?: number; roughness?: number }) =>
-    <meshStandardMaterial color={color} emissive={emissive} emissiveIntensity={eii} roughness={roughness} metalness={0.35} />;
 
   if (stage === "baby") return (
     <group ref={ref}>
-      <mesh scale={[1.1, 0.7, 0.9]}><sphereGeometry args={[0.35, 12, 12]} /><Mat color={s} /></mesh>
-      <mesh position={[0, 0.38, 0.12]} scale={[0.85, 0.8, 0.85]}><sphereGeometry args={[0.22, 10, 10]} /><Mat color={s} /></mesh>
-      {[0, 1].map(i => <mesh key={i} position={[0, 0.22 + i * 0.2, -0.22 - i * 0.18]} rotation={[-0.4 - i * 0.3, 0, 0]}><sphereGeometry args={[0.12 - i * 0.03, 8, 8]} /><Mat color={p} /></mesh>)}
-      <mesh position={[0, 0.72, -0.38]} rotation={[-0.8, 0, 0]}><coneGeometry args={[0.042, 0.18, 4]} /><Mat color={glow} emissive={glow} ei={ei + 0.5} /></mesh>
+      <mesh scale={[1.1, 0.7, 0.9]}><sphereGeometry args={[0.35, 12, 12]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.5} metalness={0.35} /></mesh>
+      <mesh position={[0, 0.38, 0.12]} scale={[0.85, 0.8, 0.85]}><sphereGeometry args={[0.22, 10, 10]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.5} metalness={0.35} /></mesh>
+      {[0, 1].map(i => <mesh key={i} position={[0, 0.22 + i * 0.2, -0.22 - i * 0.18]} rotation={[-0.4 - i * 0.3, 0, 0]}><sphereGeometry args={[0.12 - i * 0.03, 8, 8]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.5} metalness={0.35} /></mesh>)}
+      <mesh position={[0, 0.72, -0.38]} rotation={[-0.8, 0, 0]}><coneGeometry args={[0.042, 0.18, 4]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={ei + 0.5} roughness={0.5} metalness={0.35} /></mesh>
     </group>
   );
   if (stage === "teen") return (
     <group ref={ref}>
-      <mesh scale={[1.15, 0.72, 0.92]}><sphereGeometry args={[0.46, 14, 14]} /><Mat color={s} /></mesh>
-      <mesh position={[0, 0.5, 0.14]} scale={[0.88, 0.82, 0.88]}><sphereGeometry args={[0.3, 12, 12]} /><Mat color={s} /></mesh>
-      {[-0.52, 0.52].map((x, i) => <mesh key={i} position={[x, 0.1, 0.22]} rotation={[0, 0, i === 0 ? 0.6 : -0.6]}><sphereGeometry args={[0.15, 10, 10]} /><Mat color={p} emissive={glow} ei={ei + 0.18} /></mesh>)}
-      {[-1, 1].map((side, i) => [0, 1].map(j => <mesh key={`${i}${j}`} position={[side * (0.55 + j * 0.25), -0.08, 0.1 - j * 0.18]} rotation={[0.1, 0, side * 0.7]}><capsuleGeometry args={[0.04, 0.3, 4, 6]} /></mesh>))}
-      {[0, 1, 2].map(i => <mesh key={i} position={[0, 0.38 + i * 0.24, -0.28 - i * 0.22]} rotation={[-0.5 - i * 0.28, 0, 0]}><sphereGeometry args={[0.14 - i * 0.03, 8, 8]} /><Mat color={p} /></mesh>)}
-      <mesh position={[0, 1.1, -0.58]} rotation={[-1.1, 0, 0]}><coneGeometry args={[0.055, 0.24, 4]} /><Mat color={glow} emissive={glow} ei={ei + 0.6} /></mesh>
+      <mesh scale={[1.15, 0.72, 0.92]}><sphereGeometry args={[0.46, 14, 14]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.5} metalness={0.35} /></mesh>
+      <mesh position={[0, 0.5, 0.14]} scale={[0.88, 0.82, 0.88]}><sphereGeometry args={[0.3, 12, 12]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.5} metalness={0.35} /></mesh>
+      {[-0.52, 0.52].map((x, i) => <mesh key={i} position={[x, 0.1, 0.22]} rotation={[0, 0, i === 0 ? 0.6 : -0.6]}><sphereGeometry args={[0.15, 10, 10]} /><meshStandardMaterial color={p} emissive={glow} emissiveIntensity={ei + 0.18} roughness={0.5} metalness={0.35} /></mesh>)}
+      {[-1, 1].map((side, i) => [0, 1].map(j => <mesh key={`${i}${j}`} position={[side * (0.55 + j * 0.25), -0.08, 0.1 - j * 0.18]} rotation={[0.1, 0, side * 0.7]}><capsuleGeometry args={[0.04, 0.3, 4, 6]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.5} metalness={0.35} /></mesh>))}
+      {[0, 1, 2].map(i => <mesh key={i} position={[0, 0.38 + i * 0.24, -0.28 - i * 0.22]} rotation={[-0.5 - i * 0.28, 0, 0]}><sphereGeometry args={[0.14 - i * 0.03, 8, 8]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.5} metalness={0.35} /></mesh>)}
+      <mesh position={[0, 1.1, -0.58]} rotation={[-1.1, 0, 0]}><coneGeometry args={[0.055, 0.24, 4]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={ei + 0.6} roughness={0.5} metalness={0.35} /></mesh>
     </group>
   );
   if (stage === "adult") return (
     <group ref={ref}>
-      <mesh scale={[1.2, 0.74, 0.95]}><sphereGeometry args={[0.58, 16, 16]} /><Mat color={s} /></mesh>
-      <mesh position={[0, 0.64, 0.16]} scale={[0.9, 0.84, 0.9]}><sphereGeometry args={[0.38, 14, 14]} /><Mat color={s} /></mesh>
+      <mesh scale={[1.2, 0.74, 0.95]}><sphereGeometry args={[0.58, 16, 16]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.5} metalness={0.35} /></mesh>
+      <mesh position={[0, 0.64, 0.16]} scale={[0.9, 0.84, 0.9]}><sphereGeometry args={[0.38, 14, 14]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.5} metalness={0.35} /></mesh>
       {[-0.72, 0.72].map((x, i) => (
         <group key={i} position={[x, 0.12, 0.3]}>
-          <mesh scale={[0.9, 0.55, 0.7]}><sphereGeometry args={[0.22, 10, 10]} /><Mat color={p} emissive={glow} ei={ei + 0.22} /></mesh>
-          <mesh position={[i === 0 ? -0.2 : 0.2, 0, 0.08]} rotation={[0, 0, i === 0 ? 0.8 : -0.8]}><coneGeometry args={[0.055, 0.28, 4]} /><Mat color={p} /></mesh>
+          <mesh scale={[0.9, 0.55, 0.7]}><sphereGeometry args={[0.22, 10, 10]} /><meshStandardMaterial color={p} emissive={glow} emissiveIntensity={ei + 0.22} roughness={0.5} metalness={0.35} /></mesh>
+          <mesh position={[i === 0 ? -0.2 : 0.2, 0, 0.08]} rotation={[0, 0, i === 0 ? 0.8 : -0.8]}><coneGeometry args={[0.055, 0.28, 4]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.5} metalness={0.35} /></mesh>
         </group>
       ))}
-      {[-1, 1].map((side, i) => [0, 1, 2, 3].map(j => <mesh key={`${i}${j}`} position={[side * (0.66 + j * 0.3), -0.12, 0.12 - j * 0.2]} rotation={[0.15, 0, side * 0.65]}><capsuleGeometry args={[0.048, 0.42, 4, 6]} /></mesh>))}
-      {[0, 1, 2, 3].map(i => <mesh key={i} position={[0, 0.48 + i * 0.28, -0.36 - i * 0.26]} rotation={[-0.55 - i * 0.25, 0, 0]}><sphereGeometry args={[0.16 - i * 0.025, 10, 10]} /><Mat color={p} /></mesh>)}
-      <mesh position={[0, 1.6, -0.78]} rotation={[-1.4, 0, 0]}><coneGeometry args={[0.068, 0.32, 4]} /><Mat color={glow} emissive={glow} ei={ei + 0.7} /></mesh>
+      {[-1, 1].map((side, i) => [0, 1, 2, 3].map(j => <mesh key={`${i}${j}`} position={[side * (0.66 + j * 0.3), -0.12, 0.12 - j * 0.2]} rotation={[0.15, 0, side * 0.65]}><capsuleGeometry args={[0.048, 0.42, 4, 6]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.5} metalness={0.35} /></mesh>))}
+      {[0, 1, 2, 3].map(i => <mesh key={i} position={[0, 0.48 + i * 0.28, -0.36 - i * 0.26]} rotation={[-0.55 - i * 0.25, 0, 0]}><sphereGeometry args={[0.16 - i * 0.025, 10, 10]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.5} metalness={0.35} /></mesh>)}
+      <mesh position={[0, 1.6, -0.78]} rotation={[-1.4, 0, 0]}><coneGeometry args={[0.068, 0.32, 4]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={ei + 0.7} roughness={0.5} metalness={0.35} /></mesh>
       {[-0.1, 0.1].map((x, i) => <mesh key={i} position={[x, 0.66, 0.52]}><sphereGeometry args={[0.072, 8, 8]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={3} /></mesh>)}
     </group>
   );
   // final
   return (
     <group ref={ref}>
-      <mesh scale={[1.28, 0.78, 1]}><sphereGeometry args={[0.72, 18, 18]} /><Mat color={s} /></mesh>
-      <mesh position={[0, 0.8, 0.2]} scale={[0.92, 0.86, 0.92]}><sphereGeometry args={[0.48, 16, 16]} /><Mat color={s} /></mesh>
+      <mesh scale={[1.28, 0.78, 1]}><sphereGeometry args={[0.72, 18, 18]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.5} metalness={0.35} /></mesh>
+      <mesh position={[0, 0.8, 0.2]} scale={[0.92, 0.86, 0.92]}><sphereGeometry args={[0.48, 16, 16]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.5} metalness={0.35} /></mesh>
       {[-0.95, 0.95].map((x, i) => (
         <group key={i} position={[x, 0.16, 0.38]}>
-          <mesh scale={[0.92, 0.58, 0.72]}><sphereGeometry args={[0.3, 12, 12]} /><Mat color={p} emissive={glow} ei={ei + 0.28} /></mesh>
-          <mesh position={[i === 0 ? -0.26 : 0.26, 0, 0.1]} rotation={[0, 0, i === 0 ? 0.75 : -0.75]}><coneGeometry args={[0.075, 0.38, 4]} /><Mat color={p} emissive={glow} ei={ei + 0.3} /></mesh>
-          <mesh position={[i === 0 ? -0.38 : 0.38, -0.1, 0.06]} rotation={[0, 0, i === 0 ? 1.0 : -1.0]}><coneGeometry args={[0.055, 0.28, 4]} /><Mat color={p} /></mesh>
+          <mesh scale={[0.92, 0.58, 0.72]}><sphereGeometry args={[0.3, 12, 12]} /><meshStandardMaterial color={p} emissive={glow} emissiveIntensity={ei + 0.28} roughness={0.5} metalness={0.35} /></mesh>
+          <mesh position={[i === 0 ? -0.26 : 0.26, 0, 0.1]} rotation={[0, 0, i === 0 ? 0.75 : -0.75]}><coneGeometry args={[0.075, 0.38, 4]} /><meshStandardMaterial color={p} emissive={glow} emissiveIntensity={ei + 0.3} roughness={0.5} metalness={0.35} /></mesh>
+          <mesh position={[i === 0 ? -0.38 : 0.38, -0.1, 0.06]} rotation={[0, 0, i === 0 ? 1.0 : -1.0]}><coneGeometry args={[0.055, 0.28, 4]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.5} metalness={0.35} /></mesh>
         </group>
       ))}
-      {[-1, 1].map((side, i) => [0, 1, 2, 3].map(j => <mesh key={`${i}${j}`} position={[side * (0.82 + j * 0.34), -0.16, 0.14 - j * 0.24]} rotation={[0.18, 0, side * 0.6]}><capsuleGeometry args={[0.056, 0.52, 4, 6]} /></mesh>))}
-      {[0, 1, 2, 3, 4].map(i => <mesh key={i} position={[0, 0.6 + i * 0.32, -0.44 - i * 0.3]} rotation={[-0.6 - i * 0.22, 0, 0]}><sphereGeometry args={[0.18 - i * 0.022, 10, 10]} /><Mat color={p} /></mesh>)}
-      <mesh position={[0, 2.1, -1.0]} rotation={[-1.6, 0, 0]}><coneGeometry args={[0.09, 0.44, 4]} /><Mat color={glow} emissive={glow} ei={ei + 0.85} /></mesh>
+      {[-1, 1].map((side, i) => [0, 1, 2, 3].map(j => <mesh key={`${i}${j}`} position={[side * (0.82 + j * 0.34), -0.16, 0.14 - j * 0.24]} rotation={[0.18, 0, side * 0.6]}><capsuleGeometry args={[0.056, 0.52, 4, 6]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.5} metalness={0.35} /></mesh>))}
+      {[0, 1, 2, 3, 4].map(i => <mesh key={i} position={[0, 0.6 + i * 0.32, -0.44 - i * 0.3]} rotation={[-0.6 - i * 0.22, 0, 0]}><sphereGeometry args={[0.18 - i * 0.022, 10, 10]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.5} metalness={0.35} /></mesh>)}
+      <mesh position={[0, 2.1, -1.0]} rotation={[-1.6, 0, 0]}><coneGeometry args={[0.09, 0.44, 4]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={ei + 0.85} roughness={0.5} metalness={0.35} /></mesh>
       <mesh position={[0, 2.1, -1.0]}><sphereGeometry args={[0.1, 8, 8]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={4} /></mesh>
       {[-0.12, 0.12].map((x, i) => <mesh key={i} position={[x, 0.82, 0.66]}><sphereGeometry args={[0.09, 10, 10]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={3.5} /></mesh>)}
       <mesh position={[0, 0.4, 0]}><torusGeometry args={[1.5, 0.034, 6, 40]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2.5} transparent opacity={0.5} /></mesh>
@@ -801,25 +791,23 @@ function OctopusMesh({ stage, info, status }: { stage: "baby"|"teen"|"adult"|"fi
   const p = info.primary; const s = info.secondary;
   const glow = statusGlow(status);
   const ei = status === "dead" ? 0 : 0.5;
-  const Mat = ({ color, emissive = p, ei: eii = ei, roughness = 0.55 }: { color: string; emissive?: string; ei?: number; roughness?: number }) =>
-    <meshStandardMaterial color={color} emissive={emissive} emissiveIntensity={eii} roughness={roughness} metalness={0.05} />;
 
   if (stage === "baby") return (
     <group ref={ref}>
-      <mesh scale={[1, 1.1, 1]}><sphereGeometry args={[0.38, 14, 14]} /><Mat color={s} /></mesh>
+      <mesh scale={[1, 1.1, 1]}><sphereGeometry args={[0.38, 14, 14]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.55} metalness={0.05} /></mesh>
       {[0, 1, 2, 3].map(i => {
         const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
-        return <mesh key={i} position={[Math.cos(a) * 0.32, -0.42, Math.sin(a) * 0.32]} scale={[0.5, 1, 0.5]}><capsuleGeometry args={[0.06, 0.36, 4, 6]} /></mesh>;
+        return <mesh key={i} position={[Math.cos(a) * 0.32, -0.42, Math.sin(a) * 0.32]} scale={[0.5, 1, 0.5]}><capsuleGeometry args={[0.06, 0.36, 4, 6]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.55} metalness={0.05} /></mesh>;
       })}
       {[-0.1, 0.1].map((x, i) => <mesh key={i} position={[x, 0.18, 0.32]}><sphereGeometry args={[0.075, 8, 8]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2.5} /></mesh>)}
     </group>
   );
   if (stage === "teen") return (
     <group ref={ref}>
-      <mesh scale={[1, 1.12, 1]}><sphereGeometry args={[0.5, 16, 16]} /><Mat color={s} /></mesh>
+      <mesh scale={[1, 1.12, 1]}><sphereGeometry args={[0.5, 16, 16]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.55} metalness={0.05} /></mesh>
       {[0, 1, 2, 3, 4, 5].map(i => {
         const a = (i / 6) * Math.PI * 2;
-        return <mesh key={i} position={[Math.cos(a) * 0.42, -0.55, Math.sin(a) * 0.42]} scale={[0.5, 1, 0.5]} rotation={[0.2, 0, 0]}><capsuleGeometry args={[0.068, 0.48, 4, 6]} /></mesh>;
+        return <mesh key={i} position={[Math.cos(a) * 0.42, -0.55, Math.sin(a) * 0.42]} scale={[0.5, 1, 0.5]} rotation={[0.2, 0, 0]}><capsuleGeometry args={[0.068, 0.48, 4, 6]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.55} metalness={0.05} /></mesh>;
       })}
       {[0, 1, 2, 3, 4, 5].map(i => { const a = (i / 6) * Math.PI * 2; return <mesh key={i} position={[Math.cos(a) * 0.28, 0.22, Math.sin(a) * 0.28]}><sphereGeometry args={[0.038, 6, 6]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={1.8} /></mesh>; })}
       {[-0.13, 0.13].map((x, i) => <mesh key={i} position={[x, 0.24, 0.44]}><sphereGeometry args={[0.088, 10, 10]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2.8} /></mesh>)}
@@ -827,32 +815,32 @@ function OctopusMesh({ stage, info, status }: { stage: "baby"|"teen"|"adult"|"fi
   );
   if (stage === "adult") return (
     <group ref={ref}>
-      <mesh scale={[1, 1.15, 1]}><sphereGeometry args={[0.62, 18, 18]} /><Mat color={s} /></mesh>
+      <mesh scale={[1, 1.15, 1]}><sphereGeometry args={[0.62, 18, 18]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.55} metalness={0.05} /></mesh>
       {[0, 1, 2, 3, 4, 5, 6, 7].map(i => {
         const a = (i / 8) * Math.PI * 2;
-        return <mesh key={i} position={[Math.cos(a) * 0.54, -0.7, Math.sin(a) * 0.54]} scale={[0.5, 1, 0.5]} rotation={[0.25, 0, 0]}><capsuleGeometry args={[0.075, 0.62, 4, 6]} /></mesh>;
+        return <mesh key={i} position={[Math.cos(a) * 0.54, -0.7, Math.sin(a) * 0.54]} scale={[0.5, 1, 0.5]} rotation={[0.25, 0, 0]}><capsuleGeometry args={[0.075, 0.62, 4, 6]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.55} metalness={0.05} /></mesh>;
       })}
       {[0, 1, 2, 3, 4, 5, 6, 7].map(i => { const a = (i / 8) * Math.PI * 2; return <mesh key={i} position={[Math.cos(a) * 0.38, 0.32, Math.sin(a) * 0.38]}><sphereGeometry args={[0.045, 6, 6]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2} /></mesh>; })}
       {[-0.16, 0.16].map((x, i) => <mesh key={i} position={[x, 0.3, 0.56]}><sphereGeometry args={[0.11, 12, 12]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={3} /></mesh>)}
-      <mesh position={[0, 0.72, 0]} scale={[1, 0.35, 1]}><sphereGeometry args={[0.52, 14, 14]} /><Mat color={p} emissive={glow} ei={ei + 0.1} /></mesh>
+      <mesh position={[0, 0.72, 0]} scale={[1, 0.35, 1]}><sphereGeometry args={[0.52, 14, 14]} /><meshStandardMaterial color={p} emissive={glow} emissiveIntensity={ei + 0.1} roughness={0.55} metalness={0.05} /></mesh>
     </group>
   );
   // final - Kraken
   return (
     <group ref={ref}>
-      <mesh scale={[1, 1.18, 1]}><sphereGeometry args={[0.78, 20, 20]} /><Mat color={s} /></mesh>
+      <mesh scale={[1, 1.18, 1]}><sphereGeometry args={[0.78, 20, 20]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.55} metalness={0.05} /></mesh>
       {[0, 1, 2, 3, 4, 5, 6, 7].map(i => {
         const a = (i / 8) * Math.PI * 2;
         return (
           <group key={i} position={[Math.cos(a) * 0.68, -0.9, Math.sin(a) * 0.68]} rotation={[0.3, 0, 0]}>
-            <mesh scale={[0.52, 1, 0.52]}><capsuleGeometry args={[0.09, 0.85, 4, 8]} /></mesh>
-            <mesh position={[0, -0.58, 0]} scale={[0.48, 1, 0.48]}><capsuleGeometry args={[0.065, 0.42, 4, 6]} /></mesh>
+            <mesh scale={[0.52, 1, 0.52]}><capsuleGeometry args={[0.09, 0.85, 4, 8]} /><meshStandardMaterial color={p} emissive={p} emissiveIntensity={ei} roughness={0.55} metalness={0.05} /></mesh>
+            <mesh position={[0, -0.58, 0]} scale={[0.48, 1, 0.48]}><capsuleGeometry args={[0.065, 0.42, 4, 6]} /><meshStandardMaterial color={s} emissive={p} emissiveIntensity={ei} roughness={0.55} metalness={0.05} /></mesh>
           </group>
         );
       })}
       {[0, 1, 2, 3, 4, 5, 6, 7].map(i => { const a = (i / 8) * Math.PI * 2; return <mesh key={i} position={[Math.cos(a) * 0.48, 0.44, Math.sin(a) * 0.48]}><sphereGeometry args={[0.058, 6, 6]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2.5} /></mesh>; })}
       {[-0.2, 0.2].map((x, i) => <mesh key={i} position={[x, 0.38, 0.7]}><sphereGeometry args={[0.138, 12, 12]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={3.5} /></mesh>)}
-      <mesh position={[0, 0.92, 0]} scale={[1, 0.32, 1]}><sphereGeometry args={[0.66, 16, 16]} /><Mat color={p} emissive={glow} ei={ei + 0.2} /></mesh>
+      <mesh position={[0, 0.92, 0]} scale={[1, 0.32, 1]}><sphereGeometry args={[0.66, 16, 16]} /><meshStandardMaterial color={p} emissive={glow} emissiveIntensity={ei + 0.2} roughness={0.55} metalness={0.05} /></mesh>
       <mesh position={[0, 0.5, 0]}><torusGeometry args={[1.46, 0.034, 6, 40]} /><meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={2.5} transparent opacity={0.5} /></mesh>
     </group>
   );
