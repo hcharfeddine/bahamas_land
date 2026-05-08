@@ -311,12 +311,10 @@ const MONSTER_GLB: Record<MonsterType, MonsterGLBConfig> = {
   fenrir:   { egg: "egg_13", baby: "baby_teen_fenrir",   teen: "baby_teen_fenrir",   adult: "adult_fenrir",   finalForm: "final_form_fenrir"   },
 };
 
-// In dev the Vite plugin serves /monsters/* locally (relative URL).
-// In production (Vercel) GLBs are served from the Render API backend.
-const GLB_BASE = import.meta.env.DEV
-  ? ""
-  : ((import.meta.env.VITE_API_URL as string | undefined) ?? "").replace(/\/$/, "") ||
-    "https://bahamas-land.onrender.com";
+// GLBs are bundled into /monsters/* at build time (Vite closeBundle hook)
+// and served as static files by Vercel. Always use a relative URL so they
+// load from the same origin — never from the Render API backend.
+const GLB_BASE = "";
 
 function getGlbUrl(type: MonsterType, stage: Stage): string | null {
   const cfg = MONSTER_GLB[type];
@@ -1574,7 +1572,7 @@ export function Monster3DViewer({
       </Canvas>
       {isLoading && <GlbLoadingOverlay progress={loadProgress} />}
       <div className="absolute bottom-2 left-0 right-0 text-center font-mono text-[9px] text-white/30 uppercase tracking-widest pointer-events-none select-none">
-       drag to rotate · scroll to zoom
+        {info.icon} {info.name} · drag to rotate · scroll to zoom
       </div>
     </div>
   );
