@@ -23,6 +23,7 @@ export const MONSTER_INFO: Record<MonsterType, { name: string; icon: string; pri
 };
 
 export function getMonsterType(username: string): MonsterType {
+  if (!username) return "dragon";
   // Scrambled multiplicative hash — distributes evenly across 12 types
   let h = 0x811c9dc5;
   for (let i = 0; i < username.length; i++) {
@@ -292,6 +293,7 @@ const MONSTER_GLB: Record<MonsterType, MonsterGLBConfig> = {
 
 function getGlbUrl(type: MonsterType, stage: Stage): string | null {
   const cfg = MONSTER_GLB[type];
+  if (!cfg) return null;
   let name: string | undefined;
   if (stage === "egg")   name = cfg.egg;
   if (stage === "baby")  name = cfg.baby;
