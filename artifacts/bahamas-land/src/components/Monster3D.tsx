@@ -295,23 +295,27 @@ type MonsterGLBConfig = {
 };
 
 const MONSTER_GLB: Record<MonsterType, MonsterGLBConfig> = {
-  dragon:   { egg: "egg_4",  baby: "baby_teen_dragon",   teen: "baby_teen_dragon",   adult: "adult_dragon",   finalForm: "final_form_dragon"   },
-  spider:   { egg: "egg_1",  baby: "baby_teen_spider",   teen: "baby_teen_spider",   adult: "adult_spider",   finalForm: "final_form_spider"   },
-  golem:    { egg: "egg_2",  baby: "baby_teen_golem",    teen: "teen_golem",                                  finalForm: "final_form_golem"    },
-  phoenix:  { egg: "egg_3",  baby: "baby_teen_phoenix",  teen: "baby_teen_phoenix",  adult: "adult_phoenix",  finalForm: "final_form_phoenix"  },
+  dragon:   { egg: "egg_1",  baby: "baby_teen_dragon",   teen: "baby_teen_dragon",   adult: "adult_dragon",   finalForm: "final_form_dragon"   },
+  spider:   { egg: "egg_2",  baby: "baby_teen_spider",   teen: "baby_teen_spider",   adult: "adult_spider",   finalForm: "final_form_spider"   },
+  golem:    { egg: "egg_3",  baby: "baby_teen_golem",    teen: "teen_golem",                                  finalForm: "final_form_golem"    },
+  phoenix:  { egg: "egg_4",  baby: "baby_teen_phoenix",  teen: "baby_teen_phoenix",  adult: "adult_phoenix",  finalForm: "final_form_phoenix"  },
   crab:     { egg: "egg_5",  baby: "baby_teen_crab",     teen: "baby_teen_crab",     adult: "adult_crab",     finalForm: "final_form_crab"     },
-  shark:    { egg: "egg_7",  baby: "baby_teen_shark",    teen: "baby_teen_shark",    adult: "adult_shark",    finalForm: "final_form_shark"    },
-  octopus:  { egg: "egg_10", baby: "baby_teen_octopus",  teen: "baby_teen_octopus",  adult: "adult_octopus",  finalForm: "final_form_octopus"  },
-  cyclops:  { egg: "egg_11", baby: "baby_teen_cyclops",  teen: "baby_teen_cyclops",  adult: "adult_cyclops",  finalForm: "final_form_cyclops"  },
-  minotaur: { egg: "egg_12", baby: "baby_teen_minotaur", teen: "baby_teen_minotaur", adult: "adult_minotaur", finalForm: "final_form_minotaur" },
-  medusa:   { egg: "egg_13", baby: "baby_teen_medusas",  teen: "baby_teen_medusas",  adult: "adult_medusa",   finalForm: "final_form_medusa"   },
-  centaur:  { egg: "egg_14", baby: "baby_teen_centaur",  teen: "baby_teen_centaur",  adult: "adult_centaur",  finalForm: "final_form_centaur"  },
+  shark:    { egg: "egg_6",  baby: "baby_teen_shark",    teen: "baby_teen_shark",    adult: "adult_shark",    finalForm: "final_form_shark"    },
+  octopus:  { egg: "egg_7",  baby: "baby_teen_octopus",  teen: "baby_teen_octopus",  adult: "adult_octopus",  finalForm: "final_form_octopus"  },
+  cyclops:  { egg: "egg_8",  baby: "baby_teen_cyclops",  teen: "baby_teen_cyclops",  adult: "adult_cyclops",  finalForm: "final_form_cyclops"  },
+  minotaur: { egg: "egg_9",  baby: "baby_teen_minotaur", teen: "baby_teen_minotaur", adult: "adult_minotaur", finalForm: "final_form_minotaur" },
+  medusa:   { egg: "egg_10", baby: "baby_teen_medusas",  teen: "baby_teen_medusas",  adult: "adult_medusa",   finalForm: "final_form_medusa"   },
+  centaur:  { egg: "egg_11", baby: "baby_teen_centaur",  teen: "baby_teen_centaur",  adult: "adult_centaur",  finalForm: "final_form_centaur"  },
   kitsune:  { egg: "egg_12", baby: "baby_teen_kitsune",  teen: "baby_teen_kitsune",  adult: "adult_kitsune",  finalForm: "final_form_kitsune"  },
-  fenrir:   { egg: "egg_6",  baby: "baby_teen_fenrir",   teen: "baby_teen_fenrir",   adult: "adult_fenrir",   finalForm: "final_form_fenrir"   },
+  fenrir:   { egg: "egg_13", baby: "baby_teen_fenrir",   teen: "baby_teen_fenrir",   adult: "adult_fenrir",   finalForm: "final_form_fenrir"   },
 };
 
-const GLB_BASE =
-  ((import.meta.env.VITE_API_URL as string | undefined) ?? "").replace(/\/$/, "");
+// In dev the Vite plugin serves /monsters/* locally (relative URL).
+// In production (Vercel) GLBs are served from the Render API backend.
+const GLB_BASE = import.meta.env.DEV
+  ? ""
+  : ((import.meta.env.VITE_API_URL as string | undefined) ?? "").replace(/\/$/, "") ||
+    "https://bahamas-land.onrender.com";
 
 function getGlbUrl(type: MonsterType, stage: Stage): string | null {
   const cfg = MONSTER_GLB[type];
@@ -1303,6 +1307,7 @@ export function MonsterScene({ kickUsername, stage, status }: { kickUsername: st
       {(() => {
         const proceduralMesh = (() => {
           if (stage === "egg")               return <EggMesh      info={info} status={status} />;
+          if (monsterType === "dragon")      return <DragonMesh   stage={stage} info={info} status={status} />;
           if (monsterType === "spider")      return <SpiderMesh   stage={stage} info={info} status={status} />;
           if (monsterType === "golem")       return <GolemMesh    stage={stage} info={info} status={status} />;
           if (monsterType === "phoenix")     return <PhoenixMesh  stage={stage} info={info} status={status} />;
