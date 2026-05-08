@@ -1399,11 +1399,13 @@ export function Monster3DViewer({
   stage,
   status,
   size = 220,
+  fullscreen = false,
 }: {
   kickUsername: string;
   stage: Stage;
   status: Status;
   size?: number;
+  fullscreen?: boolean;
 }) {
   const monsterType = getMonsterType(kickUsername);
   const info = MONSTER_INFO[monsterType] ?? MONSTER_INFO.dragon;
@@ -1414,15 +1416,24 @@ export function Monster3DViewer({
     stage === "teen"  ? 4.8 :
     stage === "adult" ? 5.2 : 5.5;
 
-  return (
-    <div
-      className="relative border-2 bg-black/95 overflow-hidden"
-      style={{
+  const containerStyle: React.CSSProperties = fullscreen
+    ? {
+        width: "100%",
+        height: "100%",
+        borderColor: status === "dead" ? "#374151" : glow,
+        boxShadow: status === "dead" ? "none" : `0 0 40px ${glow}44`,
+      }
+    : {
         width: size,
         height: size,
         borderColor: status === "dead" ? "#374151" : glow,
         boxShadow: status === "dead" ? "none" : `0 0 28px ${glow}55`,
-      }}
+      };
+
+  return (
+    <div
+      className="relative border-2 bg-black/95 overflow-hidden"
+      style={containerStyle}
     >
       <Canvas
         camera={{ position: [0, 0, cameraZ], fov: 42 }}
@@ -1430,9 +1441,19 @@ export function Monster3DViewer({
         style={{ width: "100%", height: "100%" }}
       >
         <MonsterScene kickUsername={kickUsername} stage={stage} status={status} />
+        <OrbitControls
+          enableZoom={true}
+          enablePan={false}
+          minPolarAngle={0}
+          maxPolarAngle={Math.PI}
+          minDistance={1}
+          maxDistance={20}
+          rotateSpeed={0.7}
+          zoomSpeed={1.2}
+        />
       </Canvas>
-      <div className="absolute bottom-1 left-0 right-0 text-center font-mono text-[8px] text-white/30 uppercase tracking-widest pointer-events-none select-none">
-        {info.icon} {info.name} · drag to rotate
+      <div className="absolute bottom-2 left-0 right-0 text-center font-mono text-[9px] text-white/30 uppercase tracking-widest pointer-events-none select-none">
+        {info.icon} {info.name} · drag to rotate · scroll to zoom
       </div>
     </div>
   );

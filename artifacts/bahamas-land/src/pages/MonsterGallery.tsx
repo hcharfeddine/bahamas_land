@@ -21,19 +21,19 @@ const CAMERA_Z: Record<string, number> = {
 const TYPES = Object.keys(MONSTER_INFO) as MonsterType[];
 
 const TYPE_SEED: Record<MonsterType, string> = {
-  dragon:      "seed_23",
-  spider:      "seed_0",
-  golem:       "seed_18",
-  phoenix:     "seed_1",
-  crab:        "seed_49",
-  shark:       "seed_43",
-  octopus:     "seed_3",
-  cyclops:     "seed_7",
-  minotaur:    "seed_11",
-  medusa:      "seed_14",
-  centaur:     "seed_21",
-  kitsune:     "seed_82",
-  fenrir:      "seed_72",
+  dragon:   "seed_10",
+  spider:   "seed_31",
+  golem:    "seed_17",
+  phoenix:  "seed_0",
+  crab:     "seed_51",
+  shark:    "seed_27",
+  octopus:  "seed_16",
+  cyclops:  "seed_1",
+  minotaur: "seed_190",
+  medusa:   "seed_3",
+  centaur:  "seed_4",
+  kitsune:  "seed_33",
+  fenrir:   "seed_72",
 };
 
 function StageCard({
