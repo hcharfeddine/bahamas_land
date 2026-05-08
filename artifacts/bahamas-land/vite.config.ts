@@ -14,6 +14,8 @@ const MONSTERS_SRC = path.resolve(import.meta.dirname, "../../monsters");
 
 const monstersPlugin = (): PluginOption => ({
   name: "serve-monsters",
+  // In development: serve GLBs locally from the repo monsters/ folder.
+  // In production: GLBs are served from Supabase Storage — no copy needed.
   configureServer(server) {
     server.middlewares.use("/monsters", (req, res, next) => {
       const fileName = (req.url ?? "").replace(/^\//, "");
@@ -29,14 +31,6 @@ const monstersPlugin = (): PluginOption => ({
         next();
       }
     });
-  },
-  closeBundle() {
-    if (!fs.existsSync(MONSTERS_SRC)) return;
-    const dest = path.resolve(import.meta.dirname, "dist/monsters");
-    fs.mkdirSync(dest, { recursive: true });
-    for (const file of fs.readdirSync(MONSTERS_SRC)) {
-      fs.copyFileSync(path.join(MONSTERS_SRC, file), path.join(dest, file));
-    }
   },
 });
 
