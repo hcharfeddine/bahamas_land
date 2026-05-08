@@ -1484,10 +1484,13 @@ export function Monster3DViewer({
     stage === "teen"  ? 4.8 :
     stage === "adult" ? 5.2 : 5.5;
 
+  // When fullscreen, use absolute inset-0 so the canvas always fills
+  // the relative-positioned parent exactly — `height:100%` on a flex-1
+  // child is ambiguous and getBoundingClientRect() can return zero.
   const containerStyle: React.CSSProperties = fullscreen
     ? {
-        width: "100%",
-        height: "100%",
+        position: "absolute",
+        inset: 0,
         borderColor: status === "dead" ? "#374151" : glow,
         boxShadow: status === "dead" ? "none" : `0 0 40px ${glow}44`,
       }
@@ -1500,15 +1503,18 @@ export function Monster3DViewer({
 
   return (
     <div
-      className="relative border-2 bg-black/95 overflow-hidden"
+      className="border-2 bg-black/95 overflow-hidden"
       style={containerStyle}
     >
       <Canvas
+        key={`${kickUsername}-${stage}`}
         camera={{ position: [0, 0, cameraZ], fov: 42 }}
         gl={{ antialias: true, alpha: true }}
         style={{ width: "100%", height: "100%" }}
       >
-        <MonsterScene kickUsername={kickUsername} stage={stage} status={status} />
+        <Suspense fallback={null}>
+          <MonsterScene kickUsername={kickUsername} stage={stage} status={status} />
+        </Suspense>
         <OrbitControls
           enableZoom={true}
           enablePan={false}
