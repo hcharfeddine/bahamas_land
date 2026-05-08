@@ -291,6 +291,10 @@ const MONSTER_GLB: Record<MonsterType, MonsterGLBConfig> = {
   kitsune:     { egg: "egg_12" /* baby: "baby_teen_kitsune",  teen: "baby_teen_kitsune",  adult: "adult_kitsune",  finalForm: "final_form_kitsune"  */ },
 };
 
+const GLB_BASE =
+  ((import.meta.env.VITE_API_URL as string | undefined) ?? "").replace(/\/$/, "") ||
+  "https://bahamas-land.onrender.com";
+
 function getGlbUrl(type: MonsterType, stage: Stage): string | null {
   const cfg = MONSTER_GLB[type];
   if (!cfg) return null;
@@ -300,7 +304,7 @@ function getGlbUrl(type: MonsterType, stage: Stage): string | null {
   if (stage === "teen")  name = cfg.teen;
   if (stage === "adult") name = cfg.adult;
   if (stage === "final") name = cfg.finalForm;
-  return name ? `/monsters/${name}.glb` : null;
+  return name ? `${GLB_BASE}/monsters/${name}.glb` : null;
 }
 
 function GLBMonsterInner({ url, status }: { url: string; status: Status }) {
