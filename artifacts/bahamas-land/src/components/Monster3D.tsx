@@ -3,6 +3,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { clone as skeletonClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 
 class GLBErrorBoundary extends Component<
@@ -334,19 +335,25 @@ function getGlbUrl(type: MonsterType, stage: Stage): string | null {
 const GLB_REF_SIZE = 2.0;
 
 // Shared loader instance — reused across renders.
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.7/");
+dracoLoader.preload();
 const gltfLoader = new GLTFLoader();
+gltfLoader.setDRACOLoader(dracoLoader);
 
 type GltfState =
-  | { status: "loading" }
+  | { status: "loading"; progress: number }
   | { status: "ready"; scene: THREE.Object3D; animations: THREE.AnimationClip[] }
   | { status: "error"; message: string };
 
 // Load a GLB imperatively (no React Suspense). Returns loading/ready/error state.
+// Pass empty string to skip loading (returns idle loading state).
 function useGltfDirect(url: string): GltfState {
-  const [state, setState] = useState<GltfState>({ status: "loading" });
+  const [state, setState] = useState<GltfState>({ status: "loading", progress: 0 });
 
   useEffect(() => {
-    setState({ status: "loading" });
+    if (!url) return;
+    setState({ status: "loading", progress: 0 });
     let cancelled = false;
 
     gltfLoader.load(
@@ -366,7 +373,13 @@ function useGltfDirect(url: string): GltfState {
           setState({ status: "error", message: String(e) });
         }
       },
-      undefined,
+      (xhr) => {
+        if (cancelled) return;
+        if (xhr.total > 0) {
+          const pct = Math.round((xhr.loaded / xhr.total) * 100);
+          setState({ status: "loading", progress: pct });
+        }
+      },
       (err) => {
         if (cancelled) return;
         console.error("[GLB] load failed for", url, err);
@@ -456,6 +469,41 @@ function GLBMonsterMesh({ url, status, stage: _stage, fallback }: { url: string;
   // While loading or on error — show the procedural fallback.
   // (Error is logged to console via useGltfDirect.)
   return <>{fallback}</>;
+}
+
+// Overlay shown outside the Canvas while GLB is loading
+function GlbLoadingOverlay({ progress }: { progress: number }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        bottom: 20,
+        left: "50%",
+        transform: "translateX(-50%)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 4,
+        pointerEvents: "none",
+        zIndex: 10,
+      }}
+    >
+      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", fontFamily: "monospace", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+        Loading HD model{progress > 0 ? ` ${progress}%` : "…"}
+      </div>
+      <div style={{ width: 80, height: 2, background: "rgba(255,255,255,0.12)", borderRadius: 2, overflow: "hidden" }}>
+        <div
+          style={{
+            height: "100%",
+            width: `${progress}%`,
+            background: "rgba(255,255,255,0.55)",
+            borderRadius: 2,
+            transition: "width 0.3s ease",
+          }}
+        />
+      </div>
+    </div>
+  );
 }
 
 function GolemMesh({ stage, info, status }: { stage: Stage; info: typeof MONSTER_INFO[MonsterType]; status: Status }) {
@@ -1421,12 +1469,16 @@ function ProceduralMonsterMesh({ monsterType, stage, info, status }: { monsterTy
   }
 }
 
-export function MonsterScene({ kickUsername, stage, status }: { kickUsername: string; stage: Stage; status: Status }) {
+export function MonsterScene({
+  kickUsername, stage, status, gltfState,
+}: {
+  kickUsername: string; stage: Stage; status: Status;
+  gltfState: GltfState | null;
+}) {
   const monsterType = getMonsterType(kickUsername);
   const info = MONSTER_INFO[monsterType] ?? MONSTER_INFO.dragon;
   const glow = statusGlow(status);
   const isDead = status === "dead";
-  const url = getGlbUrl(monsterType, stage);
 
   const proceduralFallback = <ProceduralMonsterMesh monsterType={monsterType} stage={stage} info={info} status={status} />;
 
@@ -1438,8 +1490,8 @@ export function MonsterScene({ kickUsername, stage, status }: { kickUsername: st
       <pointLight position={[0, 4, 4]} intensity={isDead ? 0.3 : 2.0} color={isDead ? "#aaa" : "#fff"} />
       <pointLight position={[-3, -1, 3]} intensity={isDead ? 0.1 : 1.2} color={isDead ? "#555" : glow} />
       <pointLight position={[0, -4, 0]} intensity={isDead ? 0.05 : 0.8} color={isDead ? "#333" : info.eggGlow} />
-      {url
-        ? <GLBMonsterMesh key={url} url={url} status={status} stage={stage} fallback={proceduralFallback} />
+      {gltfState?.status === "ready"
+        ? <GLBMonsterReady scene={gltfState.scene} animations={gltfState.animations} status={status} />
         : proceduralFallback
       }
     </>
@@ -1462,9 +1514,16 @@ export function Monster3DViewer({
   const monsterType = getMonsterType(kickUsername);
   const info = MONSTER_INFO[monsterType] ?? MONSTER_INFO.dragon;
   const glow = statusGlow(status);
+
+  // Resolve the GLB URL and start loading OUTSIDE the Canvas so we can show
+  // an HTML progress overlay while the procedural mesh plays as placeholder.
+  const url = getGlbUrl(monsterType, stage) ?? "";
+  const gltfState = useGltfDirect(url);
+  const isLoading = !!url && gltfState.status === "loading";
+  const loadProgress = gltfState.status === "loading" ? gltfState.progress : 100;
+
   // All GLB models are normalised to GLB_REF_SIZE=2.0 world units.
   // Camera at z=3.5 with FOV 42 → visible span ≈ 2.69 → model fills ~74%.
-  // The extra margin ensures nothing clips regardless of model proportions.
   const cameraZ = 3.5;
 
   // When fullscreen, use absolute inset-0 so the canvas always fills
@@ -1496,7 +1555,12 @@ export function Monster3DViewer({
         frameloop="always"
         style={{ width: "100%", height: "100%" }}
       >
-        <MonsterScene kickUsername={kickUsername} stage={stage} status={status} />
+        <MonsterScene
+          kickUsername={kickUsername}
+          stage={stage}
+          status={status}
+          gltfState={url ? gltfState : null}
+        />
         <OrbitControls
           enableZoom={true}
           enablePan={false}
@@ -1508,6 +1572,7 @@ export function Monster3DViewer({
           zoomSpeed={1.2}
         />
       </Canvas>
+      {isLoading && <GlbLoadingOverlay progress={loadProgress} />}
       <div className="absolute bottom-2 left-0 right-0 text-center font-mono text-[9px] text-white/30 uppercase tracking-widest pointer-events-none select-none">
          drag to rotate · scroll to zoom
       </div>
