@@ -1383,11 +1383,13 @@ export function MonsterScene({ kickUsername, stage, status }: { kickUsername: st
 
   return (
     <>
-      <ambientLight intensity={isDead ? 0.2 : 0.35} />
-      <pointLight position={[3, 4, 3]} intensity={isDead ? 0.6 : 1.4} color={isDead ? "#aaa" : "#fff"} />
-      <pointLight position={[-2, -1, 2]} intensity={isDead ? 0.1 : 0.6} color={isDead ? "#555" : glow} />
-      <pointLight position={[0, -3, 0]} intensity={isDead ? 0.05 : 0.25} color={isDead ? "#333" : info.eggGlow} />
-      {url && <GLBMonsterMesh url={url} status={status} stage={stage} fallback={null} />}
+      <ambientLight intensity={isDead ? 0.5 : 2.5} />
+      <directionalLight position={[5, 8, 5]} intensity={isDead ? 0.5 : 3.0} color={isDead ? "#aaa" : "#ffffff"} castShadow />
+      <directionalLight position={[-5, 4, -3]} intensity={isDead ? 0.3 : 1.5} color={isDead ? "#888" : "#e0e8ff"} />
+      <pointLight position={[0, 4, 4]} intensity={isDead ? 0.3 : 2.0} color={isDead ? "#aaa" : "#fff"} />
+      <pointLight position={[-3, -1, 3]} intensity={isDead ? 0.1 : 1.2} color={isDead ? "#555" : glow} />
+      <pointLight position={[0, -4, 0]} intensity={isDead ? 0.05 : 0.8} color={isDead ? "#333" : info.eggGlow} />
+      {url && <GLBMonsterMesh key={url} url={url} status={status} stage={stage} fallback={null} />}
     </>
   );
 }
