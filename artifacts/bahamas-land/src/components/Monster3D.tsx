@@ -1290,8 +1290,10 @@ function MonsterScene({ kickUsername, stage, status }: { kickUsername: string; s
         if (monsterType === "centaur")              return <CentaurMesh     stage={stage} info={info} status={status} />;
         if (monsterType === "kitsune")              return <KitsuneMesh     stage={stage} info={info} status={status} />;
         return null;
-      })()r-2 bg-black/95 overflow-hidden"
-      style={{
+      })()}
+      <div
+        className="relative border-2 bg-black/95 overflow-hidden"
+        style={{
         width: size, height: size,
         borderColor: status === "dead" ? "#374151" : glow,
         boxShadow: status === "dead" ? "none" : `0 0 28px ${glow}55`,

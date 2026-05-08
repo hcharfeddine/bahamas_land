@@ -128,6 +128,20 @@ async function handleChatActivity(kickUsername: string): Promise<void> {
   }
 }
 
+// ─── Emoji-spam filter ──────────────────────────────────────────────────────
+/**
+ * Returns true only if the message contains real text (at least 2 non-emoji,
+ * non-whitespace characters). Pure emoji blasts like "😂😂😂" are rejected.
+ */
+function isRealMessage(text: string): boolean {
+  const stripped = text
+    .replace(/\p{Extended_Pictographic}/gu, "") // remove pictographic emojis
+    .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, "")    // remove flag sequences
+    .replace(/[\u200D\uFE0F\u20E3]/gu, "")     // remove ZWJ / variation / keycap
+    .replace(/\s/g, "");                         // remove whitespace
+  return stripped.length >= 2;
+}
+
 // ─── WebSocket connection ───────────────────────────────────────────────────
 function connectToKick(): void {
   if (stopped) return;
@@ -179,7 +193,8 @@ function connectToKick(): void {
       }
 
       // Passive: any message from a player with an active monster
-      if (activePlayers.has(sender)) {
+      // Ignore emoji-only spam — only real text messages count
+      if (activePlayers.has(sender) && isRealMessage(content)) {
         void handleChatActivity(sender);
       }
     } catch {
