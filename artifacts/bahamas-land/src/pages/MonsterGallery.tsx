@@ -34,6 +34,7 @@ const TYPE_SEED: Record<MonsterType, string> = {
   medusa:      "seed_14",
   centaur:     "seed_21",
   kitsune:     "seed_82",
+  fenrir:      "seed_72",
 };
 
 function StageCard({

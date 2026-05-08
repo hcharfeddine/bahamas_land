@@ -22,7 +22,7 @@ class GLBErrorBoundary extends Component<
   }
 }
 
-export type MonsterType = "dragon" | "spider" | "golem" | "phoenix" | "crab" | "shark" | "octopus" | "cyclops" | "minotaur" | "medusa" | "centaur" | "kitsune";
+export type MonsterType = "dragon" | "spider" | "golem" | "phoenix" | "crab" | "shark" | "octopus" | "cyclops" | "minotaur" | "medusa" | "centaur" | "kitsune" | "fenrir";
 type Stage = "egg" | "baby" | "teen" | "adult" | "final";
 type Status = "happy" | "angry" | "sleeping" | "critical" | "dead";
 
@@ -39,11 +39,12 @@ export const MONSTER_INFO: Record<MonsterType, { name: string; icon: string; pri
   medusa:      { name: "Medusa",        icon: "🐛", primary: "#14532d", secondary: "#86efac", eggGlow: "#22c55e" },
   centaur:     { name: "Centaur",       icon: "🏹", primary: "#7c2d12", secondary: "#fdba74", eggGlow: "#ea580c" },
   kitsune:     { name: "Kitsune",       icon: "🦊", primary: "#c2410c", secondary: "#fed7aa", eggGlow: "#f97316" },
+  fenrir:      { name: "Fenrir",        icon: "🐺", primary: "#1e1b4b", secondary: "#818cf8", eggGlow: "#6366f1" },
 };
 
 export function getMonsterType(username: string): MonsterType {
   if (!username) return "dragon";
-  // Scrambled multiplicative hash — distributes evenly across 12 types
+  // Scrambled multiplicative hash — distributes evenly across 13 types
   let h = 0x811c9dc5;
   for (let i = 0; i < username.length; i++) {
     h ^= username.charCodeAt(i);
@@ -52,7 +53,7 @@ export function getMonsterType(username: string): MonsterType {
   h ^= h >>> 16;
   h = (Math.imul(h, 0x45d9f3b)) >>> 0;
   h ^= h >>> 16;
-  const types: MonsterType[] = ["dragon", "spider", "golem", "phoenix", "crab", "shark", "octopus", "cyclops", "minotaur", "medusa", "centaur", "kitsune"];
+  const types: MonsterType[] = ["dragon", "spider", "golem", "phoenix", "crab", "shark", "octopus", "cyclops", "minotaur", "medusa", "centaur", "kitsune", "fenrir"];
   return types[h % types.length];
 }
 
@@ -294,25 +295,23 @@ type MonsterGLBConfig = {
 };
 
 const MONSTER_GLB: Record<MonsterType, MonsterGLBConfig> = {
-  // ── files ready ──────────────────────────────────────────────────────────
-  dragon:      { egg: "egg_4",  baby: "baby_teen_dragon",      teen: "baby_teen_dragon",      adult: "adult_dragon",      finalForm: "final_form_dragon"      },
-  // ── pending — fill in each field as you drop the file into /monsters/ ───
-  spider:      { egg: "egg_1"  /* baby: "baby_teen_spider",   teen: "baby_teen_spider",   adult: "adult_spider",   finalForm: "final_form_spider"   */ },
-  golem:       { egg: "egg_2"  /* baby: "baby_teen_golem",    teen: "baby_teen_golem",    adult: "adult_golem",    finalForm: "final_form_golem"    */ },
-  phoenix:     { egg: "egg_3"  /* baby: "baby_teen_phoenix",  teen: "baby_teen_phoenix",  adult: "adult_phoenix",  finalForm: "final_form_phoenix"  */ },
-  crab:        { egg: "egg_5"  /* baby: "baby_teen_crab",     teen: "baby_teen_crab",     adult: "adult_crab",     finalForm: "final_form_crab"     */ },
-  shark:       { egg: "egg_7"  /* baby: "baby_teen_shark",    teen: "baby_teen_shark",    adult: "adult_shark",    finalForm: "final_form_shark"    */ },
-  octopus:     { egg: "egg_10" /* baby: "baby_teen_octopus",  teen: "baby_teen_octopus",  adult: "adult_octopus",  finalForm: "final_form_octopus"  */ },
-  cyclops:     { egg: "egg_11" /* baby: "baby_teen_cyclops",  teen: "baby_teen_cyclops",  adult: "adult_cyclops",  finalForm: "final_form_cyclops"  */ },
-  minotaur:    { egg: "egg_12" /* baby: "baby_teen_minotaur", teen: "baby_teen_minotaur", adult: "adult_minotaur", finalForm: "final_form_minotaur" */ },
-  medusa:      { egg: "egg_13" /* baby: "baby_teen_medusa",   teen: "baby_teen_medusa",   adult: "adult_medusa",   finalForm: "final_form_medusa"   */ },
-  centaur:     { egg: "egg_14" /* baby: "baby_teen_centaur",  teen: "baby_teen_centaur",  adult: "adult_centaur",  finalForm: "final_form_centaur"  */ },
-  kitsune:     { egg: "egg_12" /* baby: "baby_teen_kitsune",  teen: "baby_teen_kitsune",  adult: "adult_kitsune",  finalForm: "final_form_kitsune"  */ },
+  dragon:   { egg: "egg_4",  baby: "baby_teen_dragon",   teen: "baby_teen_dragon",   adult: "adult_dragon",   finalForm: "final_form_dragon"   },
+  spider:   { egg: "egg_1",  baby: "baby_teen_spider",   teen: "baby_teen_spider",   adult: "adult_spider",   finalForm: "final_form_spider"   },
+  golem:    { egg: "egg_2",  baby: "baby_teen_golem",    teen: "teen_golem",                                  finalForm: "final_form_golem"    },
+  phoenix:  { egg: "egg_3",  baby: "baby_teen_phoenix",  teen: "baby_teen_phoenix",  adult: "adult_phoenix",  finalForm: "final_form_phoenix"  },
+  crab:     { egg: "egg_5",  baby: "baby_teen_crab",     teen: "baby_teen_crab",     adult: "adult_crab",     finalForm: "final_form_crab"     },
+  shark:    { egg: "egg_7",  baby: "baby_teen_shark",    teen: "baby_teen_shark",    adult: "adult_shark",    finalForm: "final_form_shark"    },
+  octopus:  { egg: "egg_10", baby: "baby_teen_octopus",  teen: "baby_teen_octopus",  adult: "adult_octopus",  finalForm: "final_form_octopus"  },
+  cyclops:  { egg: "egg_11", baby: "baby_teen_cyclops",  teen: "baby_teen_cyclops",  adult: "adult_cyclops",  finalForm: "final_form_cyclops"  },
+  minotaur: { egg: "egg_12", baby: "baby_teen_minotaur", teen: "baby_teen_minotaur", adult: "adult_minotaur", finalForm: "final_form_minotaur" },
+  medusa:   { egg: "egg_13", baby: "baby_teen_medusas",  teen: "baby_teen_medusas",  adult: "adult_medusa",   finalForm: "final_form_medusa"   },
+  centaur:  { egg: "egg_14", baby: "baby_teen_centaur",  teen: "baby_teen_centaur",  adult: "adult_centaur",  finalForm: "final_form_centaur"  },
+  kitsune:  { egg: "egg_12", baby: "baby_teen_kitsune",  teen: "baby_teen_kitsune",  adult: "adult_kitsune",  finalForm: "final_form_kitsune"  },
+  fenrir:   { egg: "egg_6",  baby: "baby_teen_fenrir",   teen: "baby_teen_fenrir",   adult: "adult_fenrir",   finalForm: "final_form_fenrir"   },
 };
 
 const GLB_BASE =
-  ((import.meta.env.VITE_API_URL as string | undefined) ?? "").replace(/\/$/, "") ||
-  "https://bahamas-land.onrender.com";
+  ((import.meta.env.VITE_API_URL as string | undefined) ?? "").replace(/\/$/, "");
 
 function getGlbUrl(type: MonsterType, stage: Stage): string | null {
   const cfg = MONSTER_GLB[type];
@@ -1286,7 +1285,7 @@ function QilinMesh({ stage, info, status }: { stage: Stage; info: typeof MONSTER
   );
 }
 
-function MonsterScene({ kickUsername, stage, status }: { kickUsername: string; stage: Stage; status: Status }) {
+export function MonsterScene({ kickUsername, stage, status }: { kickUsername: string; stage: Stage; status: Status }) {
   const monsterType = getMonsterType(kickUsername);
   const info = MONSTER_INFO[monsterType] ?? MONSTER_INFO.dragon;
   const glow = statusGlow(status);
@@ -1315,6 +1314,7 @@ function MonsterScene({ kickUsername, stage, status }: { kickUsername: string; s
           if (monsterType === "medusa")      return <MedusaMesh   stage={stage} info={info} status={status} />;
           if (monsterType === "centaur")     return <CentaurMesh  stage={stage} info={info} status={status} />;
           if (monsterType === "kitsune")     return <KitsuneMesh  stage={stage} info={info} status={status} />;
+          if (monsterType === "fenrir")      return <FenrirMesh   stage={stage} info={info} status={status} />;
           return null;
         })();
         const url = getGlbUrl(monsterType, stage);
