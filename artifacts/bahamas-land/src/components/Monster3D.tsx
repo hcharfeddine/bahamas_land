@@ -1,5 +1,5 @@
 import { useRef, useMemo, useEffect, Suspense, Component, type ReactNode } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 
@@ -327,162 +327,84 @@ function getGlbUrl(type: MonsterType, stage: Stage): string | null {
   return name ? `${GLB_BASE}/monsters/${name}.glb` : null;
 }
 
-// Desired display size (units) for each stage — matched to camera distance.
-const GLB_TARGET: Record<string, number> = {
-  egg: 1.8, baby: 2.2, teen: 2.2, adult: 2.5, final: 2.8,
-};
+// Fill factor: what fraction of the camera frustum the model should occupy.
+// 0.78 → model's largest dimension spans 78% of the viewport height — fully visible with padding.
+const GLB_FILL_FACTOR = 0.78;
 
-// Pre-computed bounds extracted from each GLB's POSITION accessor min/max.
-// maxDim = largest axis span in model space; cx/cy/cz = geometric center.
-// Generated offline via Node.js so we never depend on runtime Box3 on a cloned scene.
-const GLB_BOUNDS: Record<string, { maxDim: number; cx: number; cy: number; cz: number }> = {
-  egg_1:              { maxDim:     2.784, cx:    0.000, cy:    0.000, cz:    0.395 },
-  egg_2:              { maxDim:     0.755, cx:    0.000, cy:   -0.027, cz:   -0.013 },
-  egg_3:              { maxDim:     0.773, cx:    0.002, cy:    0.376, cz:    0.000 },
-  egg_4:              { maxDim:     0.577, cx:   -0.001, cy:    0.005, cz:    0.001 },
-  egg_5:              { maxDim:     1.849, cx:    0.000, cy:    0.000, cz:    0.895 },
-  egg_6:              { maxDim:     6.953, cx:    0.017, cy:    0.043, cz:    3.475 },
-  egg_7:              { maxDim:     0.929, cx:    0.000, cy:   -0.012, cz:   -0.002 },
-  egg_8:              { maxDim:     0.948, cx:   -0.001, cy:   -0.002, cz:   -0.001 },
-  egg_9:              { maxDim:     0.112, cx:   -0.007, cy:   -0.011, cz:    0.004 },
-  egg_10:             { maxDim:     0.819, cx:    0.000, cy:    0.418, cz:    0.000 },
-  egg_11:             { maxDim:     2.640, cx:    0.000, cy:    0.000, cz:    0.321 },
-  egg_12:             { maxDim:     1.879, cx:   -0.010, cy:   -0.002, cz:    0.936 },
-  egg_13:             { maxDim:     0.921, cx:    0.006, cy:    0.013, cz:    0.020 },
-  baby_teen_centaur:  { maxDim:     0.999, cx:   -0.001, cy:    0.000, cz:    0.004 },
-  baby_teen_crab:     { maxDim:    11.998, cx:    0.000, cy:   -2.195, cz:    2.846 },
-  baby_teen_cyclops:  { maxDim:    97.917, cx:    0.000, cy:   38.890, cz:   -2.105 },
-  baby_teen_dragon:   { maxDim:    17.586, cx:    0.000, cy:    6.651, cz:   -2.441 },
-  baby_teen_fenrir:   { maxDim:   124.530, cx:    0.000, cy:   13.382, cz:   31.770 },
-  baby_teen_golem:    { maxDim: 18577.709, cx:    0.000, cy: 9107.991, cz:    0.000 },
-  baby_teen_kitsune:  { maxDim:     6.887, cx:   -0.413, cy:    0.512, cz:    1.727 },
-  baby_teen_medusas:  { maxDim:     1.899, cx:   -0.001, cy:   -0.001, cz:   -0.001 },
-  baby_teen_minotaur: { maxDim:     1.997, cx:   -0.002, cy:   -0.002, cz:    0.018 },
-  baby_teen_octopus:  { maxDim:     7.791, cx:    0.000, cy:    0.196, cz:    1.246 },
-  baby_teen_phoenix:  { maxDim:   963.797, cx: -376.905, cy:  169.495, cz:    0.000 },
-  baby_teen_shark:    { maxDim:   149.410, cx:    0.000, cy:    7.177, cz:   26.856 },
-  baby_teen_spider:   { maxDim:    45.825, cx:    0.000, cy:   -0.562, cz:   -0.472 },
-  teen_golem:         { maxDim:  1615.993, cx:    0.000, cy:  680.934, cz:   60.502 },
-  adult_centaur:      { maxDim:     1.000, cx:    0.000, cy:    0.000, cz:    0.000 },
-  adult_crab:         { maxDim:     1.000, cx:    0.002, cy:    0.000, cz:    0.001 },
-  adult_cyclops:      { maxDim:    23.151, cx:    0.000, cy:    7.979, cz:   -0.475 },
-  adult_dragon:       { maxDim:    16.329, cx:    0.000, cy:    6.075, cz:   -2.473 },
-  adult_fenrir:       { maxDim:   234.560, cx:    0.000, cy:   66.818, cz:  -12.802 },
-  adult_kitsune:      { maxDim:     2.003, cx:   -0.002, cy:    0.000, cz:    0.009 },
-  adult_medusa:       { maxDim:   367.881, cx:   -0.834, cy:  117.849, cz: -110.318 },
-  adult_minotaur:     { maxDim:   116.489, cx:    8.880, cy:  -12.955, cz:  -44.615 },
-  adult_octopus:      { maxDim:    31.467, cx:   -0.579, cy:    0.270, cz:    4.557 },
-  adult_phoenix:      { maxDim:   963.797, cx: -376.905, cy:  169.495, cz:    0.000 },
-  adult_shark:        { maxDim:    96.550, cx:    0.000, cy:    0.000, cz:    0.000 },
-  adult_spider:       { maxDim:    11.276, cx:    0.047, cy:   -0.573, cz:    0.458 },
-  final_form_centaur: { maxDim:     1.000, cx:    0.000, cy:    0.000, cz:    0.000 },
-  final_form_crab:    { maxDim:   682.617, cx:   -7.714, cy: -103.053, cz:  -57.591 },
-  final_form_cyclops: { maxDim:   228.505, cx:   -6.756, cy:   74.545, cz:    0.058 },
-  final_form_dragon:  { maxDim:    36.939, cx:    0.000, cy:    0.324, cz:    9.755 },
-  final_form_fenrir:  { maxDim:    11.400, cx:    0.000, cy:    5.365, cz:   -4.426 },
-  final_form_golem:   { maxDim:     1.000, cx:    0.001, cy:    0.000, cz:    0.000 },
-  final_form_kitsune: { maxDim:     2.002, cx:    0.001, cy:   -0.001, cz:    0.002 },
-  final_form_medusa:  { maxDim:   124.797, cx:    0.180, cy:   -3.147, cz:    6.384 },
-  final_form_minotaur:{ maxDim:   132.466, cx:   -1.257, cy:   20.942, cz:  -14.055 },
-  final_form_octopus: { maxDim:   882.016, cx:  -11.978, cy:  300.941, cz:    0.000 },
-  final_form_phoenix: { maxDim:     8.033, cx:    0.003, cy:    2.500, cz:    0.996 },
-  final_form_shark:   { maxDim:    89.328, cx:    0.015, cy:    3.038, cz:   45.075 },
-  final_form_spider:  { maxDim:   273.831, cx:    0.000, cy:  -16.467, cz:   10.887 },
-};
-
-// Per-model vertical display shift (world units, applied AFTER geometric centering).
-// Positive  → model moves DOWN so more of the top (head/wings) shows in the viewport.
-// Negative  → model moves UP so more of the bottom shows.
-// Tune these values to make each creature's visual centre of interest sit at the
-// centre of the viewport.  Zero means use the pure geometric centre.
-const GLB_Y_SHIFT: Record<string, number> = {
-  // ── Eggs (symmetric blobs, geometric centre is fine) ──────────────────────
-  egg_1: 0, egg_2: 0, egg_3: 0, egg_4: 0, egg_5: 0, egg_6: 0,
-  egg_7: 0, egg_8: 0, egg_9: 0, egg_10: 0, egg_11: 0, egg_12: 0, egg_13: 0,
-
-  // ── Dragon (upright/flying — show wings and head) ─────────────────────────
-  baby_teen_dragon: 0.35, adult_dragon: 0.35, final_form_dragon: 0.30,
-
-  // ── Spider (low crawling body — slight lift) ──────────────────────────────
-  baby_teen_spider: 0.10, adult_spider: 0.10, final_form_spider: 0.10,
-
-  // ── Golem (upright stone figure — show head and shoulders) ────────────────
-  baby_teen_golem: 0.25, teen_golem: 0.25, final_form_golem: 0.25,
-
-  // ── Phoenix (flying bird — show wings and body) ───────────────────────────
-  baby_teen_phoenix: 0.25, adult_phoenix: 0.25, final_form_phoenix: 0.20,
-
-  // ── Crab (wide and flat — centred is fine) ────────────────────────────────
-  baby_teen_crab: 0.05, adult_crab: 0.05, final_form_crab: 0.05,
-
-  // ── Shark (horizontal — no vertical shift needed) ─────────────────────────
-  baby_teen_shark: 0.00, adult_shark: 0.00, final_form_shark: 0.00,
-
-  // ── Octopus (rounded mantle + tentacles — show mantle) ───────────────────
-  baby_teen_octopus: 0.20, adult_octopus: 0.20, final_form_octopus: 0.15,
-
-  // ── Cyclops (tall one-eyed humanoid — show eye/head) ─────────────────────
-  baby_teen_cyclops: 0.30, adult_cyclops: 0.30, final_form_cyclops: 0.30,
-
-  // ── Minotaur (standing bull-man — show upper body) ────────────────────────
-  baby_teen_minotaur: 0.30, adult_minotaur: 0.30, final_form_minotaur: 0.30,
-
-  // ── Medusa (snake-hair gorgon — show face and snakes) ────────────────────
-  baby_teen_medusas: 0.25, adult_medusa: 0.25, final_form_medusa: 0.25,
-
-  // ── Centaur (horse body + human torso — show torso and face) ─────────────
-  baby_teen_centaur: 0.20, adult_centaur: 0.20, final_form_centaur: 0.20,
-
-  // ── Kitsune (fox spirit — show head and tails) ────────────────────────────
-  baby_teen_kitsune: 0.20, adult_kitsune: 0.20, final_form_kitsune: 0.20,
-
-  // ── Fenrir (giant wolf — show head and shoulders) ────────────────────────
-  baby_teen_fenrir: 0.15, adult_fenrir: 0.15, final_form_fenrir: 0.15,
-};
-
-function GLBMonsterInner({ url, status, stage }: { url: string; status: Status; stage: Stage }) {
+function GLBMonsterInner({ url, status }: { url: string; status: Status; stage: Stage }) {
   const { scene, animations } = useGLTF(url);
+  const { camera } = useThree();
   const groupRef = useRef<THREE.Group>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   useMonsterAnimation(groupRef, status);
 
-  const { cloned, scale, cx, cy, cz, yShift } = useMemo(() => {
+  const { cloned, scale, cx, cy, cz, camDist } = useMemo(() => {
     const cloned = scene.clone(true);
-    const target = GLB_TARGET[stage] ?? 2.0;
 
-    // Prefer pre-computed bounds — runtime Box3 is unreliable for skinned/animated meshes
-    // because bone transforms aren't applied in the cloned rest pose.
-    const modelName = url.split("/").pop()?.replace(".glb", "") ?? "";
-    const yShift = GLB_Y_SHIFT[modelName] ?? 0.15; // default: slight shift for upright creatures
-    const pre = GLB_BOUNDS[modelName];
-    if (pre && pre.maxDim > 0) {
-      return { cloned, scale: target / pre.maxDim, cx: pre.cx, cy: pre.cy, cz: pre.cz, yShift };
-    }
-
-    // Fallback: runtime computation (used only when no pre-computed entry exists)
+    // ── Step 1: compute tight bounding box in world space ─────────────────────
+    // Primary: traverse every mesh and union geometry bounding boxes transformed
+    // to world space. This works for both static and skinned rest-pose meshes.
     cloned.updateWorldMatrix(true, true);
     const box = new THREE.Box3();
     cloned.traverse((obj: THREE.Object3D) => {
       const mesh = obj as THREE.Mesh;
       if (mesh.isMesh && mesh.geometry) {
         mesh.geometry.computeBoundingBox();
-        const geomBox = mesh.geometry.boundingBox!.clone();
-        geomBox.applyMatrix4(mesh.matrixWorld);
-        box.union(geomBox);
+        if (mesh.geometry.boundingBox) {
+          const geomBox = mesh.geometry.boundingBox.clone();
+          geomBox.applyMatrix4(mesh.matrixWorld);
+          box.union(geomBox);
+        }
       }
     });
+
+    // Fallback: setFromObject (less reliable for skinned meshes but catches anything missed)
+    if (box.isEmpty()) {
+      box.setFromObject(cloned);
+    }
+
+    // ── Step 2: compute scale + centre ────────────────────────────────────────
     const size = new THREE.Vector3();
     const center = new THREE.Vector3();
+
     if (box.isEmpty()) {
-      new THREE.Box3().setFromObject(cloned).getSize(size);
-      new THREE.Box3().setFromObject(cloned).getCenter(center);
-    } else {
-      box.getSize(size);
-      box.getCenter(center);
+      // Last resort: use unit scale, no centering
+      return { cloned, scale: 1, cx: 0, cy: 0, cz: 0, camDist: 4 };
     }
+
+    box.getSize(size);
+    box.getCenter(center);
+
+    // Scale so the model's longest axis = 2 world units (reference size).
+    // The camera distance is then computed from this fixed reference size.
+    const REF_SIZE = 2.0;
     const maxDim = Math.max(size.x, size.y, size.z);
-    return { cloned, scale: maxDim > 0 ? target / maxDim : 1, cx: center.x, cy: center.y, cz: center.z, yShift };
-  }, [scene, url, stage]);
+    const scale = maxDim > 0 ? REF_SIZE / maxDim : 1;
+
+    // ── Step 3: compute ideal camera distance ─────────────────────────────────
+    // After scaling, the model's largest dimension = REF_SIZE.
+    // With the camera at distance d and FOV θ, the visible full-height span is:
+    //   span = 2 * d * tan(θ/2)
+    // We want: REF_SIZE = span * GLB_FILL_FACTOR
+    //   → d = REF_SIZE / (2 * tan(θ/2) * GLB_FILL_FACTOR)
+    // Also account for the model's depth: move back enough so even the farthest
+    // face is well inside the frustum near-plane.
+    const cam = camera as THREE.PerspectiveCamera;
+    const fovRad = (cam.fov * Math.PI) / 180;
+    const halfSpanAtUnit = Math.tan(fovRad / 2); // visible half-height at d=1
+    const baseDist = (REF_SIZE / 2) / (halfSpanAtUnit * GLB_FILL_FACTOR);
+    // Add half the scaled depth so the back face doesn't clip
+    const scaledDepth = size.z * scale;
+    const camDist = baseDist + scaledDepth * 0.5;
+
+    return { cloned, scale, cx: center.x, cy: center.y, cz: center.z, camDist };
+  }, [scene, url, camera]);
+
+  // Set camera distance once the bounds are known
+  useEffect(() => {
+    camera.position.set(0, 0, camDist);
+    camera.updateMatrixWorld();
+  }, [camera, camDist]);
 
   // Play built-in GLB animations (idle cycles, etc.) if the model has any
   useEffect(() => {
@@ -503,10 +425,9 @@ function GLBMonsterInner({ url, status, stage }: { url: string; status: Status; 
   });
 
   return (
-    // Outer group: receives bob/shake animation from useMonsterAnimation.
-    // yShift moves the model down so the upper body / head appears near the viewport centre.
-    // Inner group: centres model at world origin and scales it to camera-friendly size.
-    <group ref={groupRef} position={[0, -yShift, 0]}>
+    // Outer group: receives bob/shake/tilt animation from useMonsterAnimation.
+    // Inner group: centres the model at world origin and normalises its size.
+    <group ref={groupRef}>
       <group scale={scale} position={[-scale * cx, -scale * cy, -scale * cz]}>
         <primitive object={cloned} />
       </group>
