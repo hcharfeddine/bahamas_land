@@ -2,12 +2,40 @@ import { defineConfig, type PluginOption } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import fs from "fs";
 import { chatMiddleware } from "./server/chatMiddleware";
 import { rewardMiddleware } from "./server/rewardMiddleware";
 import { playerMiddleware } from "./server/playerMiddleware";
 import { hintMiddleware } from "./server/hintMiddleware";
 
 const port = process.env.PORT ? Number(process.env.PORT) : 5173;
+
+const MONSTERS_SRC = path.resolve(import.meta.dirname, "../../monsters");
+
+const monstersPlugin = (): PluginOption => ({
+  name: "serve-monsters",
+  configureServer(server) {
+    server.middlewares.use("/monsters", (req, res, next) => {
+      const fileName = (req.url ?? "").replace(/^\//, "");
+      const filePath = path.join(MONSTERS_SRC, fileName);
+      if (fileName && fs.existsSync(filePath)) {
+        res.setHeader("Content-Type", "model/gltf-binary");
+        res.setHeader("Cache-Control", "public, max-age=86400");
+        fs.createReadStream(filePath).pipe(res);
+      } else {
+        next();
+      }
+    });
+  },
+  closeBundle() {
+    if (!fs.existsSync(MONSTERS_SRC)) return;
+    const dest = path.resolve(import.meta.dirname, "dist/monsters");
+    fs.mkdirSync(dest, { recursive: true });
+    for (const file of fs.readdirSync(MONSTERS_SRC)) {
+      fs.copyFileSync(path.join(MONSTERS_SRC, file), path.join(dest, file));
+    }
+  },
+});
 
 const chatApiPlugin = (): PluginOption => ({
   name: "bahamas-chat-api",
@@ -30,6 +58,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     chatApiPlugin(),
+    monstersPlugin(),
   ],
   resolve: {
     alias: {
