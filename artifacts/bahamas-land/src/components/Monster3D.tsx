@@ -1310,5 +1310,6 @@ function MonsterScene({ kickUsername, stage, status }: { kickUsername: string; s
         {info.icon} {info.name} · drag to rotate
       </div>
     </div>
+  </>
   );
 }

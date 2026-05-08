@@ -131,11 +131,13 @@ async function handleChatActivity(kickUsername: string): Promise<void> {
 // ─── Emoji-spam filter ──────────────────────────────────────────────────────
 /**
  * Returns true only if the message contains real text (at least 2 non-emoji,
- * non-whitespace characters). Pure emoji blasts like "😂😂😂" are rejected.
+ * non-whitespace characters). Pure emoji blasts like "😂😂😂" or Kick emote
+ * spam like "[emote:12345:KEKW][emote:12345:KEKW]" are rejected.
  */
 function isRealMessage(text: string): boolean {
   const stripped = text
-    .replace(/\p{Extended_Pictographic}/gu, "") // remove pictographic emojis
+    .replace(/\[emote:\d+:[^\]]*\]/gi, "")      // remove Kick custom emotes e.g. [emote:123:KEKW]
+    .replace(/\p{Extended_Pictographic}/gu, "") // remove unicode pictographic emojis
     .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, "")    // remove flag sequences
     .replace(/[\u200D\uFE0F\u20E3]/gu, "")     // remove ZWJ / variation / keycap
     .replace(/\s/g, "");                         // remove whitespace
