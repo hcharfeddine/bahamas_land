@@ -329,19 +329,42 @@ function getGlbUrl(type: MonsterType, stage: Stage): string | null {
   return name ? `${GLB_BASE}/monsters/${name}.glb` : null;
 }
 
-function GLBMonsterInner({ url, status }: { url: string; status: Status }) {
+// Target half-extents per stage so the model fills the camera view.
+const GLB_TARGET: Record<string, number> = {
+  egg: 1.1, baby: 1.6, teen: 1.8, adult: 2.1, final: 2.3,
+};
+
+function GLBMonsterInner({ url, status, stage }: { url: string; status: Status; stage: Stage }) {
   const { scene } = useGLTF(url);
   const ref = useRef<THREE.Group>(null);
   useMonsterAnimation(ref, status);
-  const cloned = useMemo(() => scene.clone(true), [scene]);
-  return <primitive ref={ref} object={cloned} />;
+
+  const { cloned, scale, center } = useMemo(() => {
+    const cloned = scene.clone(true);
+    // Compute bounding box to auto-scale + center the model
+    const box = new THREE.Box3().setFromObject(cloned);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z) || 1;
+    const target = GLB_TARGET[stage] ?? 1.5;
+    const scale = (target * 2) / maxDim;
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    return { cloned, scale, center };
+  }, [scene, stage]);
+
+  return (
+    <group ref={ref} scale={scale} position={[-center.x * scale, -center.y * scale, -center.z * scale]}>
+      <primitive object={cloned} />
+    </group>
+  );
 }
 
-function GLBMonsterMesh({ url, status, fallback }: { url: string; status: Status; fallback: ReactNode }) {
+function GLBMonsterMesh({ url, status, stage, fallback }: { url: string; status: Status; stage: Stage; fallback: ReactNode }) {
   return (
     <GLBErrorBoundary url={url} fallback={fallback}>
       <Suspense fallback={fallback}>
-        <GLBMonsterInner url={url} status={status} />
+        <GLBMonsterInner url={url} status={status} stage={stage} />
       </Suspense>
     </GLBErrorBoundary>
   );
@@ -1323,7 +1346,7 @@ export function MonsterScene({ kickUsername, stage, status }: { kickUsername: st
           return null;
         })();
         const url = getGlbUrl(monsterType, stage);
-        if (url) return <GLBMonsterMesh url={url} status={status} fallback={proceduralMesh} />;
+        if (url) return <GLBMonsterMesh url={url} status={status} stage={stage} fallback={proceduralMesh} />;
         return proceduralMesh;
       })()}
     </>
