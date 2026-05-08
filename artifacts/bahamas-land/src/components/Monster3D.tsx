@@ -334,11 +334,13 @@ function GLBMonsterInner({ url, status }: { url: string; status: Status }) {
   return <primitive ref={ref} object={cloned} />;
 }
 
-function GLBMonsterMesh({ url, status }: { url: string; status: Status }) {
+function GLBMonsterMesh({ url, status, fallback }: { url: string; status: Status; fallback: ReactNode }) {
   return (
-    <Suspense fallback={null}>
-      <GLBMonsterInner url={url} status={status} />
-    </Suspense>
+    <GLBErrorBoundary url={url} fallback={fallback}>
+      <Suspense fallback={fallback}>
+        <GLBMonsterInner url={url} status={status} />
+      </Suspense>
+    </GLBErrorBoundary>
   );
 }
 
