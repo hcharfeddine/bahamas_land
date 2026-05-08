@@ -326,7 +326,9 @@ function getGlbUrl(type: MonsterType, stage: Stage): string | null {
   if (stage === "teen")  name = cfg.teen;
   if (stage === "adult") name = cfg.adult;
   if (stage === "final") name = cfg.finalForm;
-  return name ? `${GLB_BASE}/monsters/${name}.glb` : null;
+  const url = name ? `${GLB_BASE}/monsters/${name}.glb` : null;
+  console.log(`[Monster3D] getGlbUrl type=${type} stage=${stage} → ${url ?? "null (no GLB)"}`);
+  return url;
 }
 
 // Target half-extents per stage so the model fills the camera view.
@@ -339,23 +341,33 @@ function GLBMonsterInner({ url, status, stage }: { url: string; status: Status; 
   const ref = useRef<THREE.Group>(null);
   useMonsterAnimation(ref, status);
 
-  const { cloned, scale, center } = useMemo(() => {
+  const { cloned, scale, offset } = useMemo(() => {
     const cloned = scene.clone(true);
-    // Compute bounding box to auto-scale + center the model
+
+    // Compute bounding box AFTER clone to auto-scale + center
     const box = new THREE.Box3().setFromObject(cloned);
     const size = new THREE.Vector3();
     box.getSize(size);
-    const maxDim = Math.max(size.x, size.y, size.z) || 1;
+    const maxDim = Math.max(size.x, size.y, size.z);
     const target = GLB_TARGET[stage] ?? 1.5;
-    const scale = (target * 2) / maxDim;
+    const scale = maxDim > 0 ? (target * 2) / maxDim : 1;
+
     const center = new THREE.Vector3();
     box.getCenter(center);
-    return { cloned, scale, center };
-  }, [scene, stage]);
+
+    console.log(`[Monster3D] GLB loaded ✓ url=${url} boxSize=(${size.x.toFixed(2)},${size.y.toFixed(2)},${size.z.toFixed(2)}) scale=${scale.toFixed(3)} stage=${stage}`);
+
+    return { cloned, scale, offset: center };
+  }, [scene, stage, url]);
 
   return (
-    <group ref={ref} scale={scale} position={[-center.x * scale, -center.y * scale, -center.z * scale]}>
-      <primitive object={cloned} />
+    // Outer group receives animation (bob/shake).
+    // Inner group: scale the model to fit, then translate so its center lands at origin.
+    // position must be -scale*center so that: position + scale*center = 0 in parent space.
+    <group ref={ref}>
+      <group scale={scale} position={[-scale * offset.x, -scale * offset.y, -scale * offset.z]}>
+        <primitive object={cloned} />
+      </group>
     </group>
   );
 }
@@ -1329,7 +1341,8 @@ export function MonsterScene({ kickUsername, stage, status }: { kickUsername: st
       {/* Render monster per stage - uses GLB if configured, falls back to procedural on error */}
       {(() => {
         const proceduralMesh = (() => {
-          if (stage === "egg")               return <EggMesh      info={info} status={status} />;
+          // egg stage: no procedural fallback — show nothing rather than risk overriding the GLB
+          if (stage === "egg")               return null;
           if (monsterType === "dragon")      return <DragonMesh   stage={stage} info={info} status={status} />;
           if (monsterType === "spider")      return <SpiderMesh   stage={stage} info={info} status={status} />;
           if (monsterType === "golem")       return <GolemMesh    stage={stage} info={info} status={status} />;
