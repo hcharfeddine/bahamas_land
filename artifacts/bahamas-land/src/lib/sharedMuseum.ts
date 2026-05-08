@@ -4,14 +4,15 @@ import { useMuseum, MuseumItem } from "@/lib/store";
 
 export type SharedMuseumItem = MuseumItem & { status?: "pending" | "approved" | "rejected" };
 
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 30 * 60 * 1000;
+const LIST_LIMIT    = 30;
 
-function remoteToLocal(r: RemoteMuseumItem): SharedMuseumItem {
+function remoteToLocal(r: RemoteMuseumItem, stripImage = false): SharedMuseumItem {
   return {
     id: r.id,
     username: r.username,
     caption: r.caption,
-    image: r.image_url,
+    image: stripImage ? null : (r.image_url ?? null),
     label: r.label,
     respect: r.respect ?? 0,
     timestamp: r.created_at ? new Date(r.created_at).getTime() : Date.now(),
@@ -34,14 +35,15 @@ export function useSharedMuseum() {
       .from("museum_items")
       .select("id,username,caption,image_url,label,respect,status,created_at")
       .eq("status", "approved")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(LIST_LIMIT);
     setLoading(false);
     if (error) {
       console.warn("[museum] fetch error", error);
       return;
     }
     lastFetchRef.current = Date.now();
-    setRemoteItems((data || []).map(remoteToLocal));
+    setRemoteItems((data || []).map((r) => remoteToLocal(r)));
   }, []);
 
   useEffect(() => {
@@ -57,7 +59,8 @@ export function useSharedMuseum() {
         (payload) => {
           const item = payload.new as RemoteMuseumItem;
           if (item.status !== "approved") return;
-          const local = remoteToLocal(item);
+          // Strip image from realtime payload — saves transmitting large base64 blobs
+          const local = remoteToLocal(item, true);
           setRemoteItems((prev) => (prev ? [local, ...prev] : [local]));
         }
       )
@@ -66,14 +69,18 @@ export function useSharedMuseum() {
         { event: "UPDATE", schema: "public", table: "museum_items" },
         (payload) => {
           const item = payload.new as RemoteMuseumItem;
-          const local = remoteToLocal(item);
+          // Strip image from realtime payload — keep existing image if already loaded
+          const local = remoteToLocal(item, true);
           setRemoteItems((prev) => {
             if (!prev) return prev;
             if (item.status === "approved") {
               const exists = prev.some((i) => i.id === item.id);
-              return exists
-                ? prev.map((i) => (i.id === item.id ? local : i))
-                : [local, ...prev];
+              if (exists) {
+                return prev.map((i) =>
+                  i.id === item.id ? { ...local, image: i.image } : i
+                );
+              }
+              return [local, ...prev];
             }
             return prev.filter((i) => i.id !== item.id);
           });

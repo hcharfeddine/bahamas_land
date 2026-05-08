@@ -34,7 +34,7 @@ export async function fetchTopMonsters(limit = 50): Promise<RemoteMonster[]> {
   try {
     const { data, error } = await supabase
       .from("monsters")
-      .select("*")
+      .select("id,kick_username,stage,hunger,mood,energy,level,personality,status,critical_ticks,last_updated_at,created_at,last_chat_at,chat_count")
       .neq("status", "dead")
       .order("level", { ascending: false })
       .limit(limit);
