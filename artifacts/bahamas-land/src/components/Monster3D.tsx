@@ -1,5 +1,5 @@
 import { useRef, useMemo, useEffect, Suspense, Component, type ReactNode } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 
@@ -9,7 +9,7 @@ class GLBErrorBoundary extends Component<
 > {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
-  componentDidCatch(_err: unknown) {}
+  componentDidCatch(err: unknown) { console.error("[GLB] load error for", (this.props as any).url, err); }
   componentDidUpdate(prev: { url: string }) {
     if (prev.url !== this.props.url && this.state.failed) {
       this.setState({ failed: false });
@@ -331,102 +331,77 @@ function getGlbUrl(type: MonsterType, stage: Stage): string | null {
 // 0.78 → model's largest dimension spans 78% of the viewport height — fully visible with padding.
 const GLB_FILL_FACTOR = 0.78;
 
-function GLBMonsterInner({ url, status }: { url: string; status: Status; stage: Stage }) {
+// REF_SIZE: every GLB model is scaled so its longest axis = this many world units.
+// The camera in Monster3DViewer is fixed at z=3.5 with FOV 42, giving ~78% fill.
+const GLB_REF_SIZE = 2.0;
+
+function GLBMonsterInner({ url, status, stage: _stage }: { url: string; status: Status; stage: Stage }) {
   const { scene, animations } = useGLTF(url);
-  const { camera } = useThree();
   const groupRef = useRef<THREE.Group>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   useMonsterAnimation(groupRef, status);
 
-  const { cloned, scale, cx, cy, cz, camDist } = useMemo(() => {
-    const cloned = scene.clone(true);
+  // Clone the scene once per URL so we own the object (safe for primitive).
+  const cloned = useMemo(() => scene.clone(true), [scene]);
 
-    // ── Step 1: compute tight bounding box in world space ─────────────────────
-    // Primary: traverse every mesh and union geometry bounding boxes transformed
-    // to world space. This works for both static and skinned rest-pose meshes.
+  // Compute bounding box → derive scale + geometric centre.
+  // We call updateWorldMatrix(true,true) first so every mesh's matrixWorld
+  // correctly reflects the full parent-chain transform (rotation/scale/translate).
+  const { scale, cx, cy, cz } = useMemo(() => {
     cloned.updateWorldMatrix(true, true);
+
     const box = new THREE.Box3();
     cloned.traverse((obj: THREE.Object3D) => {
       const mesh = obj as THREE.Mesh;
       if (mesh.isMesh && mesh.geometry) {
         mesh.geometry.computeBoundingBox();
-        if (mesh.geometry.boundingBox) {
-          const geomBox = mesh.geometry.boundingBox.clone();
-          geomBox.applyMatrix4(mesh.matrixWorld);
-          box.union(geomBox);
+        const gb = mesh.geometry.boundingBox;
+        if (gb) {
+          const world = gb.clone().applyMatrix4(mesh.matrixWorld);
+          box.union(world);
         }
       }
     });
 
-    // Fallback: setFromObject (less reliable for skinned meshes but catches anything missed)
+    // Fallback for models where geometry traversal yields nothing
     if (box.isEmpty()) {
       box.setFromObject(cloned);
     }
 
-    // ── Step 2: compute scale + centre ────────────────────────────────────────
-    const size = new THREE.Vector3();
-    const center = new THREE.Vector3();
-
     if (box.isEmpty()) {
-      // Last resort: use unit scale, no centering
-      return { cloned, scale: 1, cx: 0, cy: 0, cz: 0, camDist: 4 };
+      return { scale: 1, cx: 0, cy: 0, cz: 0 };
     }
 
+    const size   = new THREE.Vector3();
+    const center = new THREE.Vector3();
     box.getSize(size);
     box.getCenter(center);
 
-    // Scale so the model's longest axis = 2 world units (reference size).
-    // The camera distance is then computed from this fixed reference size.
-    const REF_SIZE = 2.0;
     const maxDim = Math.max(size.x, size.y, size.z);
-    const scale = maxDim > 0 ? REF_SIZE / maxDim : 1;
+    return {
+      scale: maxDim > 0 ? GLB_REF_SIZE / maxDim : 1,
+      cx: center.x,
+      cy: center.y,
+      cz: center.z,
+    };
+  }, [cloned]);
 
-    // ── Step 3: compute ideal camera distance ─────────────────────────────────
-    // After scaling, the model's largest dimension = REF_SIZE.
-    // With the camera at distance d and FOV θ, the visible full-height span is:
-    //   span = 2 * d * tan(θ/2)
-    // We want: REF_SIZE = span * GLB_FILL_FACTOR
-    //   → d = REF_SIZE / (2 * tan(θ/2) * GLB_FILL_FACTOR)
-    // Also account for the model's depth: move back enough so even the farthest
-    // face is well inside the frustum near-plane.
-    const cam = camera as THREE.PerspectiveCamera;
-    const fovRad = (cam.fov * Math.PI) / 180;
-    const halfSpanAtUnit = Math.tan(fovRad / 2); // visible half-height at d=1
-    const baseDist = (REF_SIZE / 2) / (halfSpanAtUnit * GLB_FILL_FACTOR);
-    // Add half the scaled depth so the back face doesn't clip
-    const scaledDepth = size.z * scale;
-    const camDist = baseDist + scaledDepth * 0.5;
-
-    return { cloned, scale, cx: center.x, cy: center.y, cz: center.z, camDist };
-  }, [scene, url, camera]);
-
-  // Set camera distance once the bounds are known
-  useEffect(() => {
-    camera.position.set(0, 0, camDist);
-    camera.updateMatrixWorld();
-  }, [camera, camDist]);
-
-  // Play built-in GLB animations (idle cycles, etc.) if the model has any
+  // Play GLB's built-in animation (idle, rotation, etc.) if present.
   useEffect(() => {
     if (!cloned || animations.length === 0) return;
-    const mixer = new THREE.AnimationMixer(cloned);
+    const mixer  = new THREE.AnimationMixer(cloned);
     const action = mixer.clipAction(animations[0]);
     action.setLoop(THREE.LoopRepeat, Infinity);
     action.play();
     mixerRef.current = mixer;
-    return () => {
-      mixer.stopAllAction();
-      mixerRef.current = null;
-    };
+    return () => { mixer.stopAllAction(); mixerRef.current = null; };
   }, [cloned, animations]);
 
-  useFrame((_, delta) => {
-    mixerRef.current?.update(delta);
-  });
+  useFrame((_, delta) => { mixerRef.current?.update(delta); });
 
   return (
-    // Outer group: receives bob/shake/tilt animation from useMonsterAnimation.
-    // Inner group: centres the model at world origin and normalises its size.
+    // Outer group: bob / shake / tilt from useMonsterAnimation
+    // Inner group: centres at world origin and normalises to GLB_REF_SIZE units
     <group ref={groupRef}>
       <group scale={scale} position={[-scale * cx, -scale * cy, -scale * cz]}>
         <primitive object={cloned} />
@@ -1449,13 +1424,10 @@ export function Monster3DViewer({
   const monsterType = getMonsterType(kickUsername);
   const info = MONSTER_INFO[monsterType] ?? MONSTER_INFO.dragon;
   const glow = statusGlow(status);
-  // Match gallery camera distances — models fill the viewport instead of
-  // appearing tiny in the distance.
-  const cameraZ =
-    stage === "egg"   ? 2.8 :
-    stage === "baby"  ? 2.6 :
-    stage === "teen"  ? 3.0 :
-    stage === "adult" ? 3.5 : 3.8;
+  // All GLB models are normalised to GLB_REF_SIZE=2.0 world units.
+  // Camera at z=3.5 with FOV 42 → visible span ≈ 2.69 → model fills ~74%.
+  // The extra margin ensures nothing clips regardless of model proportions.
+  const cameraZ = 3.5;
 
   // When fullscreen, use absolute inset-0 so the canvas always fills
   // the relative-positioned parent exactly — `height:100%` on a flex-1
