@@ -1,7 +1,8 @@
-import { useRef, useMemo, useEffect, Suspense, Component, type ReactNode } from "react";
+import { useRef, useMemo, useEffect, useState, Suspense, Component, type ReactNode } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, useGLTF } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as skeletonClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 
 class GLBErrorBoundary extends Component<
@@ -332,94 +333,129 @@ function getGlbUrl(type: MonsterType, stage: Stage): string | null {
 // The camera in Monster3DViewer is fixed at z=3.5 with FOV 42, giving ~78% fill.
 const GLB_REF_SIZE = 2.0;
 
-function GLBMonsterInner({ url, status, stage: _stage }: { url: string; status: Status; stage: Stage }) {
-  const { scene, animations } = useGLTF(url);
+// Shared loader instance — reused across renders.
+const gltfLoader = new GLTFLoader();
+
+type GltfState =
+  | { status: "loading" }
+  | { status: "ready"; scene: THREE.Object3D; animations: THREE.AnimationClip[] }
+  | { status: "error"; message: string };
+
+// Load a GLB imperatively (no React Suspense). Returns loading/ready/error state.
+function useGltfDirect(url: string): GltfState {
+  const [state, setState] = useState<GltfState>({ status: "loading" });
+
+  useEffect(() => {
+    setState({ status: "loading" });
+    let cancelled = false;
+
+    gltfLoader.load(
+      url,
+      (gltf) => {
+        if (cancelled) return;
+        try {
+          const cloned = skeletonClone(gltf.scene);
+          console.log("[GLB] loaded", url, "meshes:", (() => {
+            let n = 0;
+            cloned.traverse((o: THREE.Object3D) => { if ((o as THREE.Mesh).isMesh) n++; });
+            return n;
+          })());
+          setState({ status: "ready", scene: cloned, animations: gltf.animations });
+        } catch (e) {
+          console.error("[GLB] clone failed for", url, e);
+          setState({ status: "error", message: String(e) });
+        }
+      },
+      undefined,
+      (err) => {
+        if (cancelled) return;
+        console.error("[GLB] load failed for", url, err);
+        setState({ status: "error", message: String(err) });
+      }
+    );
+
+    return () => { cancelled = true; };
+  }, [url]);
+
+  return state;
+}
+
+function computeNormalisedTransform(scene: THREE.Object3D) {
+  scene.updateWorldMatrix(true, true);
+
+  const box = new THREE.Box3();
+  scene.traverse((obj: THREE.Object3D) => {
+    const mesh = obj as THREE.Mesh;
+    if (mesh.isMesh && mesh.geometry) {
+      mesh.geometry.computeBoundingBox();
+      const gb = mesh.geometry.boundingBox;
+      if (gb) box.union(gb.clone().applyMatrix4(mesh.matrixWorld));
+    }
+  });
+
+  if (box.isEmpty()) box.setFromObject(scene);
+  if (box.isEmpty()) return { scale: 1, cx: 0, cy: 0, cz: 0 };
+
+  const size   = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  box.getSize(size);
+  box.getCenter(center);
+
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const scale = maxDim > 0 ? GLB_REF_SIZE / maxDim : 1;
+  console.log("[GLB] bounds — size:", size.toArray().map(v=>+v.toFixed(3)), "maxDim:", +maxDim.toFixed(3), "→ scale:", +scale.toFixed(4));
+  return { scale, cx: center.x, cy: center.y, cz: center.z };
+}
+
+function GLBMonsterReady({
+  scene,
+  animations,
+  status,
+}: {
+  scene: THREE.Object3D;
+  animations: THREE.AnimationClip[];
+  status: Status;
+}) {
   const groupRef = useRef<THREE.Group>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   useMonsterAnimation(groupRef, status);
 
-  // SkeletonUtils.clone correctly re-wires bone/skinned-mesh references.
-  // scene.clone(true) breaks animated GLBs silently — use this instead.
-  const cloned = useMemo(() => {
-    const c = skeletonClone(scene);
-    console.log("[GLB] cloned scene for", url, "meshes:", (() => { let n = 0; c.traverse((o: THREE.Object3D) => { if ((o as THREE.Mesh).isMesh) n++; }); return n; })());
-    return c;
-  }, [scene, url]);
+  const { scale, cx, cy, cz } = useMemo(
+    () => computeNormalisedTransform(scene),
+    [scene]
+  );
 
-  // Compute bounding box → derive scale + geometric centre.
-  // We call updateWorldMatrix(true,true) first so every mesh's matrixWorld
-  // correctly reflects the full parent-chain transform (rotation/scale/translate).
-  const { scale, cx, cy, cz } = useMemo(() => {
-    cloned.updateWorldMatrix(true, true);
-
-    const box = new THREE.Box3();
-    cloned.traverse((obj: THREE.Object3D) => {
-      const mesh = obj as THREE.Mesh;
-      if (mesh.isMesh && mesh.geometry) {
-        mesh.geometry.computeBoundingBox();
-        const gb = mesh.geometry.boundingBox;
-        if (gb) {
-          const world = gb.clone().applyMatrix4(mesh.matrixWorld);
-          box.union(world);
-        }
-      }
-    });
-
-    // Fallback for models where geometry traversal yields nothing
-    if (box.isEmpty()) {
-      box.setFromObject(cloned);
-    }
-
-    if (box.isEmpty()) {
-      return { scale: 1, cx: 0, cy: 0, cz: 0 };
-    }
-
-    const size   = new THREE.Vector3();
-    const center = new THREE.Vector3();
-    box.getSize(size);
-    box.getCenter(center);
-
-    const maxDim = Math.max(size.x, size.y, size.z);
-    return {
-      scale: maxDim > 0 ? GLB_REF_SIZE / maxDim : 1,
-      cx: center.x,
-      cy: center.y,
-      cz: center.z,
-    };
-  }, [cloned]);
-
-  // Play GLB's built-in animation (idle, rotation, etc.) if present.
   useEffect(() => {
-    if (!cloned || animations.length === 0) return;
-    const mixer  = new THREE.AnimationMixer(cloned);
+    if (animations.length === 0) return;
+    const mixer  = new THREE.AnimationMixer(scene);
     const action = mixer.clipAction(animations[0]);
     action.setLoop(THREE.LoopRepeat, Infinity);
     action.play();
     mixerRef.current = mixer;
     return () => { mixer.stopAllAction(); mixerRef.current = null; };
-  }, [cloned, animations]);
+  }, [scene, animations]);
 
   useFrame((_, delta) => { mixerRef.current?.update(delta); });
 
   return (
-    // Outer group: bob / shake / tilt from useMonsterAnimation
-    // Inner group: centres at world origin and normalises to GLB_REF_SIZE units
     <group ref={groupRef}>
       <group scale={scale} position={[-scale * cx, -scale * cy, -scale * cz]}>
-        <primitive object={cloned} />
+        <primitive object={scene} />
       </group>
     </group>
   );
 }
 
-function GLBMonsterMesh({ url, status, stage, fallback }: { url: string; status: Status; stage: Stage; fallback: ReactNode }) {
-  return (
-    <GLBErrorBoundary url={url} fallback={fallback}>
-      <Suspense fallback={fallback}>
-        <GLBMonsterInner url={url} status={status} stage={stage} />
-      </Suspense>
-    </GLBErrorBoundary>
-  );
+function GLBMonsterMesh({ url, status, stage: _stage, fallback }: { url: string; status: Status; stage: Stage; fallback: ReactNode }) {
+  const gltf = useGltfDirect(url);
+
+  if (gltf.status === "ready") {
+    return <GLBMonsterReady scene={gltf.scene} animations={gltf.animations} status={status} />;
+  }
+
+  // While loading or on error — show the procedural fallback.
+  // (Error is logged to console via useGltfDirect.)
+  return <>{fallback}</>;
 }
 
 function GolemMesh({ stage, info, status }: { stage: Stage; info: typeof MONSTER_INFO[MonsterType]; status: Status }) {
