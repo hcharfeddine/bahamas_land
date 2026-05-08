@@ -1394,12 +1394,35 @@ function QilinMesh({ stage, info, status }: { stage: Stage; info: typeof MONSTER
   );
 }
 
+function ProceduralMonsterMesh({ monsterType, stage, info, status }: { monsterType: MonsterType; stage: Stage; info: typeof MONSTER_INFO[MonsterType]; status: Status }) {
+  if (stage === "egg") return <EggMesh info={info} status={status} />;
+  const nonEggStage = stage as "baby" | "teen" | "adult" | "final";
+  switch (monsterType) {
+    case "dragon":   return <DragonMesh stage={stage} info={info} status={status} />;
+    case "spider":   return <SpiderMesh stage={stage} info={info} status={status} />;
+    case "golem":    return <GolemMesh stage={stage} info={info} status={status} />;
+    case "phoenix":  return <PhoenixMesh stage={stage} info={info} status={status} />;
+    case "crab":     return <CrabMesh stage={nonEggStage} info={info} status={status} />;
+    case "shark":    return <SharkMesh stage={nonEggStage} info={info} status={status} />;
+    case "octopus":  return <OctopusMesh stage={nonEggStage} info={info} status={status} />;
+    case "cyclops":  return <CyclopsMesh stage={stage} info={info} status={status} />;
+    case "minotaur": return <MinotaurMesh stage={stage} info={info} status={status} />;
+    case "medusa":   return <MedusaMesh stage={stage} info={info} status={status} />;
+    case "centaur":  return <CentaurMesh stage={stage} info={info} status={status} />;
+    case "kitsune":  return <KitsuneMesh stage={stage} info={info} status={status} />;
+    case "fenrir":   return <FenrirMesh stage={stage} info={info} status={status} />;
+    default:         return <DragonMesh stage={stage} info={info} status={status} />;
+  }
+}
+
 export function MonsterScene({ kickUsername, stage, status }: { kickUsername: string; stage: Stage; status: Status }) {
   const monsterType = getMonsterType(kickUsername);
   const info = MONSTER_INFO[monsterType] ?? MONSTER_INFO.dragon;
   const glow = statusGlow(status);
   const isDead = status === "dead";
   const url = getGlbUrl(monsterType, stage);
+
+  const proceduralFallback = <ProceduralMonsterMesh monsterType={monsterType} stage={stage} info={info} status={status} />;
 
   return (
     <>
@@ -1409,7 +1432,10 @@ export function MonsterScene({ kickUsername, stage, status }: { kickUsername: st
       <pointLight position={[0, 4, 4]} intensity={isDead ? 0.3 : 2.0} color={isDead ? "#aaa" : "#fff"} />
       <pointLight position={[-3, -1, 3]} intensity={isDead ? 0.1 : 1.2} color={isDead ? "#555" : glow} />
       <pointLight position={[0, -4, 0]} intensity={isDead ? 0.05 : 0.8} color={isDead ? "#333" : info.eggGlow} />
-      {url && <GLBMonsterMesh key={url} url={url} status={status} stage={stage} fallback={null} />}
+      {url
+        ? <GLBMonsterMesh key={url} url={url} status={status} stage={stage} fallback={proceduralFallback} />
+        : proceduralFallback
+      }
     </>
   );
 }
