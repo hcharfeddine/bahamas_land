@@ -1,4 +1,4 @@
-import { useRef, useMemo, Suspense, Component, type ReactNode } from "react";
+import { useRef, useMemo, useEffect, Suspense, Component, type ReactNode } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
@@ -393,16 +393,24 @@ const GLB_BOUNDS: Record<string, { maxDim: number; cx: number; cy: number; cz: n
 };
 
 function GLBMonsterInner({ url, status, stage }: { url: string; status: Status; stage: Stage }) {
-  const { scene } = useGLTF(url);
-  const ref = useRef<THREE.Group>(null);
-  useMonsterAnimation(ref, status);
+  const { scene, animations } = useGLTF(url);
+  const groupRef = useRef<THREE.Group>(null);
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
+  useMonsterAnimation(groupRef, status);
 
   const { cloned, scale, cx, cy, cz } = useMemo(() => {
     const cloned = scene.clone(true);
     const target = GLB_TARGET[stage] ?? 2.0;
 
-    // Update world matrices so Box3 reads correct positions.
-    // Then compute bounds only from visible Mesh geometry (excludes bones/cameras/helpers).
+    // Prefer pre-computed bounds — runtime Box3 is unreliable for skinned/animated meshes
+    // because bone transforms aren't applied in the cloned rest pose.
+    const modelName = url.split("/").pop()?.replace(".glb", "") ?? "";
+    const pre = GLB_BOUNDS[modelName];
+    if (pre && pre.maxDim > 0) {
+      return { cloned, scale: target / pre.maxDim, cx: pre.cx, cy: pre.cy, cz: pre.cz };
+    }
+
+    // Fallback: runtime computation (used only when no pre-computed entry exists)
     cloned.updateWorldMatrix(true, true);
     const box = new THREE.Box3();
     cloned.traverse((obj: THREE.Object3D) => {
@@ -414,11 +422,9 @@ function GLBMonsterInner({ url, status, stage }: { url: string; status: Status; 
         box.union(geomBox);
       }
     });
-
     const size = new THREE.Vector3();
     const center = new THREE.Vector3();
     if (box.isEmpty()) {
-      // Fallback: use full-object bounds if no meshes found
       new THREE.Box3().setFromObject(cloned).getSize(size);
       new THREE.Box3().setFromObject(cloned).getCenter(center);
     } else {
@@ -426,15 +432,31 @@ function GLBMonsterInner({ url, status, stage }: { url: string; status: Status; 
       box.getCenter(center);
     }
     const maxDim = Math.max(size.x, size.y, size.z);
-    const scale = maxDim > 0 ? target / maxDim : 1;
-
-    return { cloned, scale, cx: center.x, cy: center.y, cz: center.z };
+    return { cloned, scale: maxDim > 0 ? target / maxDim : 1, cx: center.x, cy: center.y, cz: center.z };
   }, [scene, url, stage]);
+
+  // Play built-in GLB animations (idle cycles, etc.) if the model has any
+  useEffect(() => {
+    if (!cloned || animations.length === 0) return;
+    const mixer = new THREE.AnimationMixer(cloned);
+    const action = mixer.clipAction(animations[0]);
+    action.setLoop(THREE.LoopRepeat, Infinity);
+    action.play();
+    mixerRef.current = mixer;
+    return () => {
+      mixer.stopAllAction();
+      mixerRef.current = null;
+    };
+  }, [cloned, animations]);
+
+  useFrame((_, delta) => {
+    mixerRef.current?.update(delta);
+  });
 
   return (
     // Outer group: receives bob/shake animation from useMonsterAnimation.
     // Inner group: centers model at world origin and scales it to fit the camera view.
-    <group ref={ref}>
+    <group ref={groupRef}>
       <group scale={scale} position={[-scale * cx, -scale * cy, -scale * cz]}>
         <primitive object={cloned} />
       </group>
