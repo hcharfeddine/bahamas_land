@@ -326,9 +326,7 @@ function getGlbUrl(type: MonsterType, stage: Stage): string | null {
   if (stage === "teen")  name = cfg.teen;
   if (stage === "adult") name = cfg.adult;
   if (stage === "final") name = cfg.finalForm;
-  const url = name ? `${GLB_BASE}/monsters/${name}.glb` : null;
-  console.log(`[Monster3D] getGlbUrl type=${type} stage=${stage} → ${url ?? "null (no GLB)"}`);
-  return url;
+  return name ? `${GLB_BASE}/monsters/${name}.glb` : null;
 }
 
 // Desired display size (units) for each stage — matched to camera distance.
@@ -401,19 +399,23 @@ function GLBMonsterInner({ url, status, stage }: { url: string; status: Status; 
 
   const { cloned, scale, cx, cy, cz } = useMemo(() => {
     const cloned = scene.clone(true);
-    // Extract stem from URL: ".../monsters/egg_1.glb" → "egg_1"
-    const stem = url.replace(/^.*\/monsters\//, "").replace(/\.glb$/, "");
-    const b = GLB_BOUNDS[stem];
     const target = GLB_TARGET[stage] ?? 2.0;
-    const scale = b && b.maxDim > 0 ? target / b.maxDim : 1;
-    console.log(`[Monster3D] ${b ? "✓" : "⚠ no bounds"} stem=${stem} maxDim=${b?.maxDim} scale=${scale.toFixed(4)} stage=${stage}`);
-    return { cloned, scale, cx: b?.cx ?? 0, cy: b?.cy ?? 0, cz: b?.cz ?? 0 };
+
+    // Compute bounding box at runtime — reliable regardless of model coordinate system.
+    const box = new THREE.Box3().setFromObject(cloned);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    box.getSize(size);
+    box.getCenter(center);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scale = maxDim > 0 ? target / maxDim : 1;
+
+    return { cloned, scale, cx: center.x, cy: center.y, cz: center.z };
   }, [scene, url, stage]);
 
   return (
     // Outer group: receives bob/shake animation from useMonsterAnimation.
     // Inner group: centers model at world origin and scales it to fit the camera view.
-    // Math: world_center = position + scale * model_center = 0  →  position = -scale * center
     <group ref={ref}>
       <group scale={scale} position={[-scale * cx, -scale * cy, -scale * cz]}>
         <primitive object={cloned} />

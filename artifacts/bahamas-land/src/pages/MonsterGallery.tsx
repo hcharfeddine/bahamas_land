@@ -61,6 +61,7 @@ function StageCard({
           key={`${seed}-${stage}`}
           camera={{ position: [0, 0, CAMERA_Z[stage]], fov: 42 }}
           gl={{ antialias: true, alpha: true }}
+          frameloop="demand"
           style={{ width: "100%", height: "100%" }}
         >
           <MonsterScene kickUsername={seed} stage={stage} status="happy" />
