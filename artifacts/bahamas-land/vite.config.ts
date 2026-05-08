@@ -19,8 +19,11 @@ const monstersPlugin = (): PluginOption => ({
       const fileName = (req.url ?? "").replace(/^\//, "");
       const filePath = path.join(MONSTERS_SRC, fileName);
       if (fileName && fs.existsSync(filePath)) {
+        const stat = fs.statSync(filePath);
         res.setHeader("Content-Type", "model/gltf-binary");
-        res.setHeader("Cache-Control", "public, max-age=86400");
+        res.setHeader("Content-Length", stat.size);
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        res.setHeader("Accept-Ranges", "bytes");
         fs.createReadStream(filePath).pipe(res);
       } else {
         next();
