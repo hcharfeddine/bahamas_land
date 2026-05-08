@@ -4,6 +4,7 @@ import { OrbitControls } from "@react-three/drei";
 import { MonsterScene, MONSTER_INFO } from "@/components/Monster3D";
 import type { MonsterType } from "@/components/Monster3D";
 
+
 const STAGES = ["egg", "baby", "teen", "adult", "final"] as const;
 
 const STAGE_LABELS: Record<string, string> = {
@@ -124,40 +125,28 @@ export default function MonsterGallery() {
         </div>
       </div>
 
-      {/* All 12 types — adult form */}
+      {/* All types — selector grid */}
       <div className="mt-8">
         <p className="text-center text-white/30 text-[10px] uppercase tracking-widest mb-4">
-          All 12 types — adult form · click to inspect
+          All {TYPES.length} types · click to inspect
         </p>
-        <div className="flex flex-wrap justify-center gap-3">
+        <div className="flex flex-wrap justify-center gap-2">
           {TYPES.map((type) => {
             const t = MONSTER_INFO[type];
-            const s = TYPE_SEED[type];
             return (
               <button
                 key={type}
                 onClick={() => setSelected(type)}
-                className="flex flex-col items-center gap-1 group"
+                className="flex items-center gap-1.5 px-3 py-2 border text-xs uppercase tracking-widest transition-all"
+                style={{
+                  borderColor: selected === type ? t.eggGlow : "rgba(255,255,255,0.08)",
+                  background:  selected === type ? `${t.eggGlow}22` : "transparent",
+                  color:       selected === type ? t.secondary : "rgba(255,255,255,0.45)",
+                  boxShadow:   selected === type ? `0 0 10px ${t.eggGlow}55` : "none",
+                }}
               >
-                <div
-                  className="border overflow-hidden transition-all"
-                  style={{
-                    width: 80, height: 80,
-                    borderColor: selected === type ? t.eggGlow : "rgba(255,255,255,0.08)",
-                    boxShadow:   selected === type ? `0 0 10px ${t.eggGlow}66` : "none",
-                  }}
-                >
-                  <Canvas
-                    camera={{ position: [0, 0, 3.5], fov: 42 }}
-                    gl={{ antialias: true, alpha: true }}
-                    style={{ width: "100%", height: "100%" }}
-                  >
-                    <MonsterScene kickUsername={s} stage="adult" status="happy" />
-                  </Canvas>
-                </div>
-                <span className="text-[9px] text-white/40 uppercase tracking-widest group-hover:text-white/70 transition-colors">
-                  {t.icon} {t.name}
-                </span>
+                <span className="text-base">{t.icon}</span>
+                <span>{t.name}</span>
               </button>
             );
           })}

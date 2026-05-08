@@ -1378,8 +1378,8 @@ export function MonsterScene({ kickUsername, stage, status }: { kickUsername: st
   const monsterType = getMonsterType(kickUsername);
   const info = MONSTER_INFO[monsterType] ?? MONSTER_INFO.dragon;
   const glow = statusGlow(status);
-
   const isDead = status === "dead";
+  const url = getGlbUrl(monsterType, stage);
 
   return (
     <>
@@ -1387,31 +1387,7 @@ export function MonsterScene({ kickUsername, stage, status }: { kickUsername: st
       <pointLight position={[3, 4, 3]} intensity={isDead ? 0.6 : 1.4} color={isDead ? "#aaa" : "#fff"} />
       <pointLight position={[-2, -1, 2]} intensity={isDead ? 0.1 : 0.6} color={isDead ? "#555" : glow} />
       <pointLight position={[0, -3, 0]} intensity={isDead ? 0.05 : 0.25} color={isDead ? "#333" : info.eggGlow} />
-
-      {/* Render monster per stage - uses GLB if configured, falls back to procedural on error */}
-      {(() => {
-        const proceduralMesh = (() => {
-          // egg stage: no procedural fallback — show nothing rather than risk overriding the GLB
-          if (stage === "egg")               return null;
-          if (monsterType === "dragon")      return <DragonMesh   stage={stage} info={info} status={status} />;
-          if (monsterType === "spider")      return <SpiderMesh   stage={stage} info={info} status={status} />;
-          if (monsterType === "golem")       return <GolemMesh    stage={stage} info={info} status={status} />;
-          if (monsterType === "phoenix")     return <PhoenixMesh  stage={stage} info={info} status={status} />;
-          if (monsterType === "crab")        return <CrabMesh     stage={stage} info={info} status={status} />;
-          if (monsterType === "shark")       return <SharkMesh    stage={stage} info={info} status={status} />;
-          if (monsterType === "octopus")     return <OctopusMesh  stage={stage} info={info} status={status} />;
-          if (monsterType === "cyclops")     return <CyclopsMesh  stage={stage} info={info} status={status} />;
-          if (monsterType === "minotaur")    return <MinotaurMesh stage={stage} info={info} status={status} />;
-          if (monsterType === "medusa")      return <MedusaMesh   stage={stage} info={info} status={status} />;
-          if (monsterType === "centaur")     return <CentaurMesh  stage={stage} info={info} status={status} />;
-          if (monsterType === "kitsune")     return <KitsuneMesh  stage={stage} info={info} status={status} />;
-          if (monsterType === "fenrir")      return <FenrirMesh   stage={stage} info={info} status={status} />;
-          return null;
-        })();
-        const url = getGlbUrl(monsterType, stage);
-        if (url) return <GLBMonsterMesh url={url} status={status} stage={stage} fallback={proceduralMesh} />;
-        return proceduralMesh;
-      })()}
+      {url && <GLBMonsterMesh url={url} status={status} stage={stage} fallback={null} />}
     </>
   );
 }
