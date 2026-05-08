@@ -1509,7 +1509,7 @@ export function Monster3DViewer({
         />
       </Canvas>
       <div className="absolute bottom-2 left-0 right-0 text-center font-mono text-[9px] text-white/30 uppercase tracking-widest pointer-events-none select-none">
-        {info.icon} {info.name} · drag to rotate · scroll to zoom
+         drag to rotate · scroll to zoom
       </div>
     </div>
   );
