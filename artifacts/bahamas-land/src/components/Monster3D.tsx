@@ -311,13 +311,10 @@ const MONSTER_GLB: Record<MonsterType, MonsterGLBConfig> = {
   fenrir:   { egg: "egg_13", baby: "baby_teen_fenrir",   teen: "baby_teen_fenrir",   adult: "adult_fenrir",   finalForm: "final_form_fenrir"   },
 };
 
-// GLBs are served from Supabase Storage (public bucket: "monsters").
-// The base URL is derived from VITE_SUPABASE_URL so no extra env var is needed.
-// Falls back to /monsters/* relative path for local development.
+// GLBs are served from Supabase Storage CDN when VITE_SUPABASE_URL is set,
+// otherwise fall back to /monsters/* which is bundled into the Vercel dist.
 const _supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, "") ?? "";
-const GLB_BASE = _supabaseUrl
-  ? `${_supabaseUrl}/storage/v1/object/public`
-  : "";
+const GLB_BASE = _supabaseUrl ? `${_supabaseUrl}/storage/v1/object/public` : "";
 
 function getGlbUrl(type: MonsterType, stage: Stage): string | null {
   const cfg = MONSTER_GLB[type];

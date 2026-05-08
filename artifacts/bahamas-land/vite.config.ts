@@ -15,7 +15,6 @@ const MONSTERS_SRC = path.resolve(import.meta.dirname, "../../monsters");
 const monstersPlugin = (): PluginOption => ({
   name: "serve-monsters",
   // In development: serve GLBs locally from the repo monsters/ folder.
-  // In production: GLBs are served from Supabase Storage — no copy needed.
   configureServer(server) {
     server.middlewares.use("/monsters", (req, res, next) => {
       const fileName = (req.url ?? "").replace(/^\//, "");
@@ -31,6 +30,18 @@ const monstersPlugin = (): PluginOption => ({
         next();
       }
     });
+  },
+  // In production: copy GLBs into dist/monsters/ as a reliable fallback.
+  // When VITE_SUPABASE_URL is set the frontend prefers Supabase CDN, but
+  // having the files in dist ensures monsters always load even if Supabase
+  // Storage is not configured.
+  closeBundle() {
+    if (!fs.existsSync(MONSTERS_SRC)) return;
+    const dest = path.resolve(import.meta.dirname, "dist/monsters");
+    fs.mkdirSync(dest, { recursive: true });
+    for (const file of fs.readdirSync(MONSTERS_SRC)) {
+      fs.copyFileSync(path.join(MONSTERS_SRC, file), path.join(dest, file));
+    }
   },
 });
 
