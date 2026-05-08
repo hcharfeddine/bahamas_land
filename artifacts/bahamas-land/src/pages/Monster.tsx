@@ -178,9 +178,6 @@ export default function Monster() {
           <div className="text-primary font-black text-2xl uppercase tracking-[0.3em] drop-shadow-lg neon-text">
             @{monster.kick_username}
           </div>
-          <div className="text-white/40 text-[10px] uppercase tracking-widest mt-0.5">
-            {info.icon} {info.name} · {STAGE_LABEL[monster.stage] || monster.stage} · Lv.{monster.level}
-          </div>
         </div>
 
         {monster.status === "critical" && (
