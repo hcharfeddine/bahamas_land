@@ -9,9 +9,7 @@ class GLBErrorBoundary extends Component<
 > {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
-  componentDidCatch(err: unknown) {
-    console.error("[Monster3D] GLB failed to load:", this.props.url, err);
-  }
+  componentDidCatch(_err: unknown) {}
   componentDidUpdate(prev: { url: string }) {
     if (prev.url !== this.props.url && this.state.failed) {
       this.setState({ failed: false });
@@ -392,22 +390,73 @@ const GLB_BOUNDS: Record<string, { maxDim: number; cx: number; cy: number; cz: n
   final_form_spider:  { maxDim:   273.831, cx:    0.000, cy:  -16.467, cz:   10.887 },
 };
 
+// Per-model vertical display shift (world units, applied AFTER geometric centering).
+// Positive  → model moves DOWN so more of the top (head/wings) shows in the viewport.
+// Negative  → model moves UP so more of the bottom shows.
+// Tune these values to make each creature's visual centre of interest sit at the
+// centre of the viewport.  Zero means use the pure geometric centre.
+const GLB_Y_SHIFT: Record<string, number> = {
+  // ── Eggs (symmetric blobs, geometric centre is fine) ──────────────────────
+  egg_1: 0, egg_2: 0, egg_3: 0, egg_4: 0, egg_5: 0, egg_6: 0,
+  egg_7: 0, egg_8: 0, egg_9: 0, egg_10: 0, egg_11: 0, egg_12: 0, egg_13: 0,
+
+  // ── Dragon (upright/flying — show wings and head) ─────────────────────────
+  baby_teen_dragon: 0.35, adult_dragon: 0.35, final_form_dragon: 0.30,
+
+  // ── Spider (low crawling body — slight lift) ──────────────────────────────
+  baby_teen_spider: 0.10, adult_spider: 0.10, final_form_spider: 0.10,
+
+  // ── Golem (upright stone figure — show head and shoulders) ────────────────
+  baby_teen_golem: 0.25, teen_golem: 0.25, final_form_golem: 0.25,
+
+  // ── Phoenix (flying bird — show wings and body) ───────────────────────────
+  baby_teen_phoenix: 0.25, adult_phoenix: 0.25, final_form_phoenix: 0.20,
+
+  // ── Crab (wide and flat — centred is fine) ────────────────────────────────
+  baby_teen_crab: 0.05, adult_crab: 0.05, final_form_crab: 0.05,
+
+  // ── Shark (horizontal — no vertical shift needed) ─────────────────────────
+  baby_teen_shark: 0.00, adult_shark: 0.00, final_form_shark: 0.00,
+
+  // ── Octopus (rounded mantle + tentacles — show mantle) ───────────────────
+  baby_teen_octopus: 0.20, adult_octopus: 0.20, final_form_octopus: 0.15,
+
+  // ── Cyclops (tall one-eyed humanoid — show eye/head) ─────────────────────
+  baby_teen_cyclops: 0.30, adult_cyclops: 0.30, final_form_cyclops: 0.30,
+
+  // ── Minotaur (standing bull-man — show upper body) ────────────────────────
+  baby_teen_minotaur: 0.30, adult_minotaur: 0.30, final_form_minotaur: 0.30,
+
+  // ── Medusa (snake-hair gorgon — show face and snakes) ────────────────────
+  baby_teen_medusas: 0.25, adult_medusa: 0.25, final_form_medusa: 0.25,
+
+  // ── Centaur (horse body + human torso — show torso and face) ─────────────
+  baby_teen_centaur: 0.20, adult_centaur: 0.20, final_form_centaur: 0.20,
+
+  // ── Kitsune (fox spirit — show head and tails) ────────────────────────────
+  baby_teen_kitsune: 0.20, adult_kitsune: 0.20, final_form_kitsune: 0.20,
+
+  // ── Fenrir (giant wolf — show head and shoulders) ────────────────────────
+  baby_teen_fenrir: 0.15, adult_fenrir: 0.15, final_form_fenrir: 0.15,
+};
+
 function GLBMonsterInner({ url, status, stage }: { url: string; status: Status; stage: Stage }) {
   const { scene, animations } = useGLTF(url);
   const groupRef = useRef<THREE.Group>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   useMonsterAnimation(groupRef, status);
 
-  const { cloned, scale, cx, cy, cz } = useMemo(() => {
+  const { cloned, scale, cx, cy, cz, yShift } = useMemo(() => {
     const cloned = scene.clone(true);
     const target = GLB_TARGET[stage] ?? 2.0;
 
     // Prefer pre-computed bounds — runtime Box3 is unreliable for skinned/animated meshes
     // because bone transforms aren't applied in the cloned rest pose.
     const modelName = url.split("/").pop()?.replace(".glb", "") ?? "";
+    const yShift = GLB_Y_SHIFT[modelName] ?? 0.15; // default: slight shift for upright creatures
     const pre = GLB_BOUNDS[modelName];
     if (pre && pre.maxDim > 0) {
-      return { cloned, scale: target / pre.maxDim, cx: pre.cx, cy: pre.cy, cz: pre.cz };
+      return { cloned, scale: target / pre.maxDim, cx: pre.cx, cy: pre.cy, cz: pre.cz, yShift };
     }
 
     // Fallback: runtime computation (used only when no pre-computed entry exists)
@@ -432,7 +481,7 @@ function GLBMonsterInner({ url, status, stage }: { url: string; status: Status; 
       box.getCenter(center);
     }
     const maxDim = Math.max(size.x, size.y, size.z);
-    return { cloned, scale: maxDim > 0 ? target / maxDim : 1, cx: center.x, cy: center.y, cz: center.z };
+    return { cloned, scale: maxDim > 0 ? target / maxDim : 1, cx: center.x, cy: center.y, cz: center.z, yShift };
   }, [scene, url, stage]);
 
   // Play built-in GLB animations (idle cycles, etc.) if the model has any
@@ -455,8 +504,9 @@ function GLBMonsterInner({ url, status, stage }: { url: string; status: Status; 
 
   return (
     // Outer group: receives bob/shake animation from useMonsterAnimation.
-    // Inner group: centers model at world origin and scales it to fit the camera view.
-    <group ref={groupRef}>
+    // yShift moves the model down so the upper body / head appears near the viewport centre.
+    // Inner group: centres model at world origin and scales it to camera-friendly size.
+    <group ref={groupRef} position={[0, -yShift, 0]}>
       <group scale={scale} position={[-scale * cx, -scale * cy, -scale * cz]}>
         <primitive object={cloned} />
       </group>
@@ -1478,11 +1528,13 @@ export function Monster3DViewer({
   const monsterType = getMonsterType(kickUsername);
   const info = MONSTER_INFO[monsterType] ?? MONSTER_INFO.dragon;
   const glow = statusGlow(status);
+  // Match gallery camera distances — models fill the viewport instead of
+  // appearing tiny in the distance.
   const cameraZ =
-    stage === "egg"   ? 3.5 :
-    stage === "baby"  ? 4.2 :
-    stage === "teen"  ? 4.8 :
-    stage === "adult" ? 5.2 : 5.5;
+    stage === "egg"   ? 2.8 :
+    stage === "baby"  ? 2.6 :
+    stage === "teen"  ? 3.0 :
+    stage === "adult" ? 3.5 : 3.8;
 
   // When fullscreen, use absolute inset-0 so the canvas always fills
   // the relative-positioned parent exactly — `height:100%` on a flex-1
