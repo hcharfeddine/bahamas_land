@@ -2,6 +2,7 @@ import { useRef, useMemo, useEffect, Suspense, Component, type ReactNode } from 
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
+import { clone as skeletonClone } from "three/examples/jsm/utils/SkeletonUtils.js";
 
 class GLBErrorBoundary extends Component<
   { fallback: ReactNode; children: ReactNode; url: string },
@@ -327,10 +328,6 @@ function getGlbUrl(type: MonsterType, stage: Stage): string | null {
   return name ? `${GLB_BASE}/monsters/${name}.glb` : null;
 }
 
-// Fill factor: what fraction of the camera frustum the model should occupy.
-// 0.78 → model's largest dimension spans 78% of the viewport height — fully visible with padding.
-const GLB_FILL_FACTOR = 0.78;
-
 // REF_SIZE: every GLB model is scaled so its longest axis = this many world units.
 // The camera in Monster3DViewer is fixed at z=3.5 with FOV 42, giving ~78% fill.
 const GLB_REF_SIZE = 2.0;
@@ -341,8 +338,13 @@ function GLBMonsterInner({ url, status, stage: _stage }: { url: string; status: 
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   useMonsterAnimation(groupRef, status);
 
-  // Clone the scene once per URL so we own the object (safe for primitive).
-  const cloned = useMemo(() => scene.clone(true), [scene]);
+  // SkeletonUtils.clone correctly re-wires bone/skinned-mesh references.
+  // scene.clone(true) breaks animated GLBs silently — use this instead.
+  const cloned = useMemo(() => {
+    const c = skeletonClone(scene);
+    console.log("[GLB] cloned scene for", url, "meshes:", (() => { let n = 0; c.traverse((o: THREE.Object3D) => { if ((o as THREE.Mesh).isMesh) n++; }); return n; })());
+    return c;
+  }, [scene, url]);
 
   // Compute bounding box → derive scale + geometric centre.
   // We call updateWorldMatrix(true,true) first so every mesh's matrixWorld
