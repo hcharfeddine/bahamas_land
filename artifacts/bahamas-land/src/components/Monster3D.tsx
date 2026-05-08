@@ -401,12 +401,30 @@ function GLBMonsterInner({ url, status, stage }: { url: string; status: Status; 
     const cloned = scene.clone(true);
     const target = GLB_TARGET[stage] ?? 2.0;
 
-    // Compute bounding box at runtime — reliable regardless of model coordinate system.
-    const box = new THREE.Box3().setFromObject(cloned);
+    // Update world matrices so Box3 reads correct positions.
+    // Then compute bounds only from visible Mesh geometry (excludes bones/cameras/helpers).
+    cloned.updateWorldMatrix(true, true);
+    const box = new THREE.Box3();
+    cloned.traverse((obj: THREE.Object3D) => {
+      const mesh = obj as THREE.Mesh;
+      if (mesh.isMesh && mesh.geometry) {
+        mesh.geometry.computeBoundingBox();
+        const geomBox = mesh.geometry.boundingBox!.clone();
+        geomBox.applyMatrix4(mesh.matrixWorld);
+        box.union(geomBox);
+      }
+    });
+
     const size = new THREE.Vector3();
     const center = new THREE.Vector3();
-    box.getSize(size);
-    box.getCenter(center);
+    if (box.isEmpty()) {
+      // Fallback: use full-object bounds if no meshes found
+      new THREE.Box3().setFromObject(cloned).getSize(size);
+      new THREE.Box3().setFromObject(cloned).getCenter(center);
+    } else {
+      box.getSize(size);
+      box.getCenter(center);
+    }
     const maxDim = Math.max(size.x, size.y, size.z);
     const scale = maxDim > 0 ? target / maxDim : 1;
 
