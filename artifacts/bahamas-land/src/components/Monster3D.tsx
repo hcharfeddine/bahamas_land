@@ -1,7 +1,26 @@
-import { useRef, useMemo, Suspense } from "react";
+import { useRef, useMemo, Suspense, Component, type ReactNode } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
+
+class GLBErrorBoundary extends Component<
+  { fallback: ReactNode; children: ReactNode; url: string },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(err: unknown) {
+    console.error("[Monster3D] GLB failed to load:", this.props.url, err);
+  }
+  componentDidUpdate(prev: { url: string }) {
+    if (prev.url !== this.props.url && this.state.failed) {
+      this.setState({ failed: false });
+    }
+  }
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
 
 export type MonsterType = "dragon" | "spider" | "golem" | "phoenix" | "crab" | "shark" | "octopus" | "cyclops" | "minotaur" | "medusa" | "centaur" | "kitsune";
 type Stage = "egg" | "baby" | "teen" | "adult" | "final";
