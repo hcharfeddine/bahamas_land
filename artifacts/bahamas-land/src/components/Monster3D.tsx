@@ -1291,10 +1291,36 @@ function MonsterScene({ kickUsername, stage, status }: { kickUsername: string; s
         if (monsterType === "kitsune")              return <KitsuneMesh     stage={stage} info={info} status={status} />;
         return null;
       })()}
-      <div
-        className="relative border-2 bg-black/95 overflow-hidden"
-        style={{
-        width: size, height: size,
+    </>
+  );
+}
+
+export function Monster3DViewer({
+  kickUsername,
+  stage,
+  status,
+  size = 220,
+}: {
+  kickUsername: string;
+  stage: Stage;
+  status: Status;
+  size?: number;
+}) {
+  const monsterType = getMonsterType(kickUsername);
+  const info = MONSTER_INFO[monsterType] ?? MONSTER_INFO.dragon;
+  const glow = statusGlow(status);
+  const cameraZ =
+    stage === "egg"   ? 3.5 :
+    stage === "baby"  ? 4.2 :
+    stage === "teen"  ? 4.8 :
+    stage === "adult" ? 5.2 : 5.5;
+
+  return (
+    <div
+      className="relative border-2 bg-black/95 overflow-hidden"
+      style={{
+        width: size,
+        height: size,
         borderColor: status === "dead" ? "#374151" : glow,
         boxShadow: status === "dead" ? "none" : `0 0 28px ${glow}55`,
       }}
@@ -1310,6 +1336,5 @@ function MonsterScene({ kickUsername, stage, status }: { kickUsername: string; s
         {info.icon} {info.name} · drag to rotate
       </div>
     </div>
-  </>
   );
 }
