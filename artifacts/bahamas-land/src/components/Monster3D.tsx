@@ -1562,11 +1562,10 @@ export function Monster3DViewer({
         key={`${kickUsername}-${stage}`}
         camera={{ position: [0, 0, cameraZ], fov: 42 }}
         gl={{ antialias: true, alpha: true }}
+        frameloop="always"
         style={{ width: "100%", height: "100%" }}
       >
-        <Suspense fallback={null}>
-          <MonsterScene kickUsername={kickUsername} stage={stage} status={status} />
-        </Suspense>
+        <MonsterScene kickUsername={kickUsername} stage={stage} status={status} />
         <OrbitControls
           enableZoom={true}
           enablePan={false}
