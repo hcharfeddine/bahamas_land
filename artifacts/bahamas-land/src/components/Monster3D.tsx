@@ -331,9 +331,67 @@ function getGlbUrl(type: MonsterType, stage: Stage): string | null {
   return url;
 }
 
-// Target half-extents per stage so the model fills the camera view.
+// Desired display size (units) for each stage — matched to camera distance.
 const GLB_TARGET: Record<string, number> = {
-  egg: 1.1, baby: 1.6, teen: 1.8, adult: 2.1, final: 2.3,
+  egg: 1.8, baby: 2.2, teen: 2.2, adult: 2.5, final: 2.8,
+};
+
+// Pre-computed bounds extracted from each GLB's POSITION accessor min/max.
+// maxDim = largest axis span in model space; cx/cy/cz = geometric center.
+// Generated offline via Node.js so we never depend on runtime Box3 on a cloned scene.
+const GLB_BOUNDS: Record<string, { maxDim: number; cx: number; cy: number; cz: number }> = {
+  egg_1:              { maxDim:     2.784, cx:    0.000, cy:    0.000, cz:    0.395 },
+  egg_2:              { maxDim:     0.755, cx:    0.000, cy:   -0.027, cz:   -0.013 },
+  egg_3:              { maxDim:     0.773, cx:    0.002, cy:    0.376, cz:    0.000 },
+  egg_4:              { maxDim:     0.577, cx:   -0.001, cy:    0.005, cz:    0.001 },
+  egg_5:              { maxDim:     1.849, cx:    0.000, cy:    0.000, cz:    0.895 },
+  egg_6:              { maxDim:     6.953, cx:    0.017, cy:    0.043, cz:    3.475 },
+  egg_7:              { maxDim:     0.929, cx:    0.000, cy:   -0.012, cz:   -0.002 },
+  egg_8:              { maxDim:     0.948, cx:   -0.001, cy:   -0.002, cz:   -0.001 },
+  egg_9:              { maxDim:     0.112, cx:   -0.007, cy:   -0.011, cz:    0.004 },
+  egg_10:             { maxDim:     0.819, cx:    0.000, cy:    0.418, cz:    0.000 },
+  egg_11:             { maxDim:     2.640, cx:    0.000, cy:    0.000, cz:    0.321 },
+  egg_12:             { maxDim:     1.879, cx:   -0.010, cy:   -0.002, cz:    0.936 },
+  egg_13:             { maxDim:     0.921, cx:    0.006, cy:    0.013, cz:    0.020 },
+  baby_teen_centaur:  { maxDim:     0.999, cx:   -0.001, cy:    0.000, cz:    0.004 },
+  baby_teen_crab:     { maxDim:    11.998, cx:    0.000, cy:   -2.195, cz:    2.846 },
+  baby_teen_cyclops:  { maxDim:    97.917, cx:    0.000, cy:   38.890, cz:   -2.105 },
+  baby_teen_dragon:   { maxDim:    17.586, cx:    0.000, cy:    6.651, cz:   -2.441 },
+  baby_teen_fenrir:   { maxDim:   124.530, cx:    0.000, cy:   13.382, cz:   31.770 },
+  baby_teen_golem:    { maxDim: 18577.709, cx:    0.000, cy: 9107.991, cz:    0.000 },
+  baby_teen_kitsune:  { maxDim:     6.887, cx:   -0.413, cy:    0.512, cz:    1.727 },
+  baby_teen_medusas:  { maxDim:     1.899, cx:   -0.001, cy:   -0.001, cz:   -0.001 },
+  baby_teen_minotaur: { maxDim:     1.997, cx:   -0.002, cy:   -0.002, cz:    0.018 },
+  baby_teen_octopus:  { maxDim:     7.791, cx:    0.000, cy:    0.196, cz:    1.246 },
+  baby_teen_phoenix:  { maxDim:   963.797, cx: -376.905, cy:  169.495, cz:    0.000 },
+  baby_teen_shark:    { maxDim:   149.410, cx:    0.000, cy:    7.177, cz:   26.856 },
+  baby_teen_spider:   { maxDim:    45.825, cx:    0.000, cy:   -0.562, cz:   -0.472 },
+  teen_golem:         { maxDim:  1615.993, cx:    0.000, cy:  680.934, cz:   60.502 },
+  adult_centaur:      { maxDim:     1.000, cx:    0.000, cy:    0.000, cz:    0.000 },
+  adult_crab:         { maxDim:     1.000, cx:    0.002, cy:    0.000, cz:    0.001 },
+  adult_cyclops:      { maxDim:    23.151, cx:    0.000, cy:    7.979, cz:   -0.475 },
+  adult_dragon:       { maxDim:    16.329, cx:    0.000, cy:    6.075, cz:   -2.473 },
+  adult_fenrir:       { maxDim:   234.560, cx:    0.000, cy:   66.818, cz:  -12.802 },
+  adult_kitsune:      { maxDim:     2.003, cx:   -0.002, cy:    0.000, cz:    0.009 },
+  adult_medusa:       { maxDim:   367.881, cx:   -0.834, cy:  117.849, cz: -110.318 },
+  adult_minotaur:     { maxDim:   116.489, cx:    8.880, cy:  -12.955, cz:  -44.615 },
+  adult_octopus:      { maxDim:    31.467, cx:   -0.579, cy:    0.270, cz:    4.557 },
+  adult_phoenix:      { maxDim:   963.797, cx: -376.905, cy:  169.495, cz:    0.000 },
+  adult_shark:        { maxDim:    96.550, cx:    0.000, cy:    0.000, cz:    0.000 },
+  adult_spider:       { maxDim:    11.276, cx:    0.047, cy:   -0.573, cz:    0.458 },
+  final_form_centaur: { maxDim:     1.000, cx:    0.000, cy:    0.000, cz:    0.000 },
+  final_form_crab:    { maxDim:   682.617, cx:   -7.714, cy: -103.053, cz:  -57.591 },
+  final_form_cyclops: { maxDim:   228.505, cx:   -6.756, cy:   74.545, cz:    0.058 },
+  final_form_dragon:  { maxDim:    36.939, cx:    0.000, cy:    0.324, cz:    9.755 },
+  final_form_fenrir:  { maxDim:    11.400, cx:    0.000, cy:    5.365, cz:   -4.426 },
+  final_form_golem:   { maxDim:     1.000, cx:    0.001, cy:    0.000, cz:    0.000 },
+  final_form_kitsune: { maxDim:     2.002, cx:    0.001, cy:   -0.001, cz:    0.002 },
+  final_form_medusa:  { maxDim:   124.797, cx:    0.180, cy:   -3.147, cz:    6.384 },
+  final_form_minotaur:{ maxDim:   132.466, cx:   -1.257, cy:   20.942, cz:  -14.055 },
+  final_form_octopus: { maxDim:   882.016, cx:  -11.978, cy:  300.941, cz:    0.000 },
+  final_form_phoenix: { maxDim:     8.033, cx:    0.003, cy:    2.500, cz:    0.996 },
+  final_form_shark:   { maxDim:    89.328, cx:    0.015, cy:    3.038, cz:   45.075 },
+  final_form_spider:  { maxDim:   273.831, cx:    0.000, cy:  -16.467, cz:   10.887 },
 };
 
 function GLBMonsterInner({ url, status, stage }: { url: string; status: Status; stage: Stage }) {
@@ -341,31 +399,23 @@ function GLBMonsterInner({ url, status, stage }: { url: string; status: Status; 
   const ref = useRef<THREE.Group>(null);
   useMonsterAnimation(ref, status);
 
-  const { cloned, scale, offset } = useMemo(() => {
+  const { cloned, scale, cx, cy, cz } = useMemo(() => {
     const cloned = scene.clone(true);
-
-    // Compute bounding box AFTER clone to auto-scale + center
-    const box = new THREE.Box3().setFromObject(cloned);
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const target = GLB_TARGET[stage] ?? 1.5;
-    const scale = maxDim > 0 ? (target * 2) / maxDim : 1;
-
-    const center = new THREE.Vector3();
-    box.getCenter(center);
-
-    console.log(`[Monster3D] GLB loaded ✓ url=${url} boxSize=(${size.x.toFixed(2)},${size.y.toFixed(2)},${size.z.toFixed(2)}) scale=${scale.toFixed(3)} stage=${stage}`);
-
-    return { cloned, scale, offset: center };
-  }, [scene, stage, url]);
+    // Extract stem from URL: ".../monsters/egg_1.glb" → "egg_1"
+    const stem = url.replace(/^.*\/monsters\//, "").replace(/\.glb$/, "");
+    const b = GLB_BOUNDS[stem];
+    const target = GLB_TARGET[stage] ?? 2.0;
+    const scale = b && b.maxDim > 0 ? target / b.maxDim : 1;
+    console.log(`[Monster3D] ${b ? "✓" : "⚠ no bounds"} stem=${stem} maxDim=${b?.maxDim} scale=${scale.toFixed(4)} stage=${stage}`);
+    return { cloned, scale, cx: b?.cx ?? 0, cy: b?.cy ?? 0, cz: b?.cz ?? 0 };
+  }, [scene, url, stage]);
 
   return (
-    // Outer group receives animation (bob/shake).
-    // Inner group: scale the model to fit, then translate so its center lands at origin.
-    // position must be -scale*center so that: position + scale*center = 0 in parent space.
+    // Outer group: receives bob/shake animation from useMonsterAnimation.
+    // Inner group: centers model at world origin and scales it to fit the camera view.
+    // Math: world_center = position + scale * model_center = 0  →  position = -scale * center
     <group ref={ref}>
-      <group scale={scale} position={[-scale * offset.x, -scale * offset.y, -scale * offset.z]}>
+      <group scale={scale} position={[-scale * cx, -scale * cy, -scale * cz]}>
         <primitive object={cloned} />
       </group>
     </group>
