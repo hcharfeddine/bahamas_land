@@ -374,6 +374,29 @@ dracoLoader.setDecoderPath("/draco/");
 dracoLoader.preload();
 
 
+// Plugin that handles the deprecated KHR_materials_pbrSpecularGlossiness extension
+// (removed from Three.js r152+). Converts specular-glossiness to metallic-roughness.
+class PbrSpecularGlossinessPlugin {
+  name = "KHR_materials_pbrSpecularGlossiness";
+  parser: any;
+  constructor(parser: any) { this.parser = parser; }
+  getMaterialType(_materialIndex: number) { return THREE.MeshStandardMaterial; }
+  extendMaterialParams(materialIndex: number, materialParams: Record<string, unknown>) {
+    const ext = this.parser.json.materials?.[materialIndex]?.extensions?.[this.name];
+    if (!ext) return Promise.resolve();
+    if (Array.isArray(ext.diffuseFactor)) {
+      materialParams.color = new THREE.Color().fromArray(ext.diffuseFactor);
+      if ((ext.diffuseFactor[3] ?? 1) < 1) { materialParams.transparent = true; materialParams.opacity = ext.diffuseFactor[3]; }
+    }
+    if (ext.glossinessFactor !== undefined) materialParams.roughness = 1.0 - ext.glossinessFactor;
+    if (Array.isArray(ext.specularFactor)) {
+      const avg = (ext.specularFactor[0] + ext.specularFactor[1] + ext.specularFactor[2]) / 3;
+      materialParams.metalness = Math.min(1, avg);
+    }
+    return Promise.resolve();
+  }
+}
+
 // GLBModelLoader — runs INSIDE the R3F Canvas, uses R3F's built-in useLoader
 // which handles caching, Suspense, and Draco decoding correctly.
 function GLBModelLoader({
@@ -387,6 +410,7 @@ function GLBModelLoader({
 }) {
   const gltf = useLoader(GLTFLoader, url, (loader) => {
     (loader as GLTFLoader).setDRACOLoader(dracoLoader);
+    (loader as GLTFLoader).register((parser: any) => new PbrSpecularGlossinessPlugin(parser));
   });
 
   const scene = useMemo(() => {
