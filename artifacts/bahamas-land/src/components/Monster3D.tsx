@@ -287,13 +287,38 @@ function SpiderMesh({ stage, info, status }: { stage: Stage; info: typeof MONSTE
 //   baby_(name).glb only  →  set baby to "baby_(name)", leave teen undefined
 //   teen_(name).glb only  →  set teen to "teen_(name)", leave baby undefined
 // Any undefined stage falls back to the procedural mesh automatically.
+// Per-stage GLB override — all fields optional, applied ON TOP of auto-normalization.
+// offset: [x, y, z] in world units after centering  (positive Y = move up)
+// rotationY: degrees to spin around Y axis           (0 = face camera)
+// scale: multiply the auto-computed scale            (1.0 = no change)
+type StageOverride = {
+  offset?:    [number, number, number];
+  rotationY?: number;
+  scale?:     number;
+};
+
 type MonsterGLBConfig = {
   egg?:       string;
   baby?:      string;
   teen?:      string;
   adult?:     string;
   finalForm?: string;
+  // Optional per-stage visual overrides
+  eggOverride?:      StageOverride;
+  babyOverride?:     StageOverride;
+  teenOverride?:     StageOverride;
+  adultOverride?:    StageOverride;
+  finalOverride?:    StageOverride;
 };
+
+function getStageOverride(cfg: MonsterGLBConfig, stage: Stage): StageOverride {
+  if (stage === "egg")   return cfg.eggOverride   ?? {};
+  if (stage === "baby")  return cfg.babyOverride   ?? {};
+  if (stage === "teen")  return cfg.teenOverride   ?? {};
+  if (stage === "adult") return cfg.adultOverride  ?? {};
+  if (stage === "final") return cfg.finalOverride  ?? {};
+  return {};
+}
 
 const MONSTER_GLB: Record<MonsterType, MonsterGLBConfig> = {
   dragon:   { egg: "egg_1",  baby: "baby_teen_dragon",   teen: "baby_teen_dragon",   adult: "adult_dragon",   finalForm: "final_form_dragon"   },
@@ -315,6 +340,15 @@ const MONSTER_GLB: Record<MonsterType, MonsterGLBConfig> = {
 // otherwise fall back to /monsters/* which is bundled into the Vercel dist.
 const _supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, "") ?? "";
 const GLB_BASE = _supabaseUrl ? `${_supabaseUrl}/storage/v1/object/public` : "";
+
+// Diagnostic: log once at startup so you can see config in browser console
+console.log(
+  "%c[Monster3D] GLB config",
+  "color:#ff2d8c;font-weight:bold",
+  _supabaseUrl
+    ? `✅ VITE_SUPABASE_URL = ${_supabaseUrl} → loading from Supabase CDN`
+    : "⚠️ VITE_SUPABASE_URL not set → loading from /monsters/ (local fallback)"
+);
 
 function getGlbUrl(type: MonsterType, stage: Stage): string | null {
   const cfg = MONSTER_GLB[type];
@@ -422,19 +456,25 @@ function GLBMonsterReady({
   scene,
   animations,
   status,
+  override = {},
 }: {
   scene: THREE.Object3D;
   animations: THREE.AnimationClip[];
   status: Status;
+  override?: StageOverride;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   useMonsterAnimation(groupRef, status);
 
-  const { scale, cx, cy, cz } = useMemo(
+  const { scale: autoScale, cx, cy, cz } = useMemo(
     () => computeNormalisedTransform(scene),
     [scene]
   );
+
+  const finalScale = autoScale * (override.scale ?? 1);
+  const rotY = ((override.rotationY ?? 0) * Math.PI) / 180;
+  const [ox, oy, oz] = override.offset ?? [0, 0, 0];
 
   useEffect(() => {
     if (animations.length === 0) return;
@@ -450,7 +490,12 @@ function GLBMonsterReady({
 
   return (
     <group ref={groupRef}>
-      <group scale={scale} position={[-scale * cx, -scale * cy, -scale * cz]}>
+      {/* Auto-center + auto-scale, then apply per-model override on top */}
+      <group
+        scale={finalScale}
+        position={[-finalScale * cx + ox, -finalScale * cy + oy, -finalScale * cz + oz]}
+        rotation={[0, rotY, 0]}
+      >
         <primitive object={scene} />
       </group>
     </group>
@@ -1468,10 +1513,11 @@ function ProceduralMonsterMesh({ monsterType, stage, info, status }: { monsterTy
 }
 
 export function MonsterScene({
-  kickUsername, stage, status, gltfState,
+  kickUsername, stage, status, gltfState, override = {},
 }: {
   kickUsername: string; stage: Stage; status: Status;
   gltfState: GltfState | null;
+  override?: StageOverride;
 }) {
   const monsterType = getMonsterType(kickUsername);
   const info = MONSTER_INFO[monsterType] ?? MONSTER_INFO.dragon;
@@ -1489,7 +1535,7 @@ export function MonsterScene({
       <pointLight position={[-3, -1, 3]} intensity={isDead ? 0.1 : 1.2} color={isDead ? "#555" : glow} />
       <pointLight position={[0, -4, 0]} intensity={isDead ? 0.05 : 0.8} color={isDead ? "#333" : info.eggGlow} />
       {gltfState?.status === "ready"
-        ? <GLBMonsterReady scene={gltfState.scene} animations={gltfState.animations} status={status} />
+        ? <GLBMonsterReady scene={gltfState.scene} animations={gltfState.animations} status={status} override={override} />
         : proceduralFallback
       }
     </>
@@ -1513,9 +1559,19 @@ export function Monster3DViewer({
   const info = MONSTER_INFO[monsterType] ?? MONSTER_INFO.dragon;
   const glow = statusGlow(status);
 
+  // Per-model position/rotation/scale override for this specific stage
+  const stageOverride = getStageOverride(MONSTER_GLB[monsterType] ?? {}, stage);
+
   // Resolve the GLB URL and start loading OUTSIDE the Canvas so we can show
   // an HTML progress overlay while the procedural mesh plays as placeholder.
   const url = getGlbUrl(monsterType, stage) ?? "";
+  useEffect(() => {
+    if (url) {
+      console.log(`%c[Monster3D] Loading GLB for @${kickUsername} (${monsterType}/${stage})`, "color:#ff2d8c;font-weight:bold", "\n→", url);
+    } else {
+      console.warn(`[Monster3D] No GLB configured for ${monsterType}/${stage} — showing procedural mesh`);
+    }
+  }, [url, kickUsername, monsterType, stage]);
   const gltfState = useGltfDirect(url);
   const isLoading = !!url && gltfState.status === "loading";
   const loadProgress = gltfState.status === "loading" ? gltfState.progress : 100;
@@ -1558,6 +1614,7 @@ export function Monster3DViewer({
           stage={stage}
           status={status}
           gltfState={url ? gltfState : null}
+          override={stageOverride}
         />
         <OrbitControls
           enableZoom={true}
