@@ -43,8 +43,8 @@ export const MONSTER_INFO: Record<MonsterType, { name: string; icon: string; pri
   fenrir:      { name: "Fenrir",        icon: "🐺", primary: "#1e1b4b", secondary: "#818cf8", eggGlow: "#6366f1" },
 };
 
-export function getMonsterType(username: string): MonsterType {
-  if (!username) return "dragon";
+export function getMonsterType(username: string | undefined | null): MonsterType {
+  if (!username || typeof username !== "string") return "dragon";
   // Scrambled multiplicative hash — distributes evenly across 13 types
   let h = 0x811c9dc5;
   for (let i = 0; i < username.length; i++) {
@@ -1555,7 +1555,9 @@ export function Monster3DViewer({
   size?: number;
   fullscreen?: boolean;
 }) {
-  const monsterType = getMonsterType(kickUsername);
+  // Safety guard — never render without a valid username
+  const safeUsername = kickUsername || "";
+  const monsterType = getMonsterType(safeUsername);
   const info = MONSTER_INFO[monsterType] ?? MONSTER_INFO.dragon;
   const glow = statusGlow(status);
 
