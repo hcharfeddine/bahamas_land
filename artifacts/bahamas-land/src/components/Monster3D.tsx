@@ -341,14 +341,6 @@ const MONSTER_GLB: Record<MonsterType, MonsterGLBConfig> = {
 const _supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, "") ?? "";
 const GLB_BASE = _supabaseUrl ? `${_supabaseUrl}/storage/v1/object/public` : "";
 
-// Diagnostic: log once at startup so you can see config in browser console
-console.log(
-  "%c[Monster3D] GLB config",
-  "color:#ff2d8c;font-weight:bold",
-  _supabaseUrl
-    ? `✅ VITE_SUPABASE_URL = ${_supabaseUrl} → loading from Supabase CDN`
-    : "⚠️ VITE_SUPABASE_URL not set → loading from /monsters/ (local fallback)"
-);
 
 function getGlbUrl(type: MonsterType, stage: Stage): string | null {
   const cfg = MONSTER_GLB[type];
@@ -362,8 +354,11 @@ function getGlbUrl(type: MonsterType, stage: Stage): string | null {
   return name ? `${GLB_BASE}/monsters/${name}.glb` : null;
 }
 
-// REF_SIZE: every GLB model is scaled so its longest axis = this many world units.
-// The camera in Monster3DViewer is fixed at z=3.5 with FOV 42, giving ~78% fill.
+// GLB_REF_SIZE: target world-units for the model's HEIGHT (Y axis).
+// Camera is at z=3.5, FOV 42 → visible height ≈ 2.69 units.
+// Targeting 2.0 gives ~74% vertical fill for upright models.
+// A 3× cap prevents very wide models (spread wings, long tails) from
+// blowing out horizontally when scaled by height alone.
 const GLB_REF_SIZE = 2.0;
 
 // Shared loader instance — reused across renders.
@@ -418,7 +413,6 @@ function GLBModelLoader({
       const cloned = skeletonClone(gltf.scene);
       let meshCount = 0;
       cloned.traverse((o: THREE.Object3D) => { if ((o as THREE.Mesh).isMesh) meshCount++; });
-      console.log("[GLB] ✅ loaded:", url, "| meshes:", meshCount, "| anims:", gltf.animations.length);
       return cloned;
     } catch (e) {
       console.error("[GLB] ❌ clone failed:", url, e);
@@ -443,7 +437,7 @@ function computeNormalisedTransform(scene: THREE.Object3D) {
   });
 
   if (box.isEmpty()) box.setFromObject(scene);
-  if (box.isEmpty()) return { scale: 1, cx: 0, cy: 0, cz: 0 };
+  if (box.isEmpty()) return { scale: 1, cx: 0, cz: 0, minY: 0 };
 
   const size   = new THREE.Vector3();
   const center = new THREE.Vector3();
@@ -451,9 +445,15 @@ function computeNormalisedTransform(scene: THREE.Object3D) {
   box.getCenter(center);
 
   const maxDim = Math.max(size.x, size.y, size.z);
-  const scale = maxDim > 0 ? GLB_REF_SIZE / maxDim : 1;
-  console.log("[GLB] bounds — size:", size.toArray().map(v=>+v.toFixed(3)), "maxDim:", +maxDim.toFixed(3), "→ scale:", +scale.toFixed(4));
-  return { scale, cx: center.x, cy: center.y, cz: center.z };
+
+  // Scale so the model's HEIGHT (Y axis) fills GLB_REF_SIZE world units.
+  // Cap so no axis exceeds 3× GLB_REF_SIZE (handles wide-winged / long models).
+  const heightScale = size.y > 0 ? GLB_REF_SIZE / size.y : 1;
+  const capScale    = maxDim > 0 ? (GLB_REF_SIZE * 3) / maxDim : 1;
+  const scale       = Math.min(heightScale, capScale);
+
+  // Return cx/cz for horizontal centering; minY for bottom-alignment.
+  return { scale, cx: center.x, cz: center.z, minY: box.min.y };
 }
 
 function GLBMonsterReady({
@@ -471,7 +471,7 @@ function GLBMonsterReady({
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   useMonsterAnimation(groupRef, status);
 
-  const { scale: autoScale, cx, cy, cz } = useMemo(
+  const { scale: autoScale, cx, cz, minY } = useMemo(
     () => computeNormalisedTransform(scene),
     [scene]
   );
@@ -479,6 +479,15 @@ function GLBMonsterReady({
   const finalScale = autoScale * (override.scale ?? 1);
   const rotY = ((override.rotationY ?? 0) * Math.PI) / 180;
   const [ox, oy, oz] = override.offset ?? [0, 0, 0];
+
+  // X/Z: center bounding box at origin.
+  // Y: bottom-align — place model's lowest point at -GLB_REF_SIZE/2 so the
+  //    character "stands" in the lower half of the view and the head rises
+  //    naturally into the upper half. This fixes models that float high when
+  //    their bounding box has a heavy tail/base pulling the center down.
+  const px = -finalScale * cx + ox;
+  const py = -finalScale * minY - GLB_REF_SIZE / 2 + oy;
+  const pz = -finalScale * cz + oz;
 
   useEffect(() => {
     if (animations.length === 0) return;
@@ -494,10 +503,10 @@ function GLBMonsterReady({
 
   return (
     <group ref={groupRef}>
-      {/* Auto-center + auto-scale, then apply per-model override on top */}
+      {/* Height-fit scale + bottom-aligned position, then per-model override */}
       <group
         scale={finalScale}
-        position={[-finalScale * cx + ox, -finalScale * cy + oy, -finalScale * cz + oz]}
+        position={[px, py, pz]}
         rotation={[0, rotY, 0]}
       >
         <primitive object={scene} />
@@ -1527,13 +1536,6 @@ export function Monster3DViewer({
   const glow         = statusGlow(status);
   const stageOverride = getStageOverride(MONSTER_GLB[monsterType] ?? {}, stage);
   const glbUrl        = getGlbUrl(monsterType, stage) ?? "";
-
-  useEffect(() => {
-    console.log(
-      `%c[Monster3D] viewer mount — @${safeUsername || "(none)"} | type:${monsterType} | stage:${stage} | url:${glbUrl || "(none)"}`,
-      "color:#ff2d8c;font-weight:bold"
-    );
-  }, [safeUsername, monsterType, stage, glbUrl]);
 
   const containerStyle: React.CSSProperties = fullscreen
     ? { position: "absolute", inset: 0,
