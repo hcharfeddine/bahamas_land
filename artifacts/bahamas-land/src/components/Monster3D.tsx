@@ -367,8 +367,10 @@ function getGlbUrl(type: MonsterType, stage: Stage): string | null {
 const GLB_REF_SIZE = 2.0;
 
 // Shared loader instance — reused across renders.
+// Draco decoder is bundled locally in /public/draco/ (copied from three@0.184.0)
+// to guarantee version compatibility and avoid gstatic CDN latency/blocking.
 const dracoLoader = new DRACOLoader();
-dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.7/");
+dracoLoader.setDecoderPath("/draco/");
 dracoLoader.preload();
 const gltfLoader = new GLTFLoader();
 gltfLoader.setDRACOLoader(dracoLoader);
