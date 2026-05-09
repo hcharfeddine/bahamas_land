@@ -55,7 +55,7 @@ export function getMonsterType(username: string | undefined | null): MonsterType
   h = (Math.imul(h, 0x45d9f3b)) >>> 0;
   h ^= h >>> 16;
   const types: MonsterType[] = ["dragon", "spider", "golem", "phoenix", "crab", "shark", "octopus", "cyclops", "minotaur", "medusa", "centaur", "kitsune", "fenrir"];
-  return types[h % types.length];
+  return types[(h >>> 0) % types.length];
 }
 
 function statusGlow(status: Status): string {
