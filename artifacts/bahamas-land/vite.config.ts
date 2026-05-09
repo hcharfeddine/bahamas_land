@@ -10,7 +10,12 @@ import { hintMiddleware } from "./server/hintMiddleware";
 
 const port = process.env.PORT ? Number(process.env.PORT) : 5173;
 
-const MONSTERS_SRC = path.resolve(import.meta.dirname, "../../monsters");
+// Prefer monsters-compressed/ (Draco-encoded) over raw monsters/ when available.
+const _monstersCompressed = path.resolve(import.meta.dirname, "../../monsters-compressed");
+const _monstersRaw        = path.resolve(import.meta.dirname, "../../monsters");
+const MONSTERS_SRC = fs.existsSync(_monstersCompressed) && fs.readdirSync(_monstersCompressed).some(f => f.endsWith(".glb"))
+  ? _monstersCompressed
+  : _monstersRaw;
 
 const monstersPlugin = (): PluginOption => ({
   name: "serve-monsters",
@@ -31,15 +36,19 @@ const monstersPlugin = (): PluginOption => ({
       }
     });
   },
-  // In production: copy GLBs into dist/monsters/ as a reliable fallback.
-  // When VITE_SUPABASE_URL is set the frontend prefers Supabase CDN, but
-  // having the files in dist ensures monsters always load even if Supabase
-  // Storage is not configured.
+  // In production: only copy GLBs into dist/monsters/ when Supabase is NOT
+  // configured. When VITE_SUPABASE_URL is set the frontend loads from the
+  // Supabase CDN, so we skip the copy to keep the Vercel deployment small.
   closeBundle() {
     if (!fs.existsSync(MONSTERS_SRC)) return;
+    if (process.env.VITE_SUPABASE_URL) {
+      console.log("[monsters] VITE_SUPABASE_URL set — skipping GLB copy (using Supabase CDN)");
+      return;
+    }
     const dest = path.resolve(import.meta.dirname, "dist/monsters");
     fs.mkdirSync(dest, { recursive: true });
     for (const file of fs.readdirSync(MONSTERS_SRC)) {
+      if (!file.endsWith(".glb")) continue;
       fs.copyFileSync(path.join(MONSTERS_SRC, file), path.join(dest, file));
     }
   },
