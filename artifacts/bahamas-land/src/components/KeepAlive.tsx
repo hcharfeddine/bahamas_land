@@ -61,23 +61,31 @@ export function KeepAlive() {
 
   // --- Achievement sync (always runs, uses Supabase directly) ---------------
   useEffect(() => {
-    // Fire on startup after a short delay — runs the full sync cycle for
-    // every logged-in player, including the one-time bulk migration
-    const startupTimer = window.setTimeout(syncAll, 5_000);
+    // Fire on startup — runs bulk migration + full sync for logged-in players.
+    // 2 s gives Supabase client time to initialise before we hit any RPCs.
+    const startupTimer = window.setTimeout(syncAll, 2_000);
 
     // Repeat every 5 minutes
     const id = window.setInterval(syncAll, SYNC_INTERVAL_MS);
 
-    // Also sync when the user returns to the tab
-    const onVisible = () => {
-      if (document.visibilityState === "visible") syncAll();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        // User returned to the tab — sync any achievements missed while away
+        syncAll();
+      } else {
+        // Tab hidden / page closing — best-effort flush of pending tokens
+        // (Problem 2 fix: catches the gap between p_sync_grant and syncSecrets)
+        import("@/lib/players")
+          .then((m) => m.syncSecrets())
+          .catch(() => {});
+      }
     };
-    document.addEventListener("visibilitychange", onVisible);
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       window.clearTimeout(startupTimer);
       window.clearInterval(id);
-      document.removeEventListener("visibilitychange", onVisible);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, []);
 

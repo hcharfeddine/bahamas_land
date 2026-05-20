@@ -453,6 +453,8 @@ export function unlock(id: AchievementId) {
 }
 
 // Debounced background sync — dynamic import avoids circular dependency with players.ts.
+// 150 ms is enough to batch rapid multi-achievement unlocks while staying well
+// within the tab-close window (Problem 2 fix: was 800 ms).
 let _syncTimer: number | null = null;
 function schedulePlayerSync() {
   if (typeof window === "undefined") return;
@@ -464,7 +466,7 @@ function schedulePlayerSync() {
       .catch(() => {
         /* ignore */
       });
-  }, 800);
+  }, 150);
 }
 
 export function isUnlocked(id: AchievementId): boolean {
