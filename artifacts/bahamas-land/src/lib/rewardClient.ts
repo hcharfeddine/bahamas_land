@@ -85,9 +85,9 @@ async function claimViaSupabase(
   const required = rewardRequiredIds();
   const achievements = required.filter((id) => unlocked[id]);
   const { data, error } = await supabase.rpc("claim_reward", {
-    p_visitor_id: visitorId,
-    p_username: username,
-    p_achievements: achievements,
+    visitor_id: visitorId,
+    username: username,
+    achievements: achievements,
   });
   if (error) return { ok: false, reason: error.message || "rpc_error" };
   return (data as ClaimResult) ?? { ok: false, reason: "empty_response" };
