@@ -1,13 +1,34 @@
 import { useEffect } from "react";
 
-const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.trim().replace(/\/+$/, "");
-const PING_INTERVAL_MS   = 14 * 60 * 1000;
-const GRANT_RETRY_MS     =  5 * 60 * 1000;
+const API_URL        = (import.meta.env.VITE_API_URL as string | undefined)?.trim().replace(/\/+$/, "");
+const PING_INTERVAL_MS = 14 * 60 * 1000;
+const SYNC_INTERVAL_MS =  5 * 60 * 1000;
 
+// Retry any achievements without server tokens (fresh HMAC each time)
 function retryGrants() {
   import("@/lib/achievements")
     .then((m) => m.retryPendingGrants())
     .catch(() => {});
+}
+
+// Full sync: push tokens → receive back confirmed achievement list from server.
+// This restores achievements that are in the DB but got wiped from localStorage.
+function fullSync() {
+  import("@/lib/players")
+    .then((m) => m.syncSecrets())
+    .catch(() => {});
+}
+
+// Combined: get missing tokens first, then sync to/from server
+async function syncAll() {
+  try {
+    const achievements = await import("@/lib/achievements");
+    await achievements.retryPendingGrants();
+  } catch { /* ignore */ }
+  try {
+    const players = await import("@/lib/players");
+    await players.syncSecrets();
+  } catch { /* ignore */ }
 }
 
 export function KeepAlive() {
@@ -29,9 +50,7 @@ export function KeepAlive() {
     };
 
     ping();
-
     const id = window.setInterval(ping, PING_INTERVAL_MS);
-
     const onVisible = () => {
       if (document.visibilityState === "visible") ping();
     };
@@ -43,18 +62,20 @@ export function KeepAlive() {
     };
   }, []);
 
-  // --- Achievement grant retry (always runs, uses Supabase directly) --------
+  // --- Achievement sync (always runs, uses Supabase directly) ---------------
   useEffect(() => {
-    // Fire once on startup after a short delay (catches achievements unlocked
-    // in a previous session before the player had a registered account)
-    const startupTimer = window.setTimeout(retryGrants, 5_000);
+    // On startup: retry missing tokens, then do a full sync.
+    // This recovers achievements that are in the DB but were wiped from
+    // localStorage, and pushes any locally-unlocked but unsynced achievements
+    // up to the server — all without requiring a logout/login.
+    const startupTimer = window.setTimeout(syncAll, 5_000);
 
-    // Then keep retrying every 5 minutes so any network blip is healed quickly
-    const id = window.setInterval(retryGrants, GRANT_RETRY_MS);
+    // Keep syncing every 5 minutes so any gap heals automatically
+    const id = window.setInterval(syncAll, SYNC_INTERVAL_MS);
 
-    // Also retry whenever the user comes back to the tab
+    // Also sync when the user comes back to the tab
     const onVisible = () => {
-      if (document.visibilityState === "visible") retryGrants();
+      if (document.visibilityState === "visible") syncAll();
     };
     document.addEventListener("visibilitychange", onVisible);
 
