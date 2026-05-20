@@ -430,6 +430,50 @@ function cleanupFakeAchievements(confirmedTokens: Record<string, string>) {
 }
 
 // ---------------------------------------------------------------------------
+// ONE-TIME BULK ACHIEVEMENT MIGRATION
+//
+// Calls player_sync_all — a temporary bypass RPC that accepts ALL locally
+// stored achievements without requiring HMAC tokens.  Runs once per device,
+// marked by "ogs_bulk_sync_done" in localStorage.  Safe to call repeatedly
+// because the RPC is idempotent (it only adds, never removes).
+// ---------------------------------------------------------------------------
+
+const BULK_SYNC_KEY = "ogs_bulk_sync_done";
+
+export async function bulkSyncAchievements(): Promise<void> {
+  try {
+    if (localStorage.getItem(BULK_SYNC_KEY) === "1") return;
+  } catch { return; }
+
+  const username = getStoredUsername();
+  const pin      = getStoredPin();
+  if (!username || !pin) return;
+  if (!isSupabaseConfigured || !supabase) return;
+
+  try {
+    const raw = localStorage.getItem("ogs_achievements");
+    const map: Record<string, number> = raw ? JSON.parse(raw) : {};
+    // Send ALL locally stored IDs — the server validates them against
+    // valid_achievements, so unknown/fake IDs are silently dropped server-side.
+    const ids = Object.keys(map).filter((id) => typeof id === "string" && id.length > 0);
+    if (ids.length === 0) return;
+
+    const pin_hash = await hashPin(username, pin);
+    const { data } = await supabase.rpc("player_sync_all", {
+      p_username:     username,
+      p_pin_hash:     pin_hash,
+      p_achievements: ids,
+    });
+
+    if (data?.ok) {
+      localStorage.setItem(BULK_SYNC_KEY, "1");
+    }
+  } catch {
+    // Will retry on next page load until it succeeds
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Migration: any visitor who was here BEFORE the citizen registry shipped
 // is wiped to zero so everyone follows the same path. We detect the v1 era
 // by the presence of the legacy username slot (or any v1 achievements) AND
