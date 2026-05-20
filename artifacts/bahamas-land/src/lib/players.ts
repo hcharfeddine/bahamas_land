@@ -125,6 +125,8 @@ export async function registerPlayer(
   if (result.ok) {
     const player = normalizePlayer(result.data);
     saveSession(player.username, cleanPinStr);
+    // Retry any achievements unlocked before the player registered
+    import("@/lib/achievements").then((m) => m.retryPendingGrants()).catch(() => {});
     return { ok: true, data: player };
   }
   if (!result.ok && result.reason === "banned") markBanned(result.reason);
@@ -159,6 +161,8 @@ export async function loginPlayer(
     }
     // Restore any tokens already issued in previous sessions so syncs still work
     hydrateLocalTokens(cleanName, pin_hash);
+    // Retry any achievements that failed to get tokens in previous sessions
+    import("@/lib/achievements").then((m) => m.retryPendingGrants()).catch(() => {});
     return { ok: true, data: player };
   }
   if (!result.ok && result.reason === "banned") markBanned(result.reason);
@@ -384,8 +388,9 @@ async function hydrateLocalTokens(username: string, pin_hash: string) {
 const TOKEN_SYSTEM_START = new Date("2025-05-06T00:00:00Z").getTime();
 
 // How long a token-less achievement is tolerated before being removed.
-// 24 hours gives legitimate players plenty of time to retrigger naturally.
-const FAKE_TTL_MS = 24 * 60 * 60 * 1000;
+// 7 days gives legitimate players time to retry even if the backend was down
+// or they were offline when they first unlocked.
+const FAKE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 function cleanupFakeAchievements(confirmedTokens: Record<string, string>) {
   try {
@@ -393,13 +398,23 @@ function cleanupFakeAchievements(confirmedTokens: Record<string, string>) {
     if (!raw) return;
     const achievements: Record<string, number> = JSON.parse(raw);
     const now = Date.now();
+
+    // Any achievement that is still waiting for a retry should never be wiped.
+    // retryPendingGrants() is called after login, so if the player is logged in
+    // and the grant still fails it will be retried automatically.
+    // We only clean up achievements that have no confirmed token AND no active
+    // retry path — i.e. a logged-in user whose sync keeps failing for 7+ days.
+    const hasSession = !!localStorage.getItem("ogs_v2_username");
+
     let changed = false;
     for (const [id, ts] of Object.entries(achievements)) {
       // Skip legacy achievements (existed before the token system)
       if (ts < TOKEN_SYSTEM_START) continue;
       // Skip achievements that already have a confirmed server token
       if (confirmedTokens[id]) continue;
-      // Remove achievements that have been token-less for over 24 hours
+      // If the player has an active session, retries will keep running — protect them
+      if (hasSession) continue;
+      // Remove token-less achievements for logged-out players after the TTL
       if (now - ts > FAKE_TTL_MS) {
         delete achievements[id];
         changed = true;

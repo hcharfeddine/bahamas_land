@@ -7,7 +7,8 @@ export type SharedVerdict = Verdict & {
   pinned?: boolean;
 };
 
-const CACHE_TTL_MS = 30 * 60 * 1000;
+const CACHE_TTL_MS     = 30 * 60 * 1000;
+const FALLBACK_POLL_MS = 60 * 1000;
 
 function remoteToLocal(r: RemoteCourtVerdict): SharedVerdict {
   return {
@@ -25,6 +26,7 @@ export function useSharedCourt() {
   const [localItems, setLocalItems] = useVerdicts();
   const [remoteItems, setRemoteItems] = useState<SharedVerdict[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [realtimeConnected, setRealtimeConnected] = useState(false);
   const lastFetchRef = useRef<number>(0);
 
   const fetchRemote = useCallback(async (force = false) => {
@@ -106,12 +108,26 @@ export function useSharedCourt() {
           if (id) setRemoteItems((prev) => prev ? prev.filter((i) => i.id !== id) : prev);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        const connected = status === "SUBSCRIBED";
+        setRealtimeConnected(connected);
+        if (connected) {
+          fetchRemote(true);
+        }
+      });
 
     return () => {
       client.removeChannel(channel);
+      setRealtimeConnected(false);
     };
   }, [fetchRemote]);
+
+  // Fallback polling when real-time is not connected
+  useEffect(() => {
+    if (!isSupabaseConfigured || realtimeConnected) return;
+    const id = window.setInterval(() => fetchRemote(true), FALLBACK_POLL_MS);
+    return () => window.clearInterval(id);
+  }, [realtimeConnected, fetchRemote]);
 
   const submit = useCallback(
     async (item: { username: string; text: string; verdict: string }) => {

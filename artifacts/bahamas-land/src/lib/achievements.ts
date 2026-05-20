@@ -330,6 +330,8 @@ async function requestAchievementToken(id: AchievementId) {
     if (!isSupabaseConfigured || !supabase) return;
     const username = getStoredUsername();
     const pin = getStoredPin();
+    // No session yet — the achievement stays in localStorage and will be picked
+    // up by retryPendingGrants() once the player registers/logs in.
     if (!username || !pin) return;
     const [pin_hash, sig] = await Promise.all([
       hashPin(username, pin),
@@ -344,6 +346,61 @@ async function requestAchievementToken(id: AchievementId) {
     if (data?.ok && data?.token) {
       writeToken(id, data.token);
       schedulePlayerSync();
+    }
+    // If the call succeeded but token wasn't issued, or if data is falsy,
+    // retryPendingGrants() will pick it up on the next cycle.
+  } catch {
+    // Network failure — retryPendingGrants() will retry on next opportunity.
+  }
+}
+
+// ---------------------------------------------------------------------------
+// retryPendingGrants — scans ALL locally unlocked achievements that don't
+// have a server token yet and attempts to get tokens for them with fresh
+// HMAC signatures.
+//
+// Call this:
+//   • after login/register (catches pre-login achievements)
+//   • periodically (catches network failures)
+//   • after a successful keep-alive ping (backend just woke up)
+// ---------------------------------------------------------------------------
+export async function retryPendingGrants(): Promise<void> {
+  try {
+    const [{ supabase, isSupabaseConfigured }, { getStoredUsername, getStoredPin, hashPin }] =
+      await Promise.all([
+        import("@/lib/supabase"),
+        import("@/lib/players"),
+      ]);
+    if (!isSupabaseConfigured || !supabase) return;
+    const username = getStoredUsername();
+    const pin = getStoredPin();
+    if (!username || !pin) return;
+
+    const allUnlocked = read();
+    const missing = Object.keys(allUnlocked).filter(
+      (id) => ACHIEVEMENTS.some((a) => a.id === id) && !hasToken(id),
+    );
+    if (missing.length === 0) return;
+
+    const pin_hash = await hashPin(username, pin);
+
+    for (const id of missing) {
+      try {
+        // Fresh HMAC signature with the current time window
+        const sig = await signUnlock(username, id as AchievementId);
+        const { data } = await supabase.rpc("p_sync_grant", {
+          p_username: username,
+          p_pin_hash: pin_hash,
+          p_achievement_id: id,
+          p_sig: sig,
+        });
+        if (data?.ok && data?.token) {
+          writeToken(id as AchievementId, data.token);
+          schedulePlayerSync();
+        }
+      } catch {
+        // This individual grant failed — keep it for next retry cycle
+      }
     }
   } catch {
     /* ignore */

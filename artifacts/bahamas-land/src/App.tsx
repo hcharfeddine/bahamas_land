@@ -63,6 +63,7 @@ import { ConsoleEggs } from "@/components/ConsoleEggs";
 import { HiddenEggs } from "@/components/HiddenEggs";
 import { NattounComments } from "@/components/NattounComments";
 import { AutoReload } from "@/components/AutoReload";
+import { KeepAlive } from "@/components/KeepAlive";
 import { ActivityTracker } from "@/components/ActivityTracker";
 import { PlayerSetup } from "@/components/PlayerSetup";
 
@@ -149,6 +150,7 @@ function App() {
           <HiddenEggs />
           <NattounComments />
           <AutoReload />
+          <KeepAlive />
           <ActivityTracker />
           <PlayerSetup />
           <Router />

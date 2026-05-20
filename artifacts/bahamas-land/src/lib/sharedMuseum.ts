@@ -4,8 +4,9 @@ import { useMuseum, MuseumItem } from "@/lib/store";
 
 export type SharedMuseumItem = MuseumItem & { status?: "pending" | "approved" | "rejected" };
 
-const CACHE_TTL_MS = 30 * 60 * 1000;
-const LIST_LIMIT    = 30;
+const CACHE_TTL_MS        = 30 * 60 * 1000;
+const FALLBACK_POLL_MS    = 60 * 1000;
+const LIST_LIMIT          = 30;
 
 function remoteToLocal(r: RemoteMuseumItem, stripImage = false): SharedMuseumItem {
   return {
@@ -24,6 +25,7 @@ export function useSharedMuseum() {
   const [localItems, setLocalItems] = useMuseum();
   const [remoteItems, setRemoteItems] = useState<SharedMuseumItem[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [realtimeConnected, setRealtimeConnected] = useState(false);
   const lastFetchRef = useRef<number>(0);
 
   const fetchRemote = useCallback(async (force = false) => {
@@ -59,7 +61,6 @@ export function useSharedMuseum() {
         (payload) => {
           const item = payload.new as RemoteMuseumItem;
           if (item.status !== "approved") return;
-          // Strip image from realtime payload — saves transmitting large base64 blobs
           const local = remoteToLocal(item, true);
           setRemoteItems((prev) => (prev ? [local, ...prev] : [local]));
         }
@@ -69,7 +70,6 @@ export function useSharedMuseum() {
         { event: "UPDATE", schema: "public", table: "museum_items" },
         (payload) => {
           const item = payload.new as RemoteMuseumItem;
-          // Strip image from realtime payload — keep existing image if already loaded
           const local = remoteToLocal(item, true);
           setRemoteItems((prev) => {
             if (!prev) return prev;
@@ -94,12 +94,27 @@ export function useSharedMuseum() {
           if (id) setRemoteItems((prev) => prev ? prev.filter((i) => i.id !== id) : prev);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        const connected = status === "SUBSCRIBED";
+        setRealtimeConnected(connected);
+        if (connected) {
+          // Refetch on reconnect to catch any missed changes
+          fetchRemote(true);
+        }
+      });
 
     return () => {
       client.removeChannel(channel);
+      setRealtimeConnected(false);
     };
   }, [fetchRemote]);
+
+  // Fallback polling when real-time is not connected
+  useEffect(() => {
+    if (!isSupabaseConfigured || realtimeConnected) return;
+    const id = window.setInterval(() => fetchRemote(true), FALLBACK_POLL_MS);
+    return () => window.clearInterval(id);
+  }, [realtimeConnected, fetchRemote]);
 
   const submit = useCallback(
     async (item: { username: string; caption: string; image: string | null; label: string }) => {
